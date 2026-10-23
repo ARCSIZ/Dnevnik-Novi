@@ -1,0 +1,17 @@
+{
+  "name": "college-id",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Колледж·ID — система доступа студентов: фронтенд + бэкенд без внешних зависимостей, переносимая файловая база в папке Data/",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "license": "UNLICENSED"
+}

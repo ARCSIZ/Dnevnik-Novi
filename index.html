@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<!-- ==========================================================================
+  КОЛЛЕДЖ·ID — ГЛАВНЫЙ ФАЙЛ ПРИЛОЖЕНИЯ (точка входа для хостинга)
+  --------------------------------------------------------------------------
+  Технологии: HTML5 + CSS3 (Tailwind CDN) + чистый JavaScript (frontend).
+  Бэкенд не требуется: данные хранятся в браузере (localStorage),
+  слой данных — Data/users.js.
+
+  Структура проекта:
+    index.html                  ← ЭТОТ ФАЙЛ: вход на сайт (хостинг открывает его сам)
+    General/authorization.html  ← авторизация и регистрация
+    Students/diary.html         ← личный кабинет студента
+    Data/users.js               ← «база данных» пользователей (CollegeDB)
+    Dev/, Faculty/              ← зарезервированные разделы
+
+  Маршрут: index.html → General/authorization.html → Students/diary.html
+========================================================================== -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Колледж·ID — единая система доступа студентов: авторизация, дневник, расписание и сервисы цифрового колледжа.">
+<meta name="theme-color" content="#07070d">
+<meta property="og:title" content="Колледж·ID — Цифровой колледж">
+<meta property="og:description" content="Единая точка входа: дневник, оценки, расписание и сервисы колледжа.">
+<meta property="og:type" content="website">
+<title>Колледж·ID — Цифровой колледж</title>
+
+<!-- Запасная переадресация, если JavaScript отключён или тормозит -->
+<meta http-equiv="refresh" content="1.6; url=General/authorization.html">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M16 9 6 13.5l10 4.5 8-3.6V19h2v-5.5z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>
+  /* Основная переадресация на страницу авторизации */
+  var ENTRY = 'General/authorization.html';
+  function go(){ window.location.replace(ENTRY); }
+  setTimeout(go, 1200);                    // обычный сценарий
+  window.addEventListener('load', function(){ setTimeout(go, 1200); }); // дублируем на всякий случай
+</script>
+
+<style>
+  :root{color-scheme:dark}
+  *{margin:0;box-sizing:border-box;scrollbar-width:none}
+  *::-webkit-scrollbar{display:none}
+  html,body{overflow:hidden}
+  body{
+    font-family:'Manrope',sans-serif;background:#07070d;color:#fff;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+    --sat:env(safe-area-inset-bottom,0px);
+    padding:calc(var(--sat) + 24px) 24px 24px;
+  }
+  .bg{position:fixed;inset:0;pointer-events:none}
+  .orb{position:absolute;border-radius:9999px;filter:blur(90px)}
+  .o1{width:520px;height:520px;top:-160px;left:-140px;background:radial-gradient(circle,rgba(99,102,241,.3),transparent 65%);animation:f1 8s ease-in-out infinite}
+  .o2{width:460px;height:460px;bottom:-160px;right:-120px;background:radial-gradient(circle,rgba(168,85,247,.24),transparent 65%);animation:f2 10s ease-in-out infinite}
+  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-30px)}}
+  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,40px)}}
+  .gridln{
+    position:fixed;inset:0;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 40%, black 30%, transparent 75%);
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 40%, black 30%, transparent 75%);
+  }
+
+  .logo{
+    width:72px;height:72px;border-radius:22px;
+    background:linear-gradient(135deg,#6366f1,#a855f7);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 18px 50px -10px rgba(124,58,237,.6);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 18px 50px -10px rgba(124,58,237,.6)}50%{transform:scale(1.05);box-shadow:0 22px 60px -8px rgba(124,58,237,.8)}}
+  .logo svg{width:36px;height:36px}
+
+  .name{font-weight:700;font-size:20px;letter-spacing:-.02em}
+  .sub{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.3em;color:rgba(255,255,255,.35);text-transform:uppercase;text-align:center}
+
+  .bar{width:200px;height:3px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+  .bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#6366f1,#c084fc);animation:load 1.2s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes load{to{width:100%}}
+
+  a.fallback{font-size:13px;color:rgba(165,180,252,.7);text-decoration:none;border-bottom:1px solid rgba(165,180,252,.3);padding-bottom:2px;transition:color .2s,border-color .2s;animation:appear .5s 1s both}
+  a.fallback:hover{color:#c7d2fe;border-color:#c7d2fe}
+  @keyframes appear{from{opacity:0}to{opacity:1}}
+
+  .ver{position:fixed;bottom:calc(var(--sat) + 16px);left:0;right:0;text-align:center;
+    font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.3em;color:rgba(255,255,255,.16)}
+</style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+  </div>
+  <div class="gridln" aria-hidden="true"></div>
+
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
+      <path d="M22 10v6"/>
+      <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
+    </svg>
+  </div>
+
+  <div class="name">Колледж·ID</div>
+  <div class="sub">Запускаем систему доступа…</div>
+  <div class="bar"><i></i></div>
+
+  <a class="fallback" href="General/authorization.html">Нажмите, если переход не произошёл</a>
+
+  <!-- Если JavaScript полностью отключён — сработает meta refresh выше,
+       а эта ссылка всегда доступна вручную -->
+  <noscript>
+    <p style="font-size:13px;color:rgba(255,255,255,.5)">
+      JavaScript отключён — <a href="General/authorization.html" style="color:#a5b4fc">перейти на страницу входа</a>
+    </p>
+  </noscript>
+
+  <div class="ver">КОЛЛЕДЖ·ID · v1.0 · STATIC / NO BACKEND REQUIRED</div>
+</body>
+</html>
