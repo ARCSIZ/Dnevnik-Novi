@@ -82,16 +82,32 @@ function loadSecret() {
 }
 const SECRET = loadSecret();
 
-/* Сид: тестовый аккаунт, если база пустая */
+/* Сид: тестовый аккаунт, если база пустая; плюс бутстрап разработчика через env */
 function seed() {
-  if (db.data.users.length) return;
-  db.data.users.push({
-    id: uid(), login: 'demo', fio: 'Демо Студентов', birth: '2002-05-14',
-    group: 'ИС-101', passHash: hashPassword('demo123'),
-    role: 'student', registeredAt: nowISO(), lastLoginAt: null
-  });
+  if (!db.data.users.length) {
+    db.data.users.push({
+      id: uid(), login: 'demo', fio: 'Демо Студентов', birth: '2002-05-14',
+      group: 'ИС-101', passHash: hashPassword('demo123'),
+      role: 'student', registeredAt: nowISO(), lastLoginAt: null
+    });
+  }
+  /* Бутстрап первого разработчика: задайте на хостинге переменные
+     ADMIN_LOGIN + ADMIN_PASSWORD (+ опционально ADMIN_FIO), перезапустите —
+     аккаунт создастся с ролью «dev». Затем переменные можно удалить. */
+  const dl = process.env.ADMIN_LOGIN, dp = process.env.ADMIN_PASSWORD;
+  if (dl && dp && !findByLogin(dl)) {
+    db.data.users.push({
+      id: uid(), login: dl, fio: process.env.ADMIN_FIO || 'Администратор',
+      birth: '', group: '', passHash: hashPassword(dp),
+      role: 'dev', registeredAt: nowISO(), lastLoginAt: null
+    });
+    console.log('[server] Создан аккаунт разработчика: ' + dl);
+  }
   db.save();
 }
+
+/* Запись без хэша пароля уже объявлена ниже; здесь используем только поиск —
+   findByLogin объявлен дальше, вызывается ниже перед стартом сервера. */
 
 /* ------------------------------------------------------------ пароли (scrypt) */
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
@@ -362,6 +378,23 @@ async function handleAPI(req, res, pathname) {
     return sendJSON(res, 200, { ok: true, token });
   }
 
+  /* --- смена роли пользователя (только разработчику/админу) --- */
+  if (route.startsWith('/api/users/') && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const myRole = String(me.role || 'student').toLowerCase();
+    if (myRole !== 'dev' && myRole !== 'admin') return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const target = decodeURIComponent(route.slice('/api/users/'.length));
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    if (normLogin(target) === normLogin(me.login)) return sendJSON(res, 400, { error: 'Свою роль менять нельзя' });
+    const rec = findByLogin(target);
+    if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const r = String(body.role || '').toLowerCase();
+    rec.role = (r === 'dev' || r === 'developer' || r === 'admin') ? 'dev' : 'student';
+    await db.save();
+    return sendJSON(res, 200, { ok: true, login: rec.login, role: rec.role });
+  }
+
   if (route.startsWith('/api/users/') && method === 'DELETE') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const target = decodeURIComponent(route.slice('/api/users/'.length));
@@ -499,6 +532,36 @@ process.on('unhandledRejection', reason => {
    • если PORT не задан — ждём немного, затем сканируем соседние порты
      (3001, 3002, …) и поднимаемся на первом свободном. */
 seed();
+
+/* ------------------------- CLI: управление ролями -------------------------
+   СПОСОБ НАЗНАЧИТЬ ПЕРВОГО РАЗРАБОТЧИКА — консоль сервера:
+     node server.js --promote <логин>   → роль «dev» (доступ к панели)
+     node server.js --demote  <логин>   → роль «student»
+     node server.js --roles             → список пользователей и их ролей
+   Команда применяется к базе и завершает процесс (сервер не запускается).  */
+(function cli(){
+  const args = process.argv.slice(2);
+  const pi = args.indexOf('--promote'), di = args.indexOf('--demote');
+  const li = args.indexOf('--roles');
+  if (li > -1) {
+    console.log('\n  ПОЛЬЗОВАТЕЛИ И РОЛИ\n  ' + '─'.repeat(46));
+    db.data.users.forEach(u => console.log('  ' +
+      String(u.login).padEnd(22) + '  ' + String(u.role || 'student')));
+    console.log('  ' + '─'.repeat(46) + '\n  Всего: ' + db.data.users.length + '\n');
+    return process.exit(0);
+  }
+  const idx = pi > -1 ? pi : di;
+  if (idx === -1) return;
+  const login = args[idx + 1];
+  if (!login) { console.error('Укажите логин, например: node server.js --promote demo'); process.exit(1); }
+  const rec = findByLogin(login);
+  if (!rec) { console.error('Пользователь "' + login + '" не найден в базе.'); process.exit(1); }
+  rec.role = pi > -1 ? 'dev' : 'student';
+  db.save().then(() => {
+    console.log('✔ ' + login + ' → роль «' + rec.role + '». Сохранено в Data/database.json');
+    process.exit(0);
+  });
+})();
 
 const PORT_ASSIGNED = !!process.env.PORT;
 const RETRY_MS = 1500;          // пауза между попытками

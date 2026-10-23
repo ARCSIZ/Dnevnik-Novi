@@ -286,6 +286,34 @@
       return verifyLocal(login, password);
     },
 
+    /**
+     * Смена роли пользователя.
+     * @param {string} login  логин
+     * @param {string} role   'dev' (разработчик) или 'student'
+     * Локальный режим — меняет сразу. Сервер — требует, чтобы текущая
+     * сессия уже имела роль разработчика.
+     */
+    setRole: function (login, role) {
+      var r = (role === 'dev' || role === 'developer' || role === 'admin') ? 'dev' : 'student';
+      if (mode === 'server') {
+        return request('/api/users/' + encodeURIComponent(login), { method: 'PUT', body: { role: r } })
+          .then(function () {
+            var l = normLogin(login);
+            mirror.users = mirror.users.map(function (u) {
+              return normLogin(u.login) === l ? Object.assign({}, u, { role: r }) : u;
+            });
+            saveMirror();
+            return true;
+          })
+          .catch(function () { return false; });
+      }
+      var u = findLocal(login);
+      if (!u) return Promise.resolve(false);
+      u.role = r;
+      local.save(localDb);
+      return Promise.resolve(true);
+    },
+
     /** Удаление пользователя (на сервере — только администратору) */
     remove: function (login) {
       if (mode === 'server') {

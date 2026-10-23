@@ -178,7 +178,10 @@
   /* индикатор идущей пары */
   .lprog { padding:0 14px 12px; }
   .lprog .pbar { height:4px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
-  .lprog .pfill { height:100%; border-radius:99px; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .6s ease; }
+  .lprog .pfill { height:100%; width:0; border-radius:99px; background:linear-gradient(90deg,#34d399,#22d3ee);
+    transition:width 1s linear; box-shadow:0 0 12px -2px rgba(52,211,153,.6); }
+  html.lite .lprog .pfill { transition:none; box-shadow:none; }
+  .lprog .ptxt b { font-weight:500; }
   .lprog .ptxt { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;
     font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4); }
   .livedot { display:inline-block;width:6px;height:6px;border-radius:99px;background:#34d399;margin-right:5px;
@@ -228,6 +231,10 @@
   .pill { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:9999px;
     font-size:11px; font-family:'JetBrains Mono',monospace; letter-spacing:.06em;
     background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); color:rgba(255,255,255,.6); }
+  .pill-btn { cursor:pointer; transition:border-color .2s, background .2s; white-space:nowrap; }
+  .pill-btn:hover { border-color:rgba(129,140,248,.5); background:rgba(99,102,241,.1); }
+  .pill-btn.on { border-color:rgba(52,211,153,.45); background:rgba(16,185,129,.13); color:#6ee7b7; }
+  .pill-btn.on:hover { background:rgba(16,185,129,.2); }
 
   /* ===== приложения ===== */
   .app-tile { position:relative; overflow:hidden; display:flex; flex-direction:column; gap:12px; padding:18px;
@@ -405,9 +412,14 @@
           <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
             <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-2">ЭКОСИСТЕМА КОЛЛЕДЖА</p>
             <h1 class="font-display text-[24px] sm:text-4xl leading-tight" style="font-weight:800">Прило<span class="grad-text">жения</span></h1>
-            <p class="text-white/45 text-sm mt-2">Все сервисы доступны по единому аккаунту Колледж·ID</p>
+            <p class="text-white/45 text-sm mt-2">Доступ к сервисам зависит от вашей роли в системе</p>
+            <div class="flex flex-wrap items-center gap-2 mt-4">
+              <span class="pill"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-300"></i>РОЛЬ: <span id="roleName">—</span></span>
+              <span class="pill"><i data-lucide="layout-grid" class="w-3.5 h-3.5 text-indigo-300"></i><span id="appsCount">—</span></span>
+            </div>
           </div>
-          <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4" id="appsGrid"></div>
+          <div class="grid sm:grid-cols-2 gap-4" id="appsGrid"></div>
+          <div id="appPanel" class="st card rounded-[24px] p-5 sm:p-6 mt-5 hidden" style="--i:2"></div>
         </section>
 
         <!-- ======= АККАУНТ ======= -->
@@ -597,35 +609,6 @@
   const STARTS=['08:30','10:15','12:00','13:45','15:30','17:15'];
   const LESSON_MIN=90;
 
-  const SUBJECTS=[
-    ['Математический анализ','Петрова Людмила Ивановна','304','корпус А'],
-    ['Базы данных','Соколов Артём Викторович','212','корпус Б'],
-    ['Иностранный язык','Ким Елена Олеговна','118','корпус А'],
-    ['Веб-разработка','Орлов Дмитрий Сергеевич','401 (лаб.)','корпус В'],
-    ['Физическая культура','Жуков Павел Николаевич','Спортзал','корпус Г'],
-    ['Операционные системы','Белова Наталья Андреевна','207','корпус Б'],
-    ['Программирование на Python','Гаврилов Игорь Петрович','312 (лаб.)','корпус В'],
-    ['Компьютерные сети','Зайцев Руслан Маратович','208','корпус Б'],
-    ['История России','Лебедева Ольга Ивановна','105','корпус А'],
-    ['Философия','Новиков Сергей Львович','110','корпус А']
-  ];
-  const HW_POOL=[
-    'Решить задачи № 14–20 из учебника, оформить в тетради',
-    'Подготовить конспект по теме следующей пары',
-    'Выполнить лабораторную работу и загрузить отчёт в систему',
-    'Прочитать главу 5 и ответить на контрольные вопросы',
-    'Подготовить доклад на 5 минут с презентацией',
-    'Повторить пройденный материал — на следующей паре тест',
-    'Доделать практическое задание, начатое на занятии'
-  ];
-  const COMMENTS=[
-    'Активно работал на паре, хороший уровень подготовки.',
-    'Отличный ответ у доски — так держать.',
-    'Нужно подтянуть теоретическую часть к следующему занятию.',
-    'Работа сдана вовремя, но есть замечания по оформлению.',
-    'Пропустил вводную часть, уточните материал у одногруппников.',
-    'Хорошо справился с практическим заданием.'
-  ];
   const STATUSES=[
     ['Н','Не был','stN'],
     ['У','Не был по неуважительной причине','stU'],
@@ -641,59 +624,45 @@
   const toMin=t=>{const p=t.split(':');return +p[0]*60+ +p[1];};
   const toHHMM=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);
 
-  /* стабильный псевдослучайный генератор по строке-ключу */
-  function seeded(str){
-    let h=2166136261;
-    for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
-    return function(){ h+=0x6D2B79F5; let t=h;
-      t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61);
-      return ((t^t>>>14)>>>0)/4294967296; };
-  }
-
   /* отметки «домашнее задание выполнено» */
   function hwLoad(){ try{ return JSON.parse(localStorage.getItem('collegeid_hw'))||{}; }catch(e){ return {}; } }
   function hwSave(){ try{ localStorage.setItem('collegeid_hw',JSON.stringify(hwDone)); }catch(e){} }
   let hwDone=hwLoad();
 
-  /* расписание на дату — одинаковое при каждом открытии */
+  /* ---------------- источник расписания ----------------
+     Реальные занятия хранятся по датам: { "2025-03-17": [ {...}, ... ] }.
+     Пока данных нет — дни показываются пустыми. Заполнять будет
+     «Панель управления» (роль «Разработчик») или серверный API. */
+  function loadSchedule(){
+    try { return JSON.parse(localStorage.getItem('collegeid_schedule')) || {}; }
+    catch(e){ return {}; }
+  }
+  const SCHEDULE=loadSchedule();
+
   function scheduleFor(date){
-    const key=keyOf(date), dow=(date.getDay()+6)%7;
-    if(dow===6) return [];                                   // воскресенье — выходной
-    const rnd=seeded(key);
-    const count = dow===5 ? (rnd()<.5?0:3) : 4+Math.floor(rnd()*3);
-    if(!count) return [];
-    const pool=SUBJECTS.slice();
-    for(let i=pool.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
-    const today=new Date(); today.setHours(0,0,0,0);
-    const isPast=date<today;
-    const out=[];
-    for(let i=0;i<count;i++){
-      const s=pool[i], st=toMin(STARTS[i]);
-      let grades=[], status=null;
-      if(isPast){
-        const r=rnd();
-        if(r<.15) status=STATUSES[Math.floor(rnd()*4)];
-        else if(r<.65){
-          grades.push([5,4,4,3,5][Math.floor(rnd()*5)]);
-          if(rnd()<.2) grades.push([5,4,3][Math.floor(rnd()*3)]);
-        }
-      }
-      out.push({
+    const key=keyOf(date);
+    const raw=SCHEDULE[key];
+    if(!Array.isArray(raw)||!raw.length) return [];
+    return raw.map((L,i)=>{
+      const st = L.start!=null ? (typeof L.start==='string'?toMin(L.start):L.start) : toMin(STARTS[i]||STARTS[0]);
+      const stat = L.status ? STATUSES.find(s=>s[0]===L.status) || null : null;
+      return {
         id:key+'#'+i, idx:i, start:st, end:st+LESSON_MIN,
-        name:s[0], teacher:s[1], room:s[2], building:s[3],
-        type: rnd()<.45 ? 'Лекция' : 'Практическое занятие',
-        grades, status,
-        hw: rnd()<.72 ? HW_POOL[Math.floor(rnd()*HW_POOL.length)] : null,
-        comment: (grades.length||status) && rnd()<.6 ? COMMENTS[Math.floor(rnd()*COMMENTS.length)] : null
-      });
-    }
-    return out;
+        name:L.name||'Занятие', teacher:L.teacher||'—',
+        room:L.room||'—', building:L.building||'—',
+        type:L.type||'Лекция',
+        grades:Array.isArray(L.grades)?L.grades:[],
+        status:stat, hw:L.hw||null, comment:L.comment||null
+      };
+    }).sort((a,b)=>a.start-b.start);
   }
 
   /* ---------------- состояние ---------------- */
   let weekStart=startOfWeek(new Date());
   let selected=new Date(); selected.setHours(0,0,0,0);
   let openId=null;
+
+
 
   /* ---------------- неделя ---------------- */
   function renderWeek(){
@@ -728,7 +697,8 @@
     const t=selected.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
     $('dayTitle').textContent=t.charAt(0).toUpperCase()+t.slice(1);
     const today=new Date(); today.setHours(0,0,0,0);
-    $('daySub').textContent = sameDay(selected,today) ? 'СЕГОДНЯ · ГРУППА ИС-101'
+    const sub=$('daySub'); sub.style.color='';
+    sub.textContent = sameDay(selected,today) ? 'СЕГОДНЯ · ГРУППА ИС-101'
       : (selected<today ? 'ПРОШЕДШИЙ ДЕНЬ · ГРУППА ИС-101' : 'ПРЕДСТОЯЩИЙ ДЕНЬ · ГРУППА ИС-101');
     $('dayCount').innerHTML='<i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-300"></i>'+
       (list.length?list.length+' пар.':'нет пар');
@@ -754,7 +724,7 @@
     $('lessons').innerHTML=html;
     lucide.createIcons();
     bindLessons();
-    updateLive();
+    if(typeof scheduleLive==='function') scheduleLive();   // перезапуск живого таймера
   }
 
   function lessonCard(L){
@@ -842,34 +812,81 @@
     });
   }
 
-  /* --------- индикатор идущей пары (обновляется каждые 30 сек) --------- */
+  /* --------- ЖИВОЙ индикатор: тикает каждую секунду ---------
+     Полоска заполняется плавно, время пересчитывается в реальном времени.
+     DOM не перестраивается — меняются только ширина и текстовые узлы. */
+  const mmss=sec=>Math.floor(sec/60)+':'+pad(Math.floor(sec%60));
+
+  function buildProgress(bar){
+    bar.hidden=false;
+    bar.innerHTML='<div class="pbar"><div class="pfill"></div></div>'
+      +'<div class="ptxt"><span class="pl"><span class="livedot"></span><b class="pgone"></b></span>'
+      +'<span class="pr"></span></div>';
+    return bar;
+  }
+
   function updateLive(){
+    const lessonsEl=$('lessons'); if(!lessonsEl) return;
     const today=new Date(); today.setHours(0,0,0,0);
     const isToday=sameDay(selected,today);
-    const n=new Date(), nowMin=n.getHours()*60+n.getMinutes();
-    $('lessons').querySelectorAll('.lcard').forEach(card=>{
-      const s=+card.dataset.s, e=+card.dataset.e, bar=card.querySelector('.lprog');
-      const live=isToday && nowMin>=s && nowMin<e;
+    const n=new Date();
+    const nowSec=n.getHours()*3600+n.getMinutes()*60+n.getSeconds();
+    let anyLive=false;
+
+    lessonsEl.querySelectorAll('.lcard').forEach(card=>{
+      const s=+card.dataset.s*60, e=+card.dataset.e*60;   // границы пары в секундах
+      const bar=card.querySelector('.lprog');
+      const live=isToday && nowSec>=s && nowSec<e;
       card.classList.toggle('live',live);
+
       if(live){
-        const passed=nowMin-s, pct=Math.min(100,Math.round(passed/LESSON_MIN*100));
-        bar.hidden=false;
-        bar.innerHTML='<div class="pbar"><div class="pfill" style="width:'+pct+'%"></div></div>'
-          +'<div class="ptxt"><span><span class="livedot"></span>идёт '+passed+' из '+LESSON_MIN+' мин</span>'
-          +'<span>осталось '+(LESSON_MIN-passed)+' мин</span></div>';
-      } else { bar.hidden=true; bar.innerHTML=''; }
+        anyLive=true;
+        if(bar.hidden||!bar.querySelector('.pfill')) buildProgress(bar);
+        const passedSec=nowSec-s, leftSec=e-nowSec;
+        const pct=Math.min(100,(passedSec/(LESSON_MIN*60))*100);
+        bar.querySelector('.pfill').style.width=pct.toFixed(2)+'%';
+        bar.querySelector('.pgone').textContent='идёт '+Math.floor(passedSec/60)+' из '+LESSON_MIN+' мин';
+        bar.querySelector('.pr').textContent=(leftSec<=600?'осталось '+mmss(leftSec):'осталось '+Math.ceil(leftSec/60)+' мин');
+      } else if(!bar.hidden){
+        bar.hidden=true; bar.innerHTML='';
+      }
     });
-    /* активная перемена */
-    $('lessons').querySelectorAll('.brk').forEach(el=>{
+
+    /* перемены: активная получает живой отсчёт */
+    lessonsEl.querySelectorAll('.brk').forEach(el=>{
       const p=el.dataset.b.split('-').map(Number);
-      const act=isToday && nowMin>=p[0] && nowMin<p[1];
+      const from=p[0]*60, to=p[1]*60;
+      const act=isToday && nowSec>=from && nowSec<to;
       const bt=el.querySelector('.bt');
-      if(act){ bt.style.color='#6ee7b7'; bt.style.borderColor='rgba(52,211,153,.35)';
+      if(act){
+        anyLive=true;
+        bt.style.color='#6ee7b7'; bt.style.borderColor='rgba(52,211,153,.35)';
         bt.style.background='rgba(16,185,129,.1)';
-        bt.innerHTML='<span class="livedot"></span>перемена · осталось '+(p[1]-nowMin)+' мин'; }
+        const left=to-nowSec;
+        bt.innerHTML='<span class="livedot"></span>перемена · осталось '+
+          (left<=600?mmss(left):Math.ceil(left/60)+' мин');
+      } else if(bt.dataset.reset!=='1'&&bt.style.color){
+        bt.style.color=''; bt.style.borderColor=''; bt.style.background='';
+        bt.innerHTML='<i data-lucide="coffee" class="w-3 h-3"></i>перемена '+(p[1]-p[0])+' мин';
+        bt.dataset.reset='1'; lucide.createIcons();
+      }
     });
+    return anyLive;
   }
-  setInterval(updateLive,30000);
+
+  /* таймер: 1 сек когда что-то идёт, иначе экономный опрос раз в 20 сек */
+  let liveTimer=null, liveFast=null;
+  function scheduleLive(){
+    clearTimeout(liveTimer); clearInterval(liveFast);
+    const active=updateLive();
+    const period=active?1000:20000;
+    liveFast=setInterval(()=>{
+      const still=updateLive();
+      if((still?1000:20000)!==period) scheduleLive();   // смена режима
+    },period);
+  }
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) scheduleLive(); });
+  scheduleLive();
 
   /* --------- навигация по неделям --------- */
   $('wPrev').addEventListener('click',()=>{ weekStart=addDays(weekStart,-7); selected=addDays(selected,-7); openId=null; renderWeek(); renderDay(); });
@@ -885,30 +902,161 @@
   /* ---------- кольцо среднего балла ---------- */
   setTimeout(()=>{ const r=$('gpaRing'); if(r) r.style.strokeDashoffset=(125.6*(1-4.6/5)).toFixed(1); },400);
 
-  /* ---------- приложения ---------- */
-  const apps=[
-    ['Расписание','Пары, звонки, замены','calendar-days','from-indigo-500 to-blue-500'],
-    ['Библиотека','Учебники и методички','library-big','from-purple-500 to-fuchsia-500'],
-    ['Домашние задания','Сдать и проверить','clipboard-list','from-emerald-500 to-teal-500'],
-    ['Столовая','Меню и баланс карты','utensils-crossed','from-amber-500 to-orange-500'],
-    ['Стипендия','Начисления и выплаты','wallet','from-rose-500 to-pink-500'],
-    ['Общежитие','Заявки и пропуска','building-2','from-cyan-500 to-sky-500'],
-    ['Портфолио','Достижения и сертификаты','award','from-violet-500 to-indigo-500'],
-    ['Поддержка','Вопрос в учебную часть','life-buoy','from-slate-500 to-zinc-500']
+  /* ================== ПРИЛОЖЕНИЯ: ДОСТУП ПО РОЛЯМ ==================
+     dev     → «Панель управления»
+     student → «Поддержка», «Рейтинг»                                   */
+  const ROLE_NAMES={ dev:'Разработчик', student:'Студент' };
+  function roleOf(user){
+    const r=String((user&&user.role)||'student').toLowerCase();
+    if(r==='dev'||r==='developer'||r==='admin') return 'dev';
+    return 'student';
+  }
+  const myRole=roleOf(u);
+
+  const APPS=[
+    { id:'panel',   roles:['dev'],
+      name:'Панель управления', desc:'Пользователи, расписание и данные системы',
+      icon:'sliders-horizontal', grad:'from-indigo-500 to-purple-600' },
+    { id:'support', roles:['student'],
+      name:'Поддержка', desc:'Вопрос в учебную часть и техподдержку',
+      icon:'life-buoy', grad:'from-cyan-500 to-sky-500' },
+    { id:'rating',  roles:['student'],
+      name:'Рейтинг', desc:'Ваше место в группе и на потоке',
+      icon:'trophy', grad:'from-amber-500 to-orange-500' }
   ];
-  $('appsGrid').innerHTML=apps.map(([n,d,ic,g],i)=>
-    '<button class="app-tile st" style="--i:'+(i+1)+'" data-name="'+n+'">'
-    +'<span class="ai bg-gradient-to-br '+g+'"><i data-lucide="'+ic+'" class="w-5 h-5"></i></span>'
-    +'<span><span class="block font-semibold text-[15px]">'+n+'</span>'
-    +'<span class="block text-[12.5px] text-white/40 mt-1">'+d+'</span></span>'
+  const myApps=APPS.filter(a=>a.roles.indexOf(myRole)>-1);
+
+  $('roleName').textContent=ROLE_NAMES[myRole];
+  $('appsCount').textContent=myApps.length+' доступно';
+
+  $('appsGrid').innerHTML=myApps.map((a,i)=>
+    '<button class="app-tile st" style="--i:'+(i+1)+'" data-app="'+a.id+'" data-name="'+a.name+'">'
+    +'<span class="ai bg-gradient-to-br '+a.grad+'"><i data-lucide="'+a.icon+'" class="w-5 h-5"></i></span>'
+    +'<span><span class="block font-semibold text-[15px]">'+a.name+'</span>'
+    +'<span class="block text-[12.5px] text-white/40 mt-1">'+a.desc+'</span></span>'
     +'<span class="flex items-center gap-1.5 mt-auto pt-2 text-[11px] mono tracking-wider text-indigo-300/70">ОТКРЫТЬ<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></span>'
     +'</button>').join('');
   lucide.createIcons();
+
+  /* ---- содержимое приложений ---- */
+  function panelHTML(id){
+    const head=(ic,t,s)=>'<div class="flex items-center gap-3 mb-5">'
+      +'<span class="w-10 h-10 rounded-xl bg-white/[.05] border border-white/10 flex items-center justify-center">'
+      +'<i data-lucide="'+ic+'" class="w-[18px] h-[18px] text-indigo-300"></i></span>'
+      +'<span class="min-w-0"><span class="block font-semibold text-[15px]">'+t+'</span>'
+      +'<span class="block text-[12px] text-white/35 mt-0.5">'+s+'</span></span>'
+      +'<button id="panelClose" class="ml-auto shrink-0 w-9 h-9 rounded-xl border border-white/10 '
+      +'text-white/40 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-center">'
+      +'<i data-lucide="x" class="w-4 h-4"></i></button></div>';
+
+    if(id==='panel'){
+      const total=CollegeDB.count();
+      const list=CollegeDB.all().slice(-6).reverse();
+      return head('sliders-horizontal','Панель управления','Служебный раздел · роль «Разработчик»')
+        +'<div class="grid sm:grid-cols-3 gap-3 mb-5">'
+        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ПОЛЬЗОВАТЕЛИ</p>'
+        +'<p class="font-display text-2xl" style="font-weight:700">'+total+'</p></div>'
+        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">РЕЖИМ БАЗЫ</p>'
+        +'<p class="font-display text-2xl" style="font-weight:700">'+(CollegeDB.isServer?(CollegeDB.isServer()?'Сервер':'Локально'):'Локально')+'</p></div>'
+        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ЗАНЯТИЙ В БАЗЕ</p>'
+        +'<p class="font-display text-2xl" style="font-weight:700">'+Object.keys(SCHEDULE).length+'</p></div>'
+        +'</div>'
+        +'<p class="dlbl">Последние регистрации</p>'
+        +'<div class="space-y-2">'
+        +(list.length?list.map(x=>'<div class="row"><span class="min-w-0">'
+            +'<span class="block text-[13px] font-semibold truncate">'+(x.fio||x.login)+'</span>'
+            +'<span class="block text-[11px] text-white/35 mono mt-0.5">'+x.login+(x.group?' · '+x.group:'')+'</span></span>'
+            +'<button type="button" class="pill pill-btn shrink-0 role-tgl" data-login="'+x.login+'" title="Клик — сменить роль">'
+            +(((x.role||'student')).toLowerCase()==='dev'?'DEV':'СТУДЕНТ')
+            +'<i data-lucide="repeat-2" class="w-3 h-3"></i></button></div>').join('')
+          :'<div class="dbox">Пока нет зарегистрированных пользователей</div>')
+        +'</div>'
+        +'<div class="grid sm:grid-cols-2 gap-3 mt-5">'
+        +'<button id="pExport" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2">'
+        +'<i data-lucide="download" class="w-4 h-4"></i>Выгрузить базу</button>'
+        +'<button id="pRefresh" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2">'
+        +'<i data-lucide="refresh-cw" class="w-4 h-4"></i>Обновить данные</button>'
+        +'</div>';
+    }
+
+    if(id==='support'){
+      return head('life-buoy','Поддержка','Учебная часть и техническая помощь')
+        +'<div class="space-y-2.5">'
+        +'<div class="row"><span class="text-[13px] text-white/45">Учебная часть</span><span class="text-sm font-semibold">каб. 114, корпус А</span></div>'
+        +'<div class="row"><span class="text-[13px] text-white/45">Часы приёма</span><span class="text-sm font-semibold">Пн–Пт, 09:00–17:00</span></div>'
+        +'<div class="row"><span class="text-[13px] text-white/45">Телефон</span><span class="text-sm font-semibold mono">+7 (800) 000-00-00</span></div>'
+        +'<div class="row"><span class="text-[13px] text-white/45">Почта</span><span class="text-sm font-semibold mono">help@college.id</span></div>'
+        +'</div>'
+        +'<div class="dsec"><p class="dlbl">Обращение</p>'
+        +'<textarea id="supMsg" rows="3" placeholder="Опишите вопрос или проблему…" '
+        +'style="width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);'
+        +'border-radius:14px;padding:12px 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;resize:vertical"></textarea>'
+        +'<button id="supSend" class="btn btn-primary w-full h-[46px] text-sm flex items-center justify-center gap-2 mt-3">'
+        +'<i data-lucide="send" class="w-4 h-4"></i>Отправить обращение</button></div>';
+    }
+
+    if(id==='rating'){
+      return head('trophy','Рейтинг','Ваше место в группе и на потоке')
+        +'<div class="grid sm:grid-cols-2 gap-3 mb-5">'
+        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">МЕСТО В ГРУППЕ</p>'
+        +'<p class="font-display text-2xl" style="font-weight:700">—</p></div>'
+        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">СРЕДНИЙ БАЛЛ</p>'
+        +'<p class="font-display text-2xl" style="font-weight:700">—</p></div>'
+        +'</div>'
+        +'<div class="dbox">Рейтинг появится, как только в системе накопятся оценки за занятия.</div>';
+    }
+    return '';
+  }
+
+  function openApp(id){
+    const p=$('appPanel');
+    p.innerHTML=panelHTML(id);
+    p.classList.remove('hidden');
+    lucide.createIcons();
+    document.querySelectorAll('.app-tile').forEach(t=>t.classList.toggle('sel',t.dataset.app===id));
+    p.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+    const close=$('panelClose');
+    if(close) close.addEventListener('click',()=>{ p.classList.add('hidden'); p.innerHTML=''; });
+
+    if(id==='panel'){
+      const ex=$('pExport'); if(ex) ex.addEventListener('click',()=>{ CollegeDB.exportFile(); toast('База выгружена в файл'); });
+      const rf=$('pRefresh'); if(rf) rf.addEventListener('click',()=>{
+        if(CollegeDB.refresh) CollegeDB.refresh().then(()=>{ openApp('panel'); toast('Данные обновлены'); });
+        else toast('Данные актуальны');
+      });
+      /* смена роли кликом по бейджу (доступно разработчику) */
+      p.querySelectorAll('.role-tgl').forEach(b=>b.addEventListener('click',()=>{
+        const current=b.textContent.trim().toUpperCase()==='DEV'?'dev':'student';
+        const next=current==='dev'?'student':'dev';
+        b.style.opacity='.5'; b.disabled=true;
+        CollegeDB.setRole(b.dataset.login,next).then(ok=>{
+          b.style.opacity=''; b.disabled=false;
+          if(ok){
+            toast('«'+b.dataset.login+'» теперь: '+(next==='dev'?'Разработчик':'Студент'));
+            openApp('panel');
+          } else toast('Не удалось сменить роль');
+        });
+      }));
+    }
+    if(id==='support'){
+      const sd=$('supSend'); if(sd) sd.addEventListener('click',()=>{
+        const v=($('supMsg').value||'').trim();
+        if(v.length<10) return toast('Опишите вопрос подробнее (от 10 символов)');
+        $('supMsg').value=''; toast('Обращение отправлено — ответим в течение суток');
+      });
+    }
+  }
+
   document.querySelectorAll('.app-tile').forEach(t=>{
     t.addEventListener('mousemove',e=>{ const r=t.getBoundingClientRect();
       t.style.setProperty('--mx',(e.clientX-r.left)+'px'); t.style.setProperty('--my',(e.clientY-r.top)+'px'); });
-    t.addEventListener('click',()=>toast('«'+t.dataset.name+'» — раздел в разработке'));
+    t.addEventListener('click',()=>openApp(t.dataset.app));
   });
+
+  /* счётчик в боковом меню */
+  const navApps=document.querySelector('.nav-btn[data-view="apps"] .nv-count');
+  if(navApps) navApps.textContent=myApps.length;
 
   /* ---------- переключатели настроек ---------- */
   document.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{
