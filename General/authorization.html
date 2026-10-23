@@ -463,8 +463,9 @@
     </div>
   </div>
 
-  <!-- СЛОЙ ДАННЫХ -->
+  <!-- СЛОЙ ДАННЫХ + АДАПТИВНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ -->
   <script src="../Data/users.js"></script>
+  <script src="perf.js"></script>
 <script>
 (function(){
   lucide.createIcons();
@@ -791,7 +792,10 @@
   }
   resize(); window.addEventListener('resize',resize);
   window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  let running=false;
   function tick(){
+    // лёгкий режим: гасим частицы и выходим из цикла отрисовки
+    if(window.PerfMode && PerfMode.isLite()){ cx.clearRect(0,0,W,H); running=false; return; }
     cx.clearRect(0,0,W,H);
     for(const p of pts){
       const dx=p.x-mx,dy=p.y-my,d=Math.hypot(dx,dy);
@@ -814,11 +818,19 @@
   let tx=0,ty=0,cxp=0,cyp=0;
   window.addEventListener('mousemove',e=>{ tx=(e.clientX/W-.5); ty=(e.clientY/H-.5); });
   function par(){
+    if(window.PerfMode && PerfMode.isLite()) return;   // без параллакса в лёгком режиме
     cxp+=(tx-cxp)*.04; cyp+=(ty-cyp)*.04;
     for(const o of orbs){ const dep=+o.dataset.depth||14;
       o.style.translate=(cxp*dep)+'px '+(cyp*dep)+'px'; }
   }
-  if(!reduced) tick();
+  function startFx(){
+    if(running||reduced) return;
+    if(window.PerfMode && PerfMode.isLite()) return;
+    running=true; requestAnimationFrame(tick);
+  }
+  startFx();
+  // при выключении лёгкого режима — возвращаем эффекты
+  if(window.PerfMode) PerfMode.onChange(lite=>{ if(!lite) startFx(); });
 })();
 </script>
 </body>

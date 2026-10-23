@@ -371,6 +371,13 @@
                   <span class="text-[13px] text-white/60">Тёмная тема</span>
                   <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
                 </div>
+                <div class="row">
+                  <span class="min-w-0">
+                    <span class="block text-[13px] text-white/60">Лёгкий режим</span>
+                    <span class="block text-[11px] text-white/30 mt-0.5">Меньше анимаций · <span id="liteFps">—</span></span>
+                  </span>
+                  <button id="swLite" class="w-11 h-6 rounded-full bg-white/10 relative transition-colors" data-on="0" aria-label="Лёгкий режим"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all"></span></button>
+                </div>
               </div>
               <div class="grid sm:grid-cols-2 gap-3 mt-5">
                 <button class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2" id="btnExport"><i data-lucide="download" class="w-4 h-4"></i>Выгрузить данные</button>
@@ -404,6 +411,7 @@
   </div>
 
   <script src="../Data/users.js"></script>
+  <script src="../General/perf.js"></script>
 <script>
 (function(){
   lucide.createIcons();
@@ -568,7 +576,10 @@
   addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
   const orbs=[...document.querySelectorAll('.orb')]; let tx=0,ty=0,cxp=0,cyp=0;
   addEventListener('mousemove',e=>{ tx=(e.clientX/W-.5); ty=(e.clientY/H-.5); });
+  let running=false;
   function tick(){
+    // лёгкий режим: гасим частицы и выходим из цикла отрисовки
+    if(window.PerfMode && PerfMode.isLite()){ cx.clearRect(0,0,W,H); running=false; return; }
     cx.clearRect(0,0,W,H);
     for(const p of pts){ const dx=p.x-mx,dy=p.y-my,d=Math.hypot(dx,dy);
       if(d<120&&d>0){p.x+=dx/d*.5;p.y+=dy/d*.5;}
@@ -583,7 +594,31 @@
     for(const o of orbs){ const dep=+o.dataset.depth||14; o.style.translate=(cxp*dep)+'px '+(cyp*dep)+'px'; }
     requestAnimationFrame(tick);
   }
-  if(!reduced) tick();
+  function startFx(){
+    if(running||reduced) return;
+    if(window.PerfMode && PerfMode.isLite()) return;
+    running=true; requestAnimationFrame(tick);
+  }
+  startFx();
+  if(window.PerfMode) PerfMode.onChange(lite=>{ if(!lite) startFx(); });
+
+  /* ---------- ручной переключатель лёгкого режима (Аккаунт → Настройки) ---------- */
+  const liteSw=$('swLite');
+  function syncLite(){
+    if(!liteSw||!window.PerfMode) return;
+    const on=PerfMode.isLite();
+    liteSw.dataset.on=on?'1':'0';
+    liteSw.classList.toggle('bg-indigo-500',on);
+    liteSw.classList.toggle('bg-white/10',!on);
+    liteSw.querySelector('.dotk').style.left=on?'22px':'4px';
+    const fps=$('liteFps'); if(fps) fps.textContent=on?'эффекты упрощены':'~'+PerfMode.fps()+' FPS';
+  }
+  if(liteSw&&window.PerfMode){
+    liteSw.addEventListener('click',()=>{ PerfMode.toggle(); syncLite(); });
+    PerfMode.onChange(syncLite);
+    syncLite();
+    setInterval(()=>{ if(!PerfMode.isLite()) syncLite(); },3000);
+  }
 })();
 </script>
 </body>
