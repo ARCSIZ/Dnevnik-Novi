@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Колледж·ID — Дневник студента</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M16 9 6 13.5l10 4.5 8-3.6V19h2v-5.5z' fill='white'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  body { font-family:'Manrope',sans-serif; background:#07070d; }
+  .font-display { font-family:'Unbounded',sans-serif; }
+  .mono { font-family:'JetBrains Mono',monospace; }
+
+  /* ===== скроллбары скрыты везде ===== */
+  * { scrollbar-width:none; -ms-overflow-style:none; }
+  *::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
+
+  /* ===== ФИКС ИКОНОК: не сжимаются и не растягиваются во flex ===== */
+  svg { flex:none; display:block; }
+  .lucide, svg.lucide { stroke-width:2; vector-effect:non-scaling-stroke; }
+  i[data-lucide] { display:inline-flex; }
+
+  /* ===== фон ===== */
+  .orb { position:absolute; border-radius:9999px; filter:blur(90px); will-change:transform; }
+  .orb-1 { width:560px;height:560px; background:radial-gradient(circle,rgba(99,102,241,.3),transparent 65%); animation:drift1 18s ease-in-out infinite; }
+  .orb-2 { width:480px;height:480px; background:radial-gradient(circle,rgba(168,85,247,.24),transparent 65%); animation:drift2 22s ease-in-out infinite; }
+  .orb-3 { width:420px;height:420px; background:radial-gradient(circle,rgba(34,211,238,.15),transparent 65%); animation:drift3 26s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(60px,-40px) scale(1.1)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-50px,50px) scale(1.06)} }
+  @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,60px) scale(.94)} }
+  .grid-overlay {
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%, black 30%, transparent 75%);
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 30%, black 30%, transparent 75%);
+  }
+  .noise { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); opacity:.05; }
+
+  .grad-text { background:linear-gradient(100deg,#818cf8,#c084fc 55%,#e879f9); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+  /* ===== карточки ===== */
+  .card { background:rgba(13,13,21,.78); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+          border:1px solid rgba(255,255,255,.08); box-shadow:0 40px 90px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05); }
+  .panel { background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); border-radius:20px; transition:background .25s, border-color .25s, transform .2s; }
+  .panel:hover { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.14); }
+
+  /* ===== 1. БОКОВОЕ МЕНЮ (вертикальные кнопки) ===== */
+  .nav-btn { position:relative; width:100%; display:flex; align-items:center; gap:12px; padding:12px 14px;
+    border-radius:15px; text-align:left; cursor:pointer; color:rgba(255,255,255,.55);
+    transition:color .25s, background .25s; overflow:hidden; }
+  .nav-btn:hover { color:#fff; background:rgba(255,255,255,.045); }
+  .nav-btn .nv-ic { width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07); transition:all .25s; }
+  .nav-btn .nv-bar { position:absolute; left:0; top:50%; transform:translateY(-50%) scaleY(0); width:3px; height:26px;
+    border-radius:0 4px 4px 0; background:linear-gradient(180deg,#6366f1,#a855f7); transition:transform .3s cubic-bezier(.22,1,.36,1); }
+  .nav-btn.on { color:#fff; background:linear-gradient(100deg,rgba(99,102,241,.16),rgba(168,85,247,.07)); }
+  .nav-btn.on .nv-ic { background:linear-gradient(135deg,#6366f1,#a855f7); border-color:transparent; box-shadow:0 8px 20px -6px rgba(124,58,237,.7); }
+  .nav-btn.on .nv-bar { transform:translateY(-50%) scaleY(1); }
+  .nav-btn .nv-count { margin-left:auto; font-size:10px; font-family:'JetBrains Mono',monospace;
+    padding:3px 7px; border-radius:99px; background:rgba(255,255,255,.07); color:rgba(255,255,255,.5); }
+  .nav-btn.on .nv-count { background:rgba(129,140,248,.25); color:#c7d2fe; }
+
+  /* ===== 2. НИЖНИЙ ДОК (только телефоны/планшеты) ===== */
+  .dock { position:fixed; left:12px; right:12px; bottom:14px; z-index:60;
+    display:flex; gap:6px; padding:7px; border-radius:26px;
+    background:rgba(16,16,26,.92); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,.1); box-shadow:0 20px 50px -14px rgba(0,0,0,.85);
+    padding-bottom:calc(7px + env(safe-area-inset-bottom)); }
+  .dock-btn { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:5px; padding:10px 4px; border-radius:20px; color:rgba(255,255,255,.45);
+    font-size:11px; font-weight:700; line-height:1; transition:background .25s, color .25s, box-shadow .25s; cursor:pointer; }
+  .dock-btn span { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dock-btn.on { color:#fff; background:linear-gradient(120deg,#6366f1,#a855f7); box-shadow:0 8px 20px -6px rgba(124,58,237,.7); }
+  @media (max-width:360px){ .dock-btn { font-size:10px; } }
+
+  /* ===== контент / переходы между разделами ===== */
+  #viewport { position:relative; transition:height .45s cubic-bezier(.22,1,.36,1); }
+  .view { display:none; }
+  .view.on { display:block; }
+  /* уходящий раздел */
+  .view.out { display:block; position:absolute; inset:0; pointer-events:none;
+    animation:viewOut .26s cubic-bezier(.4,0,1,1) forwards; }
+  .view.out.rev { animation-name:viewOutRev; }
+  @keyframes viewOut { to { opacity:0; transform:translateX(-26px) scale(.985); filter:blur(3px) } }
+  @keyframes viewOutRev { to { opacity:0; transform:translateX(26px) scale(.985); filter:blur(3px) } }
+  /* входящий раздел */
+  .view.on.enter { animation:viewIn .42s cubic-bezier(.22,1,.36,1) both; }
+  .view.on.enter.rev { animation-name:viewInRev; }
+  @keyframes viewIn { from { opacity:0; transform:translateX(26px) scale(.99) } to { opacity:1; transform:none } }
+  @keyframes viewInRev { from { opacity:0; transform:translateX(-26px) scale(.99) } to { opacity:1; transform:none } }
+  /* каскад карточек внутри раздела */
+  .view.on .st { opacity:0; animation:rise .55s cubic-bezier(.22,1,.36,1) forwards; animation-delay:calc(var(--i,0) * 70ms + 90ms); }
+  @keyframes rise { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
+
+  /* ===== анимации самих кнопок навигации ===== */
+  .nav-btn, .dock-btn { -webkit-tap-highlight-color:transparent; }
+  .nav-btn { transition:color .3s, background .3s, transform .25s cubic-bezier(.22,1,.36,1); }
+  .nav-btn:active, .dock-btn:active { transform:scale(.96); }
+  .nav-btn .nv-ic i, .dock-btn i { transition:transform .4s cubic-bezier(.34,1.56,.64,1); }
+  .nav-btn.on .nv-ic i, .dock-btn.on i { transform:scale(1.12); }
+  .nav-btn .nv-ic { transition:background .3s, border-color .3s, box-shadow .3s, transform .35s cubic-bezier(.34,1.56,.64,1); }
+  .nav-btn.on .nv-ic { transform:rotate(-4deg) scale(1.04); }
+  .dock-btn span { transition:opacity .3s, transform .3s; }
+  /* пульс-вспышка при клике */
+  .nav-pulse { position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:radial-gradient(circle at var(--px,50%) var(--py,50%), rgba(165,180,252,.5), transparent 60%);
+    opacity:0; animation:navPulse .6s ease-out forwards; }
+  @keyframes navPulse { 0%{opacity:.75; transform:scale(.4)} 100%{opacity:0; transform:scale(1.6)} }
+
+  /* ===== строгое разделение навигаций по устройствам ===== */
+  @media (max-width:1023.98px){ #sideNav { display:none !important; } }
+  @media (min-width:1024px){ .dock { display:none !important; } }
+
+  /* ===== элементы дневника ===== */
+  .lesson { display:flex; gap:14px; padding:14px; border-radius:18px;
+    background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.06);
+    transition:background .22s, border-color .22s, transform .2s; }
+  .lesson:hover { background:rgba(255,255,255,.055); border-color:rgba(255,255,255,.14); transform:translateX(3px); }
+  .mark { width:34px;height:34px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:15px; }
+  .m5 { background:rgba(52,211,153,.16); color:#6ee7b7; border:1px solid rgba(52,211,153,.3); }
+  .m4 { background:rgba(99,102,241,.16); color:#a5b4fc; border:1px solid rgba(99,102,241,.32); }
+  .m3 { background:rgba(251,191,36,.14); color:#fcd34d; border:1px solid rgba(251,191,36,.3); }
+  .mn { background:rgba(255,255,255,.04); color:rgba(255,255,255,.3); border:1px solid rgba(255,255,255,.08); }
+
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:9999px;
+    font-size:11px; font-family:'JetBrains Mono',monospace; letter-spacing:.06em;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); color:rgba(255,255,255,.6); }
+
+  /* ===== приложения ===== */
+  .app-tile { position:relative; overflow:hidden; display:flex; flex-direction:column; gap:12px; padding:18px;
+    border-radius:20px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
+    transition:transform .22s, border-color .22s, background .22s; cursor:pointer; text-align:left; }
+  .app-tile:hover { transform:translateY(-4px); border-color:rgba(129,140,248,.45); background:rgba(99,102,241,.07); }
+  .app-tile .ai { width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff; }
+  .app-tile::after { content:''; position:absolute; inset:0; background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(129,140,248,.14),transparent 45%); opacity:0; transition:opacity .3s; pointer-events:none; }
+  .app-tile:hover::after { opacity:1; }
+
+  /* ===== аккаунт ===== */
+  .row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 16px;
+    border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.06); }
+  .btn { position:relative; overflow:hidden; border-radius:14px; font-weight:700; transition:transform .2s, filter .25s; }
+  .btn:active { transform:scale(.985); }
+  .btn-primary { background:linear-gradient(120deg,#6366f1,#8b5cf6 60%,#a855f7); color:#fff; box-shadow:0 14px 34px -10px rgba(124,58,237,.55); }
+  .btn-primary:hover { filter:brightness(1.12); }
+  .btn-ghost { border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.75); }
+  .btn-ghost:hover { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.22); }
+  .btn-danger { border:1px solid rgba(251,113,133,.3); color:#fda4af; }
+  .btn-danger:hover { background:rgba(244,63,94,.1); border-color:rgba(251,113,133,.5); }
+
+  .ring-prog { transform:rotate(-90deg); }
+  .ring-prog circle { transition:stroke-dashoffset 1.2s cubic-bezier(.22,1,.36,1); }
+
+  #toast { position:fixed; left:50%; bottom:92px; transform:translate(-50%,16px); opacity:0; transition:.3s; z-index:99; pointer-events:none; max-width:calc(100vw - 24px); }
+  #toast.show { opacity:1; transform:translate(-50%,0); }
+  #toastMsg { overflow-wrap:anywhere; }
+  @media (min-width:1024px){ #toast { bottom:28px; } }
+
+  /* ===== анти-переполнение (мобильные) ===== */
+  html, body { overflow-x:clip; }
+  main, .view, .card, .panel, .lesson, .app-tile { min-width:0; }
+  .sw { flex:none; }
+  .pill { max-width:100%; overflow-wrap:anywhere; }
+  .pill span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row { flex-wrap:wrap; }
+  .row > span:last-child { min-width:0; overflow-wrap:anywhere; text-align:right; }
+  @media (max-width:480px){
+    .row > span:first-child { flex:1 1 42%; }
+    .row > span:last-child { flex:1 1 auto; }
+  }
+  .lesson, .lesson > * { min-width:0; }
+  h1, h2, h3 { overflow-wrap:break-word; }
+</style>
+</head>
+<body class="text-white antialiased min-h-screen overflow-x-hidden">
+
+  <!-- ФОН -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="orb orb-1" style="top:-180px;left:-160px" data-depth="18"></div>
+    <div class="orb orb-2" style="bottom:-200px;right:-140px" data-depth="28"></div>
+    <div class="orb orb-3" style="top:40%;left:50%" data-depth="12"></div>
+  </div>
+  <canvas id="fx" class="fixed inset-0 pointer-events-none" style="z-index:1" aria-hidden="true"></canvas>
+  <div class="fixed inset-0 grid-overlay pointer-events-none" style="z-index:2" aria-hidden="true"></div>
+  <div class="fixed inset-0 noise pointer-events-none" style="z-index:3" aria-hidden="true"></div>
+
+  <div class="relative max-w-[1240px] mx-auto px-5 sm:px-8 py-7 pb-32 lg:pb-12" style="z-index:10">
+
+    <!-- ШАПКА -->
+    <header class="flex items-center justify-between mb-7">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+          <i data-lucide="graduation-cap" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <p class="font-bold tracking-tight leading-none">Колледж·ID</p>
+          <p class="mono text-[10px] tracking-[.25em] text-white/30 mt-1">STUDENTS / DIARY</p>
+        </div>
+      </div>
+
+      <!-- Текущий раздел (информационный заголовок, не переключатель) -->
+      <div class="hidden lg:flex items-center gap-2.5 px-4 h-10 rounded-full bg-white/[.04] border border-white/[.07]">
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-white/25 shrink-0"></i>
+        <span id="crumb" class="text-[13px] font-semibold text-white/70">Дневник</span>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button id="bell" class="relative w-10 h-10 rounded-xl border border-white/10 bg-white/[.03] hover:bg-white/[.07] transition-colors flex items-center justify-center">
+          <i data-lucide="bell" class="w-[18px] h-[18px] text-white/60"></i>
+          <span class="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+        </button>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/80 to-purple-600/80 flex items-center justify-center font-bold text-sm">ДС</div>
+      </div>
+    </header>
+
+    <div class="grid lg:grid-cols-[250px_1fr] gap-6">
+
+      <!-- НАВИГАЦИЯ ПК: БОКОВОЕ МЕНЮ -->
+      <aside id="sideNav" class="hidden lg:block">
+        <div class="card rounded-[24px] p-4 sticky top-7">
+          <p class="mono text-[10px] tracking-[.25em] text-white/25 px-2 mb-3">НАВИГАЦИЯ</p>
+          <nav class="space-y-1.5">
+            <button class="nav-btn nav on" data-view="diary">
+              <span class="nv-bar"></span>
+              <span class="nv-ic"><i data-lucide="book-open-text" class="w-[17px] h-[17px]"></i></span>
+              <span class="text-sm font-semibold">Дневник</span>
+              <span class="nv-count">6</span>
+            </button>
+            <button class="nav-btn nav" data-view="apps">
+              <span class="nv-bar"></span>
+              <span class="nv-ic"><i data-lucide="layout-grid" class="w-[17px] h-[17px]"></i></span>
+              <span class="text-sm font-semibold">Приложения</span>
+              <span class="nv-count">8</span>
+            </button>
+            <button class="nav-btn nav" data-view="account">
+              <span class="nv-bar"></span>
+              <span class="nv-ic"><i data-lucide="user-round" class="w-[17px] h-[17px]"></i></span>
+              <span class="text-sm font-semibold">Аккаунт</span>
+            </button>
+          </nav>
+
+          <div class="mt-5 pt-5 border-t border-white/[.07] px-2">
+            <p class="mono text-[10px] tracking-[.25em] text-white/25 mb-3">СРЕДНИЙ БАЛЛ</p>
+            <div class="flex items-center gap-3">
+              <svg class="ring-prog w-14 h-14" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4"/>
+                <circle id="gpaRing" cx="24" cy="24" r="20" fill="none" stroke="url(#rg)" stroke-width="4" stroke-linecap="round"
+                        stroke-dasharray="125.6" stroke-dashoffset="125.6"/>
+                <defs><linearGradient id="rg" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs>
+              </svg>
+              <div>
+                <p class="font-display text-2xl leading-none" style="font-weight:700">4.6</p>
+                <p class="text-[11px] text-white/35 mt-1">из 5.0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ===================== КОНТЕНТ ===================== -->
+      <main id="viewport">
+
+        <!-- ======= ДНЕВНИК ======= -->
+        <section id="view-diary" class="view on" role="tabpanel">
+          <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
+            <div class="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-2">РАСПИСАНИЕ И ОЦЕНКИ</p>
+                <h1 class="font-display text-[24px] sm:text-4xl leading-tight" style="font-weight:800">Мой <span class="grad-text">дневник</span></h1>
+                <p class="text-white/45 text-sm mt-2">Группа ИС-101 · неделя 12 · осенний семестр</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="pill"><i data-lucide="calendar-days" class="w-3.5 h-3.5 text-indigo-300"></i>Сегодня</span>
+                <span class="pill"><i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-300"></i>6 пар</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-3 gap-4 mb-5">
+            <div class="st panel p-5" style="--i:1">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mono text-[10px] tracking-[.2em] text-white/35">ПОСЕЩАЕМОСТЬ</span>
+                <i data-lucide="user-check" class="w-4 h-4 text-emerald-300/70"></i>
+              </div>
+              <p class="font-display text-2xl" style="font-weight:700">96%</p>
+            </div>
+            <div class="st panel p-5" style="--i:2">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mono text-[10px] tracking-[.2em] text-white/35">ДОМАШКИ</span>
+                <i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-300/70"></i>
+              </div>
+              <p class="font-display text-2xl" style="font-weight:700">3 <span class="text-base text-white/35">новых</span></p>
+            </div>
+            <div class="st panel p-5" style="--i:3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="mono text-[10px] tracking-[.2em] text-white/35">РЕЙТИНГ</span>
+                <i data-lucide="trophy" class="w-4 h-4 text-amber-300/70"></i>
+              </div>
+              <p class="font-display text-2xl" style="font-weight:700">#4 <span class="text-base text-white/35">в группе</span></p>
+            </div>
+          </div>
+
+          <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="font-semibold">Пары на сегодня</h2>
+              <span class="mono text-[10px] tracking-[.2em] text-white/30" id="todayStr"></span>
+            </div>
+            <div class="space-y-2.5" id="lessons"></div>
+          </div>
+        </section>
+
+        <!-- ======= ПРИЛОЖЕНИЯ ======= -->
+        <section id="view-apps" class="view" role="tabpanel">
+          <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
+            <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-2">ЭКОСИСТЕМА КОЛЛЕДЖА</p>
+            <h1 class="font-display text-[24px] sm:text-4xl leading-tight" style="font-weight:800">Прило<span class="grad-text">жения</span></h1>
+            <p class="text-white/45 text-sm mt-2">Все сервисы доступны по единому аккаунту Колледж·ID</p>
+          </div>
+          <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4" id="appsGrid"></div>
+        </section>
+
+        <!-- ======= АККАУНТ ======= -->
+        <section id="view-account" class="view" role="tabpanel">
+          <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+              <div class="relative">
+                <div class="w-20 h-20 rounded-[22px] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-display text-2xl shadow-lg shadow-indigo-600/30" style="font-weight:700" id="avaText">ДС</div>
+                <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-400 border-[3px] border-[#0d0d15] flex items-center justify-center">
+                  <i data-lucide="check" class="w-3 h-3 text-[#07070d]"></i>
+                </span>
+              </div>
+              <div class="min-w-0">
+                <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-1.5">ПРОФИЛЬ СТУДЕНТА</p>
+                <h1 class="font-display text-xl sm:text-3xl truncate" style="font-weight:800" id="accFio">Демо Студентов</h1>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="pill"><i data-lucide="users" class="w-3.5 h-3.5 text-indigo-300"></i><span id="accGroup">ИС-101</span></span>
+                  <span class="pill"><i data-lucide="at-sign" class="w-3.5 h-3.5 text-indigo-300"></i><span id="accLogin">demo</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-2 gap-5">
+            <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:1">
+              <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="id-card" class="w-4 h-4 text-indigo-300"></i>Личные данные</h2>
+              <div class="space-y-2.5">
+                <div class="row"><span class="text-[13px] text-white/45">ФИО</span><span class="text-sm font-semibold" id="rowFio">Демо Студентов</span></div>
+                <div class="row"><span class="text-[13px] text-white/45">Дата рождения</span><span class="text-sm font-semibold" id="rowBirth">14 мая 2002</span></div>
+                <div class="row"><span class="text-[13px] text-white/45">Группа</span><span class="text-sm font-semibold" id="rowGroup">ИС-101</span></div>
+                <div class="row"><span class="text-[13px] text-white/45">Логин</span><span class="text-sm font-semibold mono" id="rowLogin">demo</span></div>
+              </div>
+            </div>
+
+            <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:2">
+              <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="settings-2" class="w-4 h-4 text-indigo-300"></i>Настройки</h2>
+              <div class="space-y-2.5">
+                <div class="row">
+                  <span class="text-[13px] text-white/60">Уведомления об оценках</span>
+                  <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
+                </div>
+                <div class="row">
+                  <span class="text-[13px] text-white/60">Напоминания о парах</span>
+                  <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
+                </div>
+                <div class="row">
+                  <span class="text-[13px] text-white/60">Тёмная тема</span>
+                  <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
+                </div>
+              </div>
+              <div class="grid sm:grid-cols-2 gap-3 mt-5">
+                <button class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2" id="btnExport"><i data-lucide="download" class="w-4 h-4"></i>Выгрузить данные</button>
+                <button class="btn btn-danger h-[46px] text-sm flex items-center justify-center gap-2" id="btnLogout"><i data-lucide="log-out" class="w-4 h-4"></i>Выйти</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- НИЖНЯЯ НАВИГАЦИЯ (телефоны и планшеты) -->
+  <nav class="dock lg:hidden" aria-label="Разделы">
+    <button class="dock-btn nav on" data-view="diary" aria-label="Дневник">
+      <i data-lucide="book-open-text" class="w-[21px] h-[21px] shrink-0"></i><span>Дневник</span>
+    </button>
+    <button class="dock-btn nav" data-view="apps" aria-label="Приложения">
+      <i data-lucide="layout-grid" class="w-[21px] h-[21px] shrink-0"></i><span>Приложения</span>
+    </button>
+    <button class="dock-btn nav" data-view="account" aria-label="Аккаунт">
+      <i data-lucide="user-round" class="w-[21px] h-[21px] shrink-0"></i><span>Аккаунт</span>
+    </button>
+  </nav>
+
+  <div id="toast">
+    <div class="flex items-center gap-2.5 bg-[#15151f]/95 border border-white/10 rounded-full px-5 py-3 shadow-2xl shadow-black/50 backdrop-blur">
+      <i data-lucide="info" class="w-4 h-4 text-indigo-300"></i><span id="toastMsg" class="text-sm text-white/80"></span>
+    </div>
+  </div>
+
+  <script src="../Data/users.js"></script>
+<script>
+(function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+
+  /* ---------- тост ---------- */
+  let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show'); clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2800); }
+
+  /* ---------- данные пользователя ---------- */
+  CollegeDB.init();
+  const s=CollegeDB.session();
+  const u=(s&&CollegeDB.findByLogin(s.login))||CollegeDB.findByLogin('demo');
+  if(u){
+    const parts=u.fio.split(/\s+/);
+    const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
+    $('avaText').textContent=ini.toUpperCase();
+    $('accFio').textContent=u.fio; $('rowFio').textContent=u.fio;
+    $('accGroup').textContent=u.group; $('rowGroup').textContent=u.group;
+    $('accLogin').textContent=u.login; $('rowLogin').textContent=u.login;
+    if(u.birth) $('rowBirth').textContent=new Date(u.birth+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  }
+
+  /* ---------- переключение разделов ----------
+     ПК  — боковое меню (.nav-btn)
+     Тел — нижний док (.dock-btn)
+     Обе группы кнопок помечены классом .nav и синхронизированы  */
+  const TITLES={diary:'Дневник',apps:'Приложения',account:'Аккаунт'};
+  const ORDER=['diary','apps','account'];
+  const viewport=$('viewport');
+  let currentView='diary', animating=false;
+
+  /* вспышка на кнопке в точке клика */
+  function pulse(btn,e){
+    const old=btn.querySelector('.nav-pulse'); if(old) old.remove();
+    const r=btn.getBoundingClientRect();
+    const sp=document.createElement('span');
+    sp.className='nav-pulse';
+    sp.style.setProperty('--px',((e&&e.clientX?e.clientX-r.left:r.width/2))+'px');
+    sp.style.setProperty('--py',((e&&e.clientY?e.clientY-r.top:r.height/2))+'px');
+    if(getComputedStyle(btn).position==='static') btn.style.position='relative';
+    btn.appendChild(sp);
+    setTimeout(()=>sp.remove(),620);
+  }
+
+  function show(view,e){
+    if(view===currentView||animating) return;
+    const prev=$('view-'+currentView), next=$('view-'+view);
+    if(!next) return;
+    animating=true;
+    // направление анимации по порядку разделов
+    const rev=ORDER.indexOf(view)<ORDER.indexOf(currentView);
+
+    // подсветка кнопок во всех группах навигации
+    document.querySelectorAll('.nav').forEach(b=>{
+      const on=b.dataset.view===view;
+      b.classList.toggle('on',on);
+      b.setAttribute('aria-current',on?'page':'false');
+    });
+    const cr=$('crumb'); if(cr) cr.textContent=TITLES[view]||'';
+
+    // плавная подгонка высоты контейнера
+    const fromH=viewport.offsetHeight;
+    viewport.style.height=fromH+'px';
+
+    // уход старого раздела
+    prev.classList.remove('on','enter','rev');
+    prev.classList.add('out'); if(rev) prev.classList.add('rev');
+
+    // вход нового
+    next.classList.add('on','enter'); if(rev) next.classList.add('rev');
+
+    requestAnimationFrame(()=>{
+      const toH=next.offsetHeight;
+      viewport.style.height=toH+'px';
+    });
+
+    window.scrollTo({top:0,behavior:'smooth'});
+
+    setTimeout(()=>{
+      prev.classList.remove('out','rev');
+      next.classList.remove('enter','rev');
+      viewport.style.height='';
+      currentView=view; animating=false;
+    },460);
+  }
+
+  document.querySelectorAll('.nav').forEach(b=>{
+    b.addEventListener('click',e=>{ pulse(b,e); show(b.dataset.view,e); });
+  });
+
+  /* стартовое состояние */
+  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.view==='diary'));
+  $('crumb') && ($('crumb').textContent=TITLES.diary);
+
+  /* ---------- дневник ---------- */
+  $('todayStr').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+  const lessons=[
+    ['08:30','Математический анализ','Петрова Л. И.','ауд. 304','5','m5'],
+    ['10:15','Базы данных','Соколов А. В.','ауд. 212','4','m4'],
+    ['12:00','Иностранный язык','Ким Е. О.','ауд. 118','5','m5'],
+    ['13:45','Веб-разработка','Орлов Д. С.','лаб. 401','—','mn'],
+    ['15:30','Физическая культура','Жуков П. Н.','спортзал','4','m4'],
+    ['17:00','Операционные системы','Белова Н. А.','ауд. 207','3','m3']
+  ];
+  $('lessons').innerHTML=lessons.map(([t,n,p,r,m,c])=>
+    '<div class="lesson">'
+    +'<div class="mono text-[12px] text-indigo-300/80 pt-1 w-12 flex-none">'+t+'</div>'
+    +'<div class="min-w-0 flex-1"><p class="font-semibold text-[14px] truncate">'+n+'</p>'
+    +'<p class="text-[12px] text-white/40 mt-0.5 truncate">'+p+' · '+r+'</p></div>'
+    +'<div class="mark '+c+'">'+m+'</div></div>').join('');
+
+  /* ---------- кольцо среднего балла ---------- */
+  setTimeout(()=>{ const r=$('gpaRing'); if(r) r.style.strokeDashoffset=(125.6*(1-4.6/5)).toFixed(1); },400);
+
+  /* ---------- приложения ---------- */
+  const apps=[
+    ['Расписание','Пары, звонки, замены','calendar-days','from-indigo-500 to-blue-500'],
+    ['Библиотека','Учебники и методички','library-big','from-purple-500 to-fuchsia-500'],
+    ['Домашние задания','Сдать и проверить','clipboard-list','from-emerald-500 to-teal-500'],
+    ['Столовая','Меню и баланс карты','utensils-crossed','from-amber-500 to-orange-500'],
+    ['Стипендия','Начисления и выплаты','wallet','from-rose-500 to-pink-500'],
+    ['Общежитие','Заявки и пропуска','building-2','from-cyan-500 to-sky-500'],
+    ['Портфолио','Достижения и сертификаты','award','from-violet-500 to-indigo-500'],
+    ['Поддержка','Вопрос в учебную часть','life-buoy','from-slate-500 to-zinc-500']
+  ];
+  $('appsGrid').innerHTML=apps.map(([n,d,ic,g],i)=>
+    '<button class="app-tile st" style="--i:'+(i+1)+'" data-name="'+n+'">'
+    +'<span class="ai bg-gradient-to-br '+g+'"><i data-lucide="'+ic+'" class="w-5 h-5"></i></span>'
+    +'<span><span class="block font-semibold text-[15px]">'+n+'</span>'
+    +'<span class="block text-[12.5px] text-white/40 mt-1">'+d+'</span></span>'
+    +'<span class="flex items-center gap-1.5 mt-auto pt-2 text-[11px] mono tracking-wider text-indigo-300/70">ОТКРЫТЬ<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></span>'
+    +'</button>').join('');
+  lucide.createIcons();
+  document.querySelectorAll('.app-tile').forEach(t=>{
+    t.addEventListener('mousemove',e=>{ const r=t.getBoundingClientRect();
+      t.style.setProperty('--mx',(e.clientX-r.left)+'px'); t.style.setProperty('--my',(e.clientY-r.top)+'px'); });
+    t.addEventListener('click',()=>toast('«'+t.dataset.name+'» — раздел в разработке'));
+  });
+
+  /* ---------- переключатели настроек ---------- */
+  document.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{
+    const on=b.dataset.on==='1'; b.dataset.on=on?'0':'1';
+    b.classList.toggle('bg-indigo-500',!on); b.classList.toggle('bg-white/10',on);
+    b.querySelector('.dotk').style.left=on?'4px':'22px';
+  }));
+
+  /* ---------- кнопки аккаунта ---------- */
+  $('btnExport').addEventListener('click',()=>{ CollegeDB.exportFile(); toast('Файл college-users.json выгружен'); });
+  $('btnLogout').addEventListener('click',()=>{ CollegeDB.clearSession(); toast('Сессия завершена — переходим ко входу…');
+    setTimeout(()=>location.href='../General/authorization.html',1100); });
+  $('bell').addEventListener('click',()=>toast('Новых уведомлений: 1 — выставлена оценка по БД'));
+
+  /* ---------- фон: частицы + параллакс ---------- */
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cv=$('fx'), cx=cv.getContext('2d');
+  let W,H,pts=[],mx=-9999,my=-9999; const dpr=Math.min(devicePixelRatio||1,2);
+  function resize(){ W=innerWidth;H=innerHeight; cv.width=W*dpr;cv.height=H*dpr; cv.style.width=W+'px';cv.style.height=H+'px';
+    cx.setTransform(dpr,0,0,dpr,0,0);
+    const n=Math.min(70,Math.floor(W*H/24000));
+    pts=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5})); }
+  resize(); addEventListener('resize',resize);
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  const orbs=[...document.querySelectorAll('.orb')]; let tx=0,ty=0,cxp=0,cyp=0;
+  addEventListener('mousemove',e=>{ tx=(e.clientX/W-.5); ty=(e.clientY/H-.5); });
+  function tick(){
+    cx.clearRect(0,0,W,H);
+    for(const p of pts){ const dx=p.x-mx,dy=p.y-my,d=Math.hypot(dx,dy);
+      if(d<120&&d>0){p.x+=dx/d*.5;p.y+=dy/d*.5;}
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<-10)p.x=W+10; if(p.x>W+10)p.x=-10; if(p.y<-10)p.y=H+10; if(p.y>H+10)p.y=-10;
+      cx.beginPath();cx.arc(p.x,p.y,p.r,0,7);cx.fillStyle='rgba(148,158,255,.4)';cx.fill(); }
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const a=pts[i],b=pts[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<120){cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);
+        cx.strokeStyle='rgba(120,130,250,'+((1-d/120)*.09)+')';cx.lineWidth=1;cx.stroke();} }
+    cxp+=(tx-cxp)*.04; cyp+=(ty-cyp)*.04;
+    for(const o of orbs){ const dep=+o.dataset.depth||14; o.style.translate=(cxp*dep)+'px '+(cyp*dep)+'px'; }
+    requestAnimationFrame(tick);
+  }
+  if(!reduced) tick();
+})();
+</script>
+</body>
+</html>
