@@ -467,7 +467,7 @@
   </div>
 
   <!-- СЛОЙ ДАННЫХ + АДАПТИВНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ -->
-  <script src="../Data/users.js"></script>
+  <script src="../Data/users.js?v=20260301-reset1"></script>
   <script src="perf.js"></script>
 <script>
 (function(){
@@ -478,7 +478,7 @@
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
   /* ---------- слой данных ---------- */
-  CollegeDB.init();
+  const dbReady=CollegeDB.init();
 
   /* ---------- тост ---------- */
   let toastT;
@@ -742,8 +742,15 @@
     if(!valLogin()) return;
     const btn=$('loginBtn'); loading(btn,true);
     const l=$('l_login').value.trim(), p=$('l_pass').value;
+    await dbReady;
     await wait(900);
-    const user=await CollegeDB.verify(l,p);
+    let user=null;
+    try{ user=await CollegeDB.verify(l,p); }
+    catch(err){
+      loading(btn,false);
+      toast('Сервер авторизации недоступен. Попробуйте ещё раз.');
+      return;
+    }
     loading(btn,false);
     if(!user){
       if(CollegeDB.exists(l)) setErr('l_pass','Неверный пароль');
@@ -763,6 +770,7 @@
     if(!valStep2(false)){ gotoStep(2); return; }
     if(!valStep3()) return;
     const btn=$('regBtn'); loading(btn,true);
+    await dbReady;
     await wait(1000);
     try{
       const user=await CollegeDB.add({

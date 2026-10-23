@@ -156,8 +156,16 @@
           .then(function (data) {
             if (data && data.ok && data.service === 'college-id') {
               mode = 'server';
-              apiBase = new URL('../api/', candidates[i]).href.replace(/\/$/, '');
-              token = sGet(LS_TOKEN) || null;
+              /* request() уже получает пути вида /api/login. Здесь нужен
+                 только origin; старый код создавал /api/api/login. */
+              apiBase = new URL(candidates[i], global.location.href).origin;
+              token = sGet(LS_TOKEN, localStorage) ||
+                sGet(LS_TOKEN, sessionStorage) || null;
+              /* Сервер является единственным источником истины. Удаляем
+                 прежнюю браузерную БД, чтобы старые аккаунты не участвовали
+                 во входе после полного сброса серверной базы. */
+              localDb = { version: 1, updatedAt: nowISO(), users: [] };
+              sDel(LS_USERS, localStorage);
               return CollegeDB.refresh().then(function () { return true; });
             }
             return tryNext(i + 1);
@@ -280,7 +288,9 @@
           .catch(function (err) {
             if (err && err.status === 401) return null;      // неверные данные
             if (err && err.status === 429) return null;       // лимит попыток
-            return verifyLocal(login, password);              // сервер недоступен
+            /* Если сервер уже обнаружен, не разрешаем вход через старую
+               локальную копию: это создавало ложную авторизацию. */
+            throw err;
           });
       }
       return verifyLocal(login, password);

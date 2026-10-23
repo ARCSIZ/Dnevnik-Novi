@@ -43,6 +43,10 @@ const HOST = process.env.HOST || '0.0.0.0';
 const TOKEN_TTL = 7 * 24 * 60 * 60;            // 7 дней, секунды
 const BODY_LIMIT = 64 * 1024;                  // 64 КБ на запрос
 
+/* Одноразовая миграция базы. Изменение этого значения очищает users ровно
+   один раз на существующем хостинге и записывает маркер в database.json. */
+const DATABASE_RESET_VERSION = 'clean-2026-03-01';
+
 const GROUPS = [
   ['ИС-101', 'Информационные системы'],
   ['ПИ-202', 'Прикладная информатика'],
@@ -82,8 +86,39 @@ function loadSecret() {
 }
 const SECRET = loadSecret();
 
-/* Сид: тестовый аккаунт, если база пустая; плюс бутстрап разработчика через env */
+function envValue(name, preserveSpaces) {
+  let value = String(process.env[name] || '');
+  if (!preserveSpaces) value = value.trim();
+  if (value.length >= 2 &&
+      ((value[0] === '"' && value[value.length - 1] === '"') ||
+       (value[0] === "'" && value[value.length - 1] === "'"))) {
+    value = value.slice(1, -1);
+  }
+  return preserveSpaces ? value : value.trim();
+}
+
+/* Сид: одноразовая очистка, demo и разработчик из переменных окружения. */
 function seed() {
+  if (db.data.resetVersion !== DATABASE_RESET_VERSION) {
+    /* Пользователь запросил полное обнуление: удаляем также старые бэкапы
+       и диагностические копии повреждённых баз. secret.key сохраняем. */
+    const backupsDir = path.join(DATA_DIR, 'backups');
+    try {
+      fs.rmSync(backupsDir, { recursive: true, force: true });
+      fs.mkdirSync(backupsDir, { recursive: true });
+      fs.readdirSync(DATA_DIR)
+        .filter(name => name.startsWith('database.json.corrupt-'))
+        .forEach(name => fs.rmSync(path.join(DATA_DIR, name), { force: true }));
+    } catch (err) {
+      console.warn('[server] Не удалось полностью очистить старые копии:', err.message);
+    }
+    db.data.users = [];
+    db.data.resetVersion = DATABASE_RESET_VERSION;
+    db.data.resetAt = nowISO();
+    console.log('[server] База пользователей очищена и пересоздаётся: ' +
+      DATABASE_RESET_VERSION);
+  }
+
   if (!db.data.users.length) {
     db.data.users.push({
       id: uid(), login: 'demo', fio: 'Демо Студентов', birth: '2002-05-14',
@@ -91,26 +126,32 @@ function seed() {
       role: 'student', registeredAt: nowISO(), lastLoginAt: null
     });
   }
-  /* Бутстрап первого разработчика (env): ADMIN_LOGIN + ADMIN_PASSWORD.
-     Работает и через прямой поиск, и через безопасный fallback. */
-  const dl = (process.env.ADMIN_LOGIN || '').trim();
-  const dp = (process.env.ADMIN_PASSWORD || '').trim();
+  /* При каждом запуске ADMIN_* является источником истины: существующему
+     аккаунту обновляются роль и пароль, а отсутствующий создаётся. */
+  const dl = envValue('ADMIN_LOGIN', false);
+  const dp = envValue('ADMIN_PASSWORD', true);
   if (dl && dp) {
     try {
-      const exists = db.data.users.some(u => normLogin(u.login) === normLogin(dl));
-      if (!exists) {
+      const existing = db.data.users.find(u => normLogin(u.login) === normLogin(dl));
+      if (!existing) {
         db.data.users.push({
-          id: uid(), login: dl, fio: (process.env.ADMIN_FIO || 'Администратор').trim(),
+          id: uid(), login: dl, fio: envValue('ADMIN_FIO', false) || 'Администратор',
           birth: '', group: '', passHash: hashPassword(dp),
           role: 'dev', registeredAt: nowISO(), lastLoginAt: null
         });
         console.log('[server] ✔ Создан аккаунт разработчика: ' + dl);
       } else {
-        console.log('[server] ⓘ Аккаунт разработчика «' + dl + '» уже существует — пропущен');
+        existing.role = 'dev';
+        existing.passHash = hashPassword(dp);
+        if (envValue('ADMIN_FIO', false)) existing.fio = envValue('ADMIN_FIO', false);
+        console.log('[server] ✔ Обновлены роль и пароль разработчика: ' + dl);
       }
     } catch (err) {
       console.error('[server] ✖ Бутстрап разработчика не удался:', err.message);
     }
+  } else {
+    console.warn('[server] ADMIN_LOGIN или ADMIN_PASSWORD не заданы — ' +
+      'создан только demo/demo123');
   }
   db.save();
 }
@@ -493,10 +534,15 @@ function serveStatic(req, res, pathname) {
   fs.stat(target, (err, st) => {
     if (err || !st.isFile()) return notFound(res);
     const ext = path.extname(target).toLowerCase();
+    const mustRevalidate = ['.html', '.js', '.mjs', '.css'].includes(ext);
     res.writeHead(200, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Content-Length': st.size,
-      'Cache-Control': ext === '.html' ? 'no-cache, must-revalidate' : 'public, max-age=3600'
+      /* Код приложения всегда перепроверяется после деплоя. Это не даёт
+         браузеру держать старый API-клиент с уже исправленными ошибками. */
+      'Cache-Control': mustRevalidate
+        ? 'no-cache, no-store, must-revalidate'
+        : 'public, max-age=3600'
     });
     if (req.method === 'HEAD') return res.end();
     fs.createReadStream(target).pipe(res);

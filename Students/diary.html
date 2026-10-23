@@ -508,10 +508,10 @@
     </div>
   </div>
 
-  <script src="../Data/users.js"></script>
+  <script src="../Data/users.js?v=20260301-reset1"></script>
   <script src="../General/perf.js"></script>
 <script>
-(function(){
+(async function(){
   lucide.createIcons();
   const $=id=>document.getElementById(id);
 
@@ -519,7 +519,7 @@
   let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show'); clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2800); }
 
   /* ---------- данные пользователя ---------- */
-  CollegeDB.init();
+  await CollegeDB.init();
   const s=CollegeDB.session();
   const u=(s&&CollegeDB.findByLogin(s.login))||CollegeDB.findByLogin('demo');
   if(u){
