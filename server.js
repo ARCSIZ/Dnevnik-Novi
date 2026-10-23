@@ -91,17 +91,26 @@ function seed() {
       role: 'student', registeredAt: nowISO(), lastLoginAt: null
     });
   }
-  /* Бутстрап первого разработчика: задайте на хостинге переменные
-     ADMIN_LOGIN + ADMIN_PASSWORD (+ опционально ADMIN_FIO), перезапустите —
-     аккаунт создастся с ролью «dev». Затем переменные можно удалить. */
-  const dl = process.env.ADMIN_LOGIN, dp = process.env.ADMIN_PASSWORD;
-  if (dl && dp && !findByLogin(dl)) {
-    db.data.users.push({
-      id: uid(), login: dl, fio: process.env.ADMIN_FIO || 'Администратор',
-      birth: '', group: '', passHash: hashPassword(dp),
-      role: 'dev', registeredAt: nowISO(), lastLoginAt: null
-    });
-    console.log('[server] Создан аккаунт разработчика: ' + dl);
+  /* Бутстрап первого разработчика (env): ADMIN_LOGIN + ADMIN_PASSWORD.
+     Работает и через прямой поиск, и через безопасный fallback. */
+  const dl = (process.env.ADMIN_LOGIN || '').trim();
+  const dp = (process.env.ADMIN_PASSWORD || '').trim();
+  if (dl && dp) {
+    try {
+      const exists = db.data.users.some(u => normLogin(u.login) === normLogin(dl));
+      if (!exists) {
+        db.data.users.push({
+          id: uid(), login: dl, fio: (process.env.ADMIN_FIO || 'Администратор').trim(),
+          birth: '', group: '', passHash: hashPassword(dp),
+          role: 'dev', registeredAt: nowISO(), lastLoginAt: null
+        });
+        console.log('[server] ✔ Создан аккаунт разработчика: ' + dl);
+      } else {
+        console.log('[server] ⓘ Аккаунт разработчика «' + dl + '» уже существует — пропущен');
+      }
+    } catch (err) {
+      console.error('[server] ✖ Бутстрап разработчика не удался:', err.message);
+    }
   }
   db.save();
 }
@@ -583,6 +592,7 @@ function onOpen(port) {
     '  │  Пользоват.: ' + String(db.data.users.length).padEnd(35) + '│',
     '  │  База:       Data/database.json                 │',
     '  │  Зависимости: нет (только встроенные модули)    │',
+    '  │  ADMIN_*:    ' + ((process.env.ADMIN_LOGIN ? ('ADMIN_LOGIN=' + process.env.ADMIN_LOGIN + ((process.env.ADMIN_PASSWORD ? ' + пароль задан' : '')).padEnd(33)) : ('не заданы')).padEnd(35)) + '│',
     '  └─────────────────────────────────────────────────┘',
     (movedFromBusy
       ? '  ⚠ Порт ' + PORT + ' был занят — сервер поднялся на ' + port + '.\n' +
