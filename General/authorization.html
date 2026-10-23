@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Колледж·ID — Авторизация</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M16 9 6 13.5l10 4.5 8-3.6V19h2v-5.5z' fill='white'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: 'Manrope', sans-serif; background: #07070d; }
+  .font-display { font-family: 'Unbounded', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* ============ СКРОЛЛБАРЫ СКРЫТЫ ВЕЗДЕ (прокрутка работает) ============ */
+  * { scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
+  html, body { scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none !important; }
+
+  /* ---------- фоновые слои ---------- */
+  .orb { position:absolute; border-radius:9999px; filter:blur(90px); will-change:transform; }
+  .orb-1 { width:560px;height:560px; background:radial-gradient(circle,rgba(99,102,241,.32),transparent 65%); animation:drift1 18s ease-in-out infinite; }
+  .orb-2 { width:480px;height:480px; background:radial-gradient(circle,rgba(168,85,247,.26),transparent 65%); animation:drift2 22s ease-in-out infinite; }
+  .orb-3 { width:420px;height:420px; background:radial-gradient(circle,rgba(34,211,238,.16),transparent 65%); animation:drift3 26s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(60px,-40px) scale(1.1)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-50px,50px) scale(1.06)} }
+  @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,60px) scale(.94)} }
+
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 40%, black 30%, transparent 75%);
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 40%, black 30%, transparent 75%);
+  }
+  .noise { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); opacity:.05; }
+
+  .ring-spin { animation:ringspin 26s linear infinite; border:1px dashed rgba(255,255,255,.14); border-radius:9999px; }
+  @keyframes ringspin { to { transform:rotate(360deg) } }
+
+  /* ---------- типографика левой панели ---------- */
+  .outline-text { color:transparent; -webkit-text-stroke:1.2px rgba(255,255,255,.4); }
+  .grad-text { background:linear-gradient(100deg,#818cf8,#c084fc 55%,#e879f9); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+  /* ---------- марки ---------- */
+  .marquee-inner { display:flex; gap:2.75rem; width:max-content; animation:marquee 30s linear infinite; }
+  @keyframes marquee { to { transform:translateX(-50%) } }
+
+  /* ---------- карточка ---------- */
+  .card { background:rgba(13,13,21,.78); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); border:1px solid rgba(255,255,255,.08); box-shadow:0 40px 90px -30px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.06); }
+  .corner { position:absolute; width:16px; height:16px; border-style:solid; border-color:rgba(255,255,255,.28); }
+
+  /* ---------- поля ---------- */
+  .lbl { display:block; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:rgba(255,255,255,.38); margin-bottom:8px; }
+  .fld { position:relative; }
+  .fld input {
+    width:100%; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.09);
+    border-radius:14px; padding:13px 44px 13px 46px; font-size:15px; color:#fff; outline:none;
+    transition:border-color .25s, box-shadow .25s, background .25s; font-family:'Manrope',sans-serif;
+  }
+  .fld input::placeholder { color:rgba(255,255,255,.22); }
+  .fld input:focus {
+    border-color:rgba(129,140,248,.65); background:rgba(99,102,241,.06);
+    box-shadow:0 0 0 4px rgba(99,102,241,.13);
+  }
+  .fld-ic { position:absolute; left:15px; top:50%; transform:translateY(-50%); width:18px; height:18px; color:rgba(255,255,255,.28); pointer-events:none; transition:color .25s; }
+  .fld:focus-within .fld-ic { color:#a5b4fc; }
+  .fld.is-err input { border-color:rgba(251,113,133,.75); background:rgba(244,63,94,.05); }
+  .fld.is-err .fld-ic { color:#fb7185; }
+
+  /* иконка календаря — в зоне правого отступа, не перекрывает год */
+  .fld input[type="date"] { padding-right:38px; }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    margin:0; width:18px; height:18px; filter:invert(.55); cursor:pointer;
+  }
+
+  .err { display:none; margin-top:7px; font-size:12px; color:rgba(251,113,133,.95); align-items:center; gap:6px; }
+  .err.show { display:flex; animation:rise .35s cubic-bezier(.22,1,.36,1); }
+  .shake { animation:shake .5s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes shake { 10%,90%{transform:translateX(-1px)} 20%,80%{transform:translateX(2px)} 30%,50%,70%{transform:translateX(-4px)} 40%,60%{transform:translateX(4px)} }
+
+  /* ---------- ШАГ 3: карточки групп ---------- */
+  .glist { max-height:272px; overflow-y:auto; padding-right:2px; }
+  .gcard {
+    position:relative; width:100%; display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:16px; cursor:pointer; text-align:left;
+    background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
+    transition:background .22s, border-color .22s, transform .18s;
+  }
+  .gcard:hover { background:rgba(255,255,255,.055); border-color:rgba(255,255,255,.16); transform:translateY(-1px); }
+  .gcard .gic {
+    width:38px; height:38px; flex:none; border-radius:11px; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07);
+    color:rgba(255,255,255,.5); transition:all .22s;
+  }
+  .gcard .gmark {
+    width:20px; height:20px; flex:none; margin-left:auto; border-radius:9999px;
+    border:1.5px solid rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center;
+    transition:all .22s;
+  }
+  .gcard .gmark i { opacity:0; transform:scale(.5); transition:all .22s; }
+  .gcard.sel {
+    background:linear-gradient(100deg,rgba(99,102,241,.16),rgba(168,85,247,.10));
+    border-color:rgba(129,140,248,.6);
+    box-shadow:0 10px 30px -12px rgba(99,102,241,.5);
+  }
+  .gcard.sel .gic { background:linear-gradient(135deg,#6366f1,#a855f7); border-color:transparent; color:#fff; }
+  .gcard.sel .gmark { background:#6366f1; border-color:#6366f1; }
+  .gcard.sel .gmark i { opacity:1; transform:scale(1); }
+  .glist.is-err { outline:1px solid rgba(251,113,133,.6); outline-offset:6px; border-radius:18px; }
+
+  /* ---------- вкладки ---------- */
+  .tab-ind { position:absolute; top:4px; bottom:4px; border-radius:9999px; background:linear-gradient(120deg,#6366f1,#a855f7); box-shadow:0 6px 20px -4px rgba(139,92,246,.5); transition:left .35s cubic-bezier(.22,1,.36,1), width .35s cubic-bezier(.22,1,.36,1); }
+
+  /* ---------- кнопки ---------- */
+  .btn { position:relative; overflow:hidden; border-radius:14px; font-weight:700; font-size:15px; transition:transform .2s, filter .25s; }
+  .btn:active { transform:scale(.985); }
+  .btn-primary { background:linear-gradient(120deg,#6366f1,#8b5cf6 60%,#a855f7); color:#fff; box-shadow:0 14px 34px -10px rgba(124,58,237,.55); }
+  .btn-primary:hover { filter:brightness(1.12); }
+  .btn-primary::after { content:''; position:absolute; top:0; left:-80%; width:50%; height:100%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent); transform:skewX(-20deg); transition:left .6s ease; }
+  .btn-primary:hover::after { left:130%; }
+  .btn:disabled { opacity:.7; cursor:not-allowed; }
+  .btn-ghost { border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.75); transition:background .25s, border-color .25s; }
+  .btn-ghost:hover { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.22); }
+
+  /* ---------- анимации появления ---------- */
+  .in .it { opacity:0; animation:rise .55s cubic-bezier(.22,1,.36,1) forwards; animation-delay:calc(var(--i) * 65ms + 60ms); }
+  @keyframes rise { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
+  .leaving { transition:opacity .18s, transform .18s; opacity:0; transform:translateY(-8px); }
+  .leaving-l { transition:opacity .2s, transform .2s; opacity:0; transform:translateX(-18px); }
+  .leaving-r { transition:opacity .2s, transform .2s; opacity:0; transform:translateX(18px); }
+
+  /* ---------- индикатор шагов ---------- */
+  .prog { transition:width .5s cubic-bezier(.22,1,.36,1); }
+  .dot { width:7px; height:7px; border-radius:9999px; background:rgba(255,255,255,.16); transition:all .35s; }
+  .dot.on { background:#a5b4fc; }
+  .dot.now { width:20px; background:linear-gradient(90deg,#6366f1,#a855f7); }
+
+  /* ---------- перенаправление после успеха ---------- */
+  .rebar { width:0%; animation:rebar 2.5s cubic-bezier(.4,0,.4,1) forwards; }
+  @keyframes rebar { to { width:100% } }
+
+  /* ---------- успех ---------- */
+  .pop { animation:pop .5s cubic-bezier(.22,1.4,.36,1) both; }
+  @keyframes pop { from { transform:scale(.7); opacity:0 } to { transform:scale(1); opacity:1 } }
+  .draw-circle { stroke-dasharray:230; stroke-dashoffset:230; animation:draw .7s .15s cubic-bezier(.65,0,.35,1) forwards; }
+  .draw-check { stroke-dasharray:60; stroke-dashoffset:60; animation:draw .45s .65s cubic-bezier(.65,0,.35,1) forwards; }
+  @keyframes draw { to { stroke-dashoffset:0 } }
+  .ring-pulse { animation:ringPulse 2.2s ease-out infinite; }
+  @keyframes ringPulse { 0%{transform:scale(.85);opacity:.65} 100%{transform:scale(1.65);opacity:0} }
+
+  .spin { animation:sp 0.9s linear infinite; } @keyframes sp { to { transform:rotate(360deg) } }
+
+  /* ---------- тост ---------- */
+  #toast { position:fixed; left:50%; bottom:28px; transform:translate(-50%, 20px); opacity:0; transition:opacity .3s, transform .3s; z-index:99; pointer-events:none; }
+  #toast.show { opacity:1; transform:translate(-50%, 0); }
+</style>
+</head>
+<body class="text-white antialiased overflow-x-hidden min-h-screen">
+
+  <!-- ФОН -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="orb orb-1" style="top:-160px;left:-140px" data-depth="18"></div>
+    <div class="orb orb-2" style="bottom:-180px;right:-120px" data-depth="30"></div>
+    <div class="orb orb-3" style="top:35%;left:45%" data-depth="12"></div>
+  </div>
+  <canvas id="fx" class="fixed inset-0 pointer-events-none" style="z-index:1" aria-hidden="true"></canvas>
+  <div class="fixed inset-0 grid-overlay pointer-events-none" style="z-index:2" aria-hidden="true"></div>
+  <div class="fixed inset-0 noise pointer-events-none" style="z-index:3" aria-hidden="true"></div>
+
+  <main class="relative min-h-screen grid lg:grid-cols-2" style="z-index:10">
+
+    <!-- ============ ЛЕВАЯ ПАНЕЛЬ ============ -->
+    <section class="relative hidden lg:flex flex-col justify-between p-14 xl:p-20 overflow-hidden">
+      <div class="absolute -right-44 -top-44 w-[540px] h-[540px] rounded-full border border-white/5" aria-hidden="true"></div>
+      <div class="absolute -right-24 -top-24 w-[340px] h-[340px] ring-spin" aria-hidden="true"></div>
+
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+            <i data-lucide="graduation-cap" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold tracking-tight text-lg">Колледж·ID</span>
+        </div>
+        <span class="mono text-[10px] tracking-[.3em] text-white/30">EST. 2025</span>
+      </div>
+
+      <div class="max-w-xl">
+        <p class="mono text-[11px] tracking-[.35em] text-indigo-300/70 mb-7">DIGITAL COLLEGE / AUTH — 01</p>
+        <h1 class="font-display font-800 leading-[1.04] text-6xl xl:text-[4.6rem]" style="font-weight:800">
+          <span class="block">Цифровой</span>
+          <span class="block grad-text">колледж</span>
+          <span class="block outline-text">начинается здесь.</span>
+        </h1>
+        <p class="mt-7 text-white/50 text-[15px] leading-relaxed max-w-md">
+          Единая точка входа в образовательную экосистему: расписание, оценки,
+          курсы и внутренние сервисы — всё по одному аккаунту.
+        </p>
+
+        <div class="mt-12 grid grid-cols-3 gap-6 max-w-md">
+          <div class="border-t border-white/10 pt-4">
+            <p class="font-display text-2xl" style="font-weight:700">12 400+</p>
+            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">студентов</p>
+          </div>
+          <div class="border-t border-white/10 pt-4">
+            <p class="font-display text-2xl" style="font-weight:700">380</p>
+            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">курсов</p>
+          </div>
+          <div class="border-t border-white/10 pt-4">
+            <p class="font-display text-2xl" style="font-weight:700">24/7</p>
+            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">доступ</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-white/8 -mx-14 xl:-mx-20 px-14 xl:px-20 py-5 overflow-hidden">
+        <div class="marquee-inner mono text-[11px] tracking-[.3em] text-white/30 uppercase">
+          <span>Цифровой колледж</span><span class="text-indigo-400/50">✦</span>
+          <span>Расписание</span><span class="text-indigo-400/50">✦</span>
+          <span>Оценки</span><span class="text-indigo-400/50">✦</span>
+          <span>Библиотека</span><span class="text-indigo-400/50">✦</span>
+          <span>Стипендия</span><span class="text-indigo-400/50">✦</span>
+          <span>Общежитие</span><span class="text-indigo-400/50">✦</span>
+          <span>Цифровой колледж</span><span class="text-indigo-400/50">✦</span>
+          <span>Расписание</span><span class="text-indigo-400/50">✦</span>
+          <span>Оценки</span><span class="text-indigo-400/50">✦</span>
+          <span>Библиотека</span><span class="text-indigo-400/50">✦</span>
+          <span>Стипендия</span><span class="text-indigo-400/50">✦</span>
+          <span>Общежитие</span><span class="text-indigo-400/50">✦</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ПРАВАЯ ПАНЕЛЬ / ФОРМА ============ -->
+    <section class="relative flex flex-col items-center justify-center px-5 sm:px-10 py-12">
+
+      <div class="lg:hidden flex items-center gap-3 mb-8">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+          <i data-lucide="graduation-cap" class="w-4.5 h-4.5 text-white"></i>
+        </div>
+        <span class="font-bold tracking-tight">Колледж·ID</span>
+      </div>
+
+      <div class="relative w-full max-w-[460px]">
+        <span class="corner border-t border-l rounded-tl-md" style="top:-10px;left:-10px;border-width:1.5px 0 0 1.5px"></span>
+        <span class="corner border-t border-r rounded-tr-md" style="top:-10px;right:-10px;border-width:1.5px 1.5px 0 0"></span>
+        <span class="corner border-b border-l rounded-bl-md" style="bottom:-10px;left:-10px;border-width:0 0 1.5px 1.5px"></span>
+        <span class="corner border-b border-r rounded-br-md" style="bottom:-10px;right:-10px;border-width:0 1.5px 1.5px 0"></span>
+
+        <div class="card rounded-[26px] p-7 sm:p-9">
+
+          <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <i data-lucide="fingerprint" class="w-4 h-4 text-white"></i>
+              </div>
+              <span class="font-semibold text-sm tracking-tight">Колледж·ID</span>
+            </div>
+            <span class="mono text-[10px] tracking-[.25em] text-white/30">SECURE ACCESS</span>
+          </div>
+
+          <!-- ВКЛАДКИ -->
+          <div id="tabs" class="relative grid grid-cols-2 bg-white/[.04] border border-white/[.07] rounded-full p-1 mb-8" role="tablist">
+            <span id="tabIndicator" class="tab-ind"></span>
+            <button id="tabLogin" role="tab" aria-selected="true"
+              class="relative z-10 flex items-center justify-center gap-2 h-10 rounded-full text-sm font-semibold transition-colors duration-300">
+              <i data-lucide="log-in" class="w-4 h-4"></i>Вход
+            </button>
+            <button id="tabRegister" role="tab" aria-selected="false"
+              class="relative z-10 flex items-center justify-center gap-2 h-10 rounded-full text-sm font-semibold transition-colors duration-300">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>Регистрация
+            </button>
+          </div>
+
+          <div id="formsWrap" class="relative overflow-hidden" style="transition:height .35s cubic-bezier(.22,1,.36,1)">
+
+            <!-- ======== ФОРМА ВХОДА ======== -->
+            <form id="formLogin" class="space-y-5" novalidate autocomplete="on">
+              <div class="it" style="--i:0">
+                <label class="lbl" for="l_login">Логин</label>
+                <div class="fld" id="fld-l_login">
+                  <i data-lucide="user" class="fld-ic"></i>
+                  <input id="l_login" type="text" placeholder="например, demo" autocomplete="username" spellcheck="false">
+                </div>
+                <p class="err" id="err-l_login"></p>
+              </div>
+
+              <div class="it" style="--i:1">
+                <label class="lbl" for="l_pass">Пароль</label>
+                <div class="fld" id="fld-l_pass">
+                  <i data-lucide="lock" class="fld-ic"></i>
+                  <input id="l_pass" type="password" placeholder="••••••••" autocomplete="current-password">
+                  <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-white/35 hover:text-white/80 transition-colors toggle-pass" data-for="l_pass" aria-label="Показать пароль">
+                    <i data-lucide="eye" class="w-[18px] h-[18px]"></i>
+                  </button>
+                </div>
+                <p class="err" id="err-l_pass"></p>
+              </div>
+
+              <div class="it flex items-center justify-between pt-1" style="--i:2">
+                <label class="flex items-center gap-2.5 cursor-pointer select-none group">
+                  <input type="checkbox" id="remember" class="peer sr-only">
+                  <span class="w-[18px] h-[18px] rounded-[6px] border border-white/20 bg-white/[0.03] flex items-center justify-center transition-all peer-checked:bg-indigo-500 peer-checked:border-indigo-500 group-hover:border-white/40">
+                    <i data-lucide="check" class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100"></i>
+                  </span>
+                  <span class="text-[13px] text-white/50 group-hover:text-white/70 transition-colors">Запомнить меня</span>
+                </label>
+                <button type="button" id="forgot" class="text-[13px] text-indigo-300/80 hover:text-indigo-200 transition-colors underline-offset-4 hover:underline">Забыли пароль?</button>
+              </div>
+
+              <div class="it pt-2" style="--i:3">
+                <button type="submit" id="loginBtn" class="btn btn-primary w-full h-[52px] flex items-center justify-center gap-2">
+                  <span class="btn-label flex items-center gap-2">Войти<i data-lucide="arrow-right" class="w-[18px] h-[18px]"></i></span>
+                  <span class="btn-load hidden items-center gap-2"><i data-lucide="loader-2" class="w-[18px] h-[18px] spin"></i>Проверяем…</span>
+                </button>
+              </div>
+
+              <p class="it mono text-[10px] tracking-[.15em] text-white/25 text-center pt-1" style="--i:4">ДЕМО-ДОСТУП: DEMO / DEMO123</p>
+            </form>
+
+            <!-- ======== ФОРМА РЕГИСТРАЦИИ (3 ШАГА) ======== -->
+            <form id="formRegister" class="hidden" novalidate autocomplete="on">
+
+              <!-- Индикатор шагов -->
+              <div class="mb-7">
+                <div class="flex items-center justify-between mb-2.5">
+                  <div class="flex items-center gap-2">
+                    <span class="mono text-[10px] tracking-[.2em] text-white/35 uppercase">Шаг <span id="regStepNum" class="text-white/70">1</span> / 3</span>
+                    <span class="flex items-center gap-1.5 ml-1">
+                      <span class="dot" data-d="1"></span><span class="dot" data-d="2"></span><span class="dot" data-d="3"></span>
+                    </span>
+                  </div>
+                  <span id="regStepTitle" class="text-[12px] font-semibold text-indigo-300/80">Личные данные</span>
+                </div>
+                <div class="h-[3px] rounded-full bg-white/[.06] overflow-hidden">
+                  <div id="regProgress" class="prog h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500" style="width:33.33%"></div>
+                </div>
+              </div>
+
+              <!-- ===== ШАГ 1 — ЛИЧНЫЕ ДАННЫЕ ===== -->
+              <div id="regStep1" class="space-y-5 in">
+                <div class="it" style="--i:0">
+                  <label class="lbl" for="r_fio">ФИО</label>
+                  <div class="fld" id="fld-r_fio">
+                    <i data-lucide="id-card" class="fld-ic"></i>
+                    <input id="r_fio" type="text" placeholder="Иванова Анна Сергеевна" autocomplete="name" spellcheck="false">
+                  </div>
+                  <p class="err" id="err-r_fio"></p>
+                </div>
+
+                <div class="it" style="--i:1">
+                  <label class="lbl" for="r_birth">Дата рождения</label>
+                  <div class="fld" id="fld-r_birth">
+                    <i data-lucide="calendar" class="fld-ic"></i>
+                    <input id="r_birth" type="date" min="1935-01-01" autocomplete="bday">
+                  </div>
+                  <p class="err" id="err-r_birth"></p>
+                </div>
+
+                <div class="it pt-2" style="--i:2">
+                  <button type="button" class="btn btn-primary w-full h-[52px] flex items-center justify-center gap-2 nav-next" data-to="2">
+                    Продолжить<i data-lucide="arrow-right" class="w-[18px] h-[18px]"></i>
+                  </button>
+                </div>
+                <p class="it mono text-[10px] tracking-[.15em] text-white/25 text-center" style="--i:3">ДАЛЕЕ — ЛОГИН И ПАРОЛЬ</p>
+              </div>
+
+              <!-- ===== ШАГ 2 — ДАННЫЕ АККАУНТА ===== -->
+              <div id="regStep2" class="space-y-5 hidden">
+                <div class="it" style="--i:0">
+                  <label class="lbl" for="r_login">Логин</label>
+                  <div class="fld" id="fld-r_login">
+                    <i data-lucide="at-sign" class="fld-ic"></i>
+                    <input id="r_login" type="text" placeholder="ivanova.a" autocomplete="username" spellcheck="false">
+                  </div>
+                  <p class="err" id="err-r_login"></p>
+                </div>
+
+                <div class="it" style="--i:1">
+                  <label class="lbl" for="r_pass">Пароль</label>
+                  <div class="fld" id="fld-r_pass">
+                    <i data-lucide="lock" class="fld-ic"></i>
+                    <input id="r_pass" type="password" placeholder="Минимум 6 символов" autocomplete="new-password">
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-white/35 hover:text-white/80 transition-colors toggle-pass" data-for="r_pass" aria-label="Показать пароль">
+                      <i data-lucide="eye" class="w-[18px] h-[18px]"></i>
+                    </button>
+                  </div>
+                  <p class="err" id="err-r_pass"></p>
+                </div>
+
+                <div class="it" style="--i:2">
+                  <label class="lbl" for="r_pass2">Повторите пароль</label>
+                  <div class="fld" id="fld-r_pass2">
+                    <i data-lucide="lock-keyhole" class="fld-ic"></i>
+                    <input id="r_pass2" type="password" placeholder="Ещё раз" autocomplete="new-password">
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-white/35 hover:text-white/80 transition-colors toggle-pass" data-for="r_pass2" aria-label="Показать пароль">
+                      <i data-lucide="eye" class="w-[18px] h-[18px]"></i>
+                    </button>
+                  </div>
+                  <p class="err" id="err-r_pass2"></p>
+                </div>
+
+                <div class="it pt-2 space-y-3" style="--i:3">
+                  <button type="button" class="btn btn-primary w-full h-[52px] flex items-center justify-center gap-2 nav-next" data-to="3">
+                    Продолжить<i data-lucide="arrow-right" class="w-[18px] h-[18px]"></i>
+                  </button>
+                  <button type="button" class="btn btn-ghost w-full h-[46px] flex items-center justify-center gap-2 text-sm nav-back" data-to="1">
+                    <i data-lucide="arrow-left" class="w-[17px] h-[17px]"></i>Назад
+                  </button>
+                </div>
+              </div>
+
+              <!-- ===== ШАГ 3 — ВЫБОР ГРУППЫ ===== -->
+              <div id="regStep3" class="space-y-5 hidden">
+                <div class="it" style="--i:0">
+                  <div class="flex items-center justify-between mb-3">
+                    <label class="lbl mb-0">Учебная группа</label>
+                    <span id="groupHint" class="mono text-[10px] tracking-[.15em] text-white/25 uppercase">НЕ ВЫБРАНА</span>
+                  </div>
+                  <div id="groupList" class="glist space-y-2.5" role="radiogroup" aria-label="Учебная группа"></div>
+                  <p class="err" id="err-r_group"></p>
+                </div>
+
+                <div class="it pt-1 space-y-3" style="--i:1">
+                  <button type="submit" id="regBtn" class="btn btn-primary w-full h-[52px] flex items-center justify-center gap-2">
+                    <span class="btn-label flex items-center gap-2">Создать аккаунт<i data-lucide="user-plus" class="w-[18px] h-[18px]"></i></span>
+                    <span class="btn-load hidden items-center gap-2"><i data-lucide="loader-2" class="w-[18px] h-[18px] spin"></i>Регистрируем…</span>
+                  </button>
+                  <button type="button" class="btn btn-ghost w-full h-[46px] flex items-center justify-center gap-2 text-sm nav-back" data-to="2">
+                    <i data-lucide="arrow-left" class="w-[17px] h-[17px]"></i>Назад
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <!-- ======== УСПЕХ ======== -->
+            <div id="successView" class="hidden text-center py-4"></div>
+          </div>
+
+          <div class="flex items-center justify-center gap-2 mt-8 pt-6 border-t border-white/[.06]">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-white/30"></i>
+            <p class="text-[11px] text-white/35">Данные шифруются и хранятся локально (Data/users.js)</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="mono text-[10px] tracking-[.25em] text-white/20 mt-8">© 2025 КОЛЛЕДЖ·ID — СИСТЕМА ДОСТУПА</p>
+    </section>
+  </main>
+
+  <!-- ТОСТ -->
+  <div id="toast">
+    <div class="flex items-center gap-2.5 bg-[#15151f]/95 border border-white/10 rounded-full px-5 py-3 shadow-2xl shadow-black/50 backdrop-blur">
+      <i data-lucide="info" class="w-4 h-4 text-indigo-300"></i>
+      <span id="toastMsg" class="text-sm text-white/80"></span>
+    </div>
+  </div>
+
+  <!-- СЛОЙ ДАННЫХ -->
+  <script src="../Data/users.js"></script>
+<script>
+(function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const wrap=$('formsWrap'), tabLogin=$('tabLogin'), tabRegister=$('tabRegister'), indicator=$('tabIndicator');
+  const formLogin=$('formLogin'), formRegister=$('formRegister'), successView=$('successView');
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+  /* ---------- слой данных ---------- */
+  CollegeDB.init();
+
+  /* ---------- тост ---------- */
+  let toastT;
+  function toast(msg){ $('toastMsg').textContent=msg; $('toast').classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>$('toast').classList.remove('show'),3200); }
+  $('forgot').addEventListener('click',()=>toast('Для восстановления доступа обратитесь в учебную часть'));
+
+  /* ---------- вкладки ---------- */
+  let current='login', busy=false;
+  function moveIndicator(){
+    const t=current==='login'?tabLogin:tabRegister;
+    indicator.style.left=t.offsetLeft+'px'; indicator.style.width=t.offsetWidth+'px';
+    tabLogin.style.color=current==='login'?'#fff':'rgba(255,255,255,.45)';
+    tabRegister.style.color=current==='register'?'#fff':'rgba(255,255,255,.45)';
+    tabLogin.setAttribute('aria-selected',current==='login');
+    tabRegister.setAttribute('aria-selected',current==='register');
+  }
+  function visibleEl(){ return !formLogin.classList.contains('hidden')?formLogin:(!formRegister.classList.contains('hidden')?formRegister:null); }
+  function tweenHeight(fromH,toH,done){
+    wrap.style.height=fromH+'px'; wrap.offsetHeight;
+    wrap.style.height=toH+'px';
+    setTimeout(()=>{ wrap.style.height=''; if(done)done(); },360);
+  }
+  function switchTab(name,prefill){
+    if(name===current||busy) return;
+    busy=true;
+    const cur=visibleEl(), fromH=wrap.offsetHeight;
+    if(cur) cur.classList.add('leaving');
+    clearErrors();
+    setTimeout(()=>{
+      if(cur){ cur.classList.add('hidden'); cur.classList.remove('leaving','in'); }
+      successView.classList.add('hidden');
+      current=name; moveIndicator();
+      const next=name==='login'?formLogin:formRegister;
+      if(prefill){ $('l_login').value=prefill; }
+      next.classList.remove('hidden'); next.classList.add('in');
+      tweenHeight(fromH,next.offsetHeight);
+      busy=false;
+    },190);
+  }
+  tabLogin.addEventListener('click',()=>switchTab('login'));
+  tabRegister.addEventListener('click',()=>switchTab('register'));
+  window.addEventListener('resize',moveIndicator);
+  moveIndicator(); setTimeout(moveIndicator,400);
+  formLogin.classList.add('in');
+
+  /* ---------- показ пароля ---------- */
+  document.querySelectorAll('.toggle-pass').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const inp=$(b.dataset.for);
+      const show=inp.type==='password';
+      inp.type=show?'text':'password';
+      b.innerHTML='<i data-lucide="'+(show?'eye-off':'eye')+'" class="w-[18px] h-[18px]"></i>';
+      lucide.createIcons();
+    });
+  });
+
+  /* ---------- ошибки ---------- */
+  const alertSvg='<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>';
+  function setErr(id,msg){
+    const f=$('fld-'+id), e=$('err-'+id);
+    if(!e) return;
+    if(msg){ if(f){ f.classList.add('is-err'); f.classList.remove('shake'); f.offsetWidth; f.classList.add('shake'); }
+      e.innerHTML=alertSvg+'<span>'+msg+'</span>'; e.classList.add('show');
+    } else { if(f) f.classList.remove('is-err'); e.classList.remove('show'); e.innerHTML=''; }
+  }
+  function clearErrors(){
+    document.querySelectorAll('.fld.is-err').forEach(f=>f.classList.remove('is-err'));
+    document.querySelectorAll('.err.show').forEach(e=>e.classList.remove('show'));
+    $('groupList').classList.remove('is-err');
+  }
+  document.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>setErr(i.id,null)));
+
+  /* ---------- ШАГ 3: группы ---------- */
+  const groups=[
+    ['ИС-101','Информационные системы','server'],
+    ['ПИ-202','Прикладная информатика','code-2'],
+    ['КБ-110','Компьютерная безопасность','shield'],
+    ['ДЗ-230','Цифровой дизайн','palette'],
+    ['МГ-315','Менеджмент','briefcase'],
+    ['ЮР-140','Юриспруденция','scale'],
+    ['ЭК-220','Экономика и финансы','trending-up'],
+    ['МД-105','Медицинский профиль','heart-pulse']
+  ];
+  const groupList=$('groupList'), groupHint=$('groupHint');
+  let groupVal='';
+  groupList.innerHTML=groups.map(([c,n,ic])=>
+    '<button type="button" class="gcard" role="radio" aria-checked="false" data-val="'+c+'">'
+    +'<span class="gic"><i data-lucide="'+ic+'" class="w-[17px] h-[17px]"></i></span>'
+    +'<span class="min-w-0">'
+      +'<span class="block mono text-[11px] tracking-wider text-indigo-300">'+c+'</span>'
+      +'<span class="block text-[13px] text-white/75 truncate">'+n+'</span>'
+    +'</span>'
+    +'<span class="gmark"><i data-lucide="check" class="w-3 h-3 text-white"></i></span>'
+    +'</button>').join('');
+  lucide.createIcons();
+
+  groupList.addEventListener('click',e=>{
+    const b=e.target.closest('.gcard'); if(!b)return;
+    groupVal=b.dataset.val;
+    groupList.querySelectorAll('.gcard').forEach(o=>{
+      const on=o===b; o.classList.toggle('sel',on); o.setAttribute('aria-checked',on);
+    });
+    const name=groups.find(g=>g[0]===groupVal)[1];
+    groupHint.textContent=groupVal;
+    groupHint.classList.remove('text-white/25'); groupHint.classList.add('text-indigo-300');
+    setErr('r_group',null); groupList.classList.remove('is-err');
+  });
+
+  /* ---------- дата ---------- */
+  const birth=$('r_birth'); birth.max=new Date().toISOString().split('T')[0];
+
+  /* ---------- валидация ---------- */
+  function valLogin(){
+    let ok=true;
+    const l=$('l_login').value.trim(), p=$('l_pass').value;
+    if(l.length<3){ setErr('l_login','Введите логин (минимум 3 символа)'); ok=false; }
+    if(p.length<6){ setErr('l_pass','Введите пароль (минимум 6 символов)'); ok=false; }
+    return ok;
+  }
+  function valStep1(focus){
+    let ok=true, first=null;
+    const fio=$('r_fio').value.trim(), b=birth.value;
+    const words=fio.split(/\s+/).filter(Boolean);
+    if(words.length<2||fio.length<5){ setErr('r_fio','Укажите фамилию и имя полностью'); ok=false; first=first||'r_fio'; }
+    if(!b){ setErr('r_birth','Укажите дату рождения'); ok=false; first=first||'r_birth'; }
+    else { const age=(Date.now()-new Date(b))/3.156e10; if(age<14){ setErr('r_birth','Возраст — от 14 лет'); ok=false; first=first||'r_birth'; } }
+    if(focus&&first&&$(first)) $(first).focus();
+    return ok;
+  }
+  function valStep2(focus){
+    let ok=true, first=null;
+    const l=$('r_login').value.trim(), p=$('r_pass').value, p2=$('r_pass2').value;
+    if(!/^[a-zA-Z0-9_.-]{3,}$/.test(l)){ setErr('r_login','От 3 символов: латиница, цифры, _ . -'); ok=false; first=first||'r_login'; }
+    else if(CollegeDB.exists(l)){ setErr('r_login','Такой логин уже занят'); ok=false; first=first||'r_login'; }
+    if(p.length<6){ setErr('r_pass','Пароль должен быть не короче 6 символов'); ok=false; first=first||'r_pass'; }
+    else if(p2!==p){ setErr('r_pass2','Пароли не совпадают'); ok=false; first=first||'r_pass2'; }
+    if(focus&&first&&$(first)) $(first).focus();
+    return ok;
+  }
+  function valStep3(){
+    if(!groupVal){
+      setErr('r_group','Выберите учебную группу');
+      groupList.classList.add('is-err');
+      groupList.classList.remove('shake'); groupList.offsetWidth; groupList.classList.add('shake');
+      return false;
+    }
+    return true;
+  }
+
+  /* ---------- навигация по шагам ---------- */
+  const steps=[null,$('regStep1'),$('regStep2'),$('regStep3')];
+  const titles=[null,'Личные данные','Данные аккаунта','Выбор группы'];
+  let regStep=1, stepBusy=false;
+  function setStepIndicator(n){
+    $('regStepNum').textContent=n;
+    $('regStepTitle').textContent=titles[n];
+    $('regProgress').style.width=(n/3*100)+'%';
+    document.querySelectorAll('.dot').forEach(d=>{
+      const i=+d.dataset.d;
+      d.classList.toggle('on',i<=n);
+      d.classList.toggle('now',i===n);
+    });
+  }
+  function gotoStep(n){
+    if(n===regStep||stepBusy) return;
+    stepBusy=true;
+    const dir=n>regStep?1:-1;
+    const cur=steps[regStep], next=steps[n];
+    regStep=n; setStepIndicator(n);
+    const fromH=wrap.offsetHeight;
+    cur.classList.remove('in');
+    cur.classList.add(dir>0?'leaving-l':'leaving-r');
+    setTimeout(()=>{
+      cur.classList.add('hidden'); cur.classList.remove('leaving-l','leaving-r');
+      next.classList.remove('hidden'); next.classList.add('in');
+      tweenHeight(fromH,formRegister.offsetHeight);
+      stepBusy=false;
+    },200);
+  }
+  document.querySelectorAll('.nav-next').forEach(b=>{
+    b.addEventListener('click',()=>{
+      clearErrors();
+      const to=+b.dataset.to;
+      if(to===2 && !valStep1(true)) return;
+      if(to===3 && !valStep2(true)) return;
+      gotoStep(to);
+      if(to===2) setTimeout(()=>$('r_login').focus(),420);
+    });
+  });
+  document.querySelectorAll('.nav-back').forEach(b=>{
+    b.addEventListener('click',()=>{ clearErrors(); gotoStep(+b.dataset.to); });
+  });
+  function resetSteps(){
+    regStep=1; setStepIndicator(1);
+    steps[2].classList.add('hidden'); steps[3].classList.add('hidden');
+    [1,2,3].forEach(i=>steps[i].classList.remove('in','leaving-l','leaving-r'));
+    steps[1].classList.remove('hidden');
+  }
+  setStepIndicator(1);
+
+  /* ---------- загрузка кнопок ---------- */
+  function loading(btn,on){
+    btn.disabled=on;
+    btn.querySelector('.btn-label').classList.toggle('hidden',on);
+    btn.querySelector('.btn-label').classList.toggle('flex',!on);
+    btn.querySelector('.btn-load').classList.toggle('hidden',!on);
+    btn.querySelector('.btn-load').classList.toggle('flex',on);
+  }
+
+  /* ---------- экран успеха ---------- */
+  function chip(icon,text){
+    return '<span class="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/[.05] border border-white/10 text-[13px] text-white/70">'
+      +'<i data-lucide="'+icon+'" class="w-3.5 h-3.5 text-indigo-300"></i>'+text+'</span>';
+  }
+  const DIARY_URL='../Students/diary.html';
+  let redirT=null;
+
+  function showSuccess(user,mode){
+    const fromH=wrap.offsetHeight;
+    const cur=visibleEl();
+    if(cur) cur.classList.add('leaving');
+    setTimeout(()=>{
+      if(cur){ cur.classList.add('hidden'); cur.classList.remove('leaving','in'); }
+      const dateStr=user.birth?new Date(user.birth+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}):'';
+      successView.innerHTML=
+        '<div class="pop">'
+        +'<div class="relative w-24 h-24 mx-auto mb-6">'
+        +'<div class="absolute inset-0 rounded-full bg-indigo-500/20 ring-pulse"></div>'
+        +'<svg class="relative w-24 h-24" viewBox="0 0 80 80" fill="none">'
+        +'<circle cx="40" cy="40" r="34" stroke="url(#g1)" stroke-width="2.5" class="draw-circle" stroke-linecap="round"/>'
+        +'<path d="M27 41 L36 50 L54 32" stroke="#a5b4fc" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" class="draw-check"/>'
+        +'<defs><linearGradient id="g1" x1="0" y1="0" x2="80" y2="80"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs></svg>'
+        +'</div>'
+        +'<h3 class="font-display text-xl mb-2.5" style="font-weight:700">'+(mode==='register'?'Аккаунт создан':'С возвращением')+'</h3>'
+        +'<p class="text-white/50 text-sm leading-relaxed max-w-[300px] mx-auto mb-6">'+(mode==='register'
+            ? user.fio+', добро пожаловать в Колледж·ID. Открываем ваш дневник…'
+            : user.fio+', вход выполнен. Открываем дневник…')+'</p>'
+        +'<div class="flex flex-wrap justify-center gap-2 mb-7">'+chip('users',user.group)+(dateStr?chip('calendar',dateStr):'')+'</div>'
+        +'<button id="goDiary" class="btn btn-primary w-full h-[52px] flex items-center justify-center gap-2">'
+        +'<i data-lucide="book-open-text" class="w-[18px] h-[18px]"></i>Перейти в дневник<i data-lucide="arrow-right" class="w-[18px] h-[18px]"></i></button>'
+        +'<div class="mt-6">'
+        +'<div class="flex items-center justify-between mb-2">'
+        +'<span class="mono text-[10px] tracking-[.2em] text-white/30 uppercase">Автопереход</span>'
+        +'<span class="mono text-[10px] tracking-[.12em] text-indigo-300/70">STUDENTS / DIARY</span>'
+        +'</div>'
+        +'<div class="h-[3px] rounded-full bg-white/[.06] overflow-hidden">'
+        +'<div class="rebar h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"></div>'
+        +'</div></div></div>';
+      successView.classList.remove('hidden');
+      lucide.createIcons();
+      tweenHeight(fromH,successView.offsetHeight);
+      const go=()=>{ location.href=DIARY_URL; };
+      redirT=setTimeout(go,2500);
+      $('goDiary').addEventListener('click',()=>{ clearTimeout(redirT); go(); });
+    },190);
+  }
+
+  /* ---------- ВХОД ---------- */
+  formLogin.addEventListener('submit', async e=>{
+    e.preventDefault(); clearErrors();
+    if(!valLogin()) return;
+    const btn=$('loginBtn'); loading(btn,true);
+    const l=$('l_login').value.trim(), p=$('l_pass').value;
+    await wait(900);
+    const user=await CollegeDB.verify(l,p);
+    loading(btn,false);
+    if(!user){
+      if(CollegeDB.exists(l)) setErr('l_pass','Неверный пароль');
+      else setErr('l_login','Пользователь с таким логином не найден');
+      return;
+    }
+    // сессия всегда — diary должен узнать пользователя;
+    // галочка «Запомнить меня» определяет её длительность
+    CollegeDB.saveSession(user.login, $('remember').checked);
+    showSuccess(user,'login');
+  });
+
+  /* ---------- РЕГИСТРАЦИЯ ---------- */
+  formRegister.addEventListener('submit', async e=>{
+    e.preventDefault(); clearErrors();
+    if(!valStep1(false)){ gotoStep(1); return; }
+    if(!valStep2(false)){ gotoStep(2); return; }
+    if(!valStep3()) return;
+    const btn=$('regBtn'); loading(btn,true);
+    await wait(1000);
+    try{
+      const user=await CollegeDB.add({
+        login:$('r_login').value.trim(), pass:$('r_pass').value,
+        fio:$('r_fio').value, birth:birth.value, group:groupVal
+      });
+      loading(btn,false);
+      // регистрация = подтверждённая личность → сразу создаём сессию
+      CollegeDB.saveSession(user.login, true);
+      showSuccess(user,'register');
+    }catch(err){
+      loading(btn,false);
+      gotoStep(2);
+      setTimeout(()=>setErr('r_login','Такой логин уже занят'),260);
+    }
+  });
+
+  /* ---------- фоновые частицы ---------- */
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cv=$('fx'), cx=cv.getContext('2d');
+  let W,H,pts=[],mx=-9999,my=-9999;
+  const dpr=Math.min(devicePixelRatio||1,2);
+  function resize(){
+    W=innerWidth;H=innerHeight;
+    cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
+    cx.setTransform(dpr,0,0,dpr,0,0);
+    const n=Math.min(85,Math.floor(W*H/20000));
+    pts=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.6+.5}));
+  }
+  resize(); window.addEventListener('resize',resize);
+  window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  function tick(){
+    cx.clearRect(0,0,W,H);
+    for(const p of pts){
+      const dx=p.x-mx,dy=p.y-my,d=Math.hypot(dx,dy);
+      if(d<130&&d>0){ p.x+=dx/d*.6; p.y+=dy/d*.6; }
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<-10)p.x=W+10; if(p.x>W+10)p.x=-10;
+      if(p.y<-10)p.y=H+10; if(p.y>H+10)p.y=-10;
+      cx.beginPath(); cx.arc(p.x,p.y,p.r,0,7);
+      cx.fillStyle='rgba(148,158,255,.45)'; cx.fill();
+    }
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const a=pts[i],b=pts[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<130){ cx.beginPath(); cx.moveTo(a.x,a.y); cx.lineTo(b.x,b.y);
+        cx.strokeStyle='rgba(120,130,250,'+((1-d/130)*.10)+')'; cx.lineWidth=1; cx.stroke(); }
+    }
+    par();
+    requestAnimationFrame(tick);
+  }
+  const orbs=[...document.querySelectorAll('.orb')];
+  let tx=0,ty=0,cxp=0,cyp=0;
+  window.addEventListener('mousemove',e=>{ tx=(e.clientX/W-.5); ty=(e.clientY/H-.5); });
+  function par(){
+    cxp+=(tx-cxp)*.04; cyp+=(ty-cyp)*.04;
+    for(const o of orbs){ const dep=+o.dataset.depth||14;
+      o.style.translate=(cxp*dep)+'px '+(cyp*dep)+'px'; }
+  }
+  if(!reduced) tick();
+})();
+</script>
+</body>
+</html>
