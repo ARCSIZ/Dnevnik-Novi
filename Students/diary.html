@@ -240,6 +240,7 @@
   .app-tile { position:relative; overflow:hidden; display:flex; flex-direction:column; gap:12px; padding:18px;
     border-radius:20px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
     transition:transform .22s, border-color .22s, background .22s; cursor:pointer; text-align:left; }
+  .app-tile { color:inherit; text-decoration:none; }
   .app-tile:hover { transform:translateY(-4px); border-color:rgba(129,140,248,.45); background:rgba(99,102,241,.07); }
   .app-tile .ai { width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff; }
   .app-tile::after { content:''; position:absolute; inset:0; background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(129,140,248,.14),transparent 45%); opacity:0; transition:opacity .3s; pointer-events:none; }
@@ -419,7 +420,6 @@
             </div>
           </div>
           <div class="grid sm:grid-cols-2 gap-4" id="appsGrid"></div>
-          <div id="appPanel" class="st card rounded-[24px] p-5 sm:p-6 mt-5 hidden" style="--i:2"></div>
         </section>
 
         <!-- ======= АККАУНТ ======= -->
@@ -600,9 +600,19 @@
     b.addEventListener('click',e=>{ pulse(b,e); show(b.dataset.view,e); });
   });
 
-  /* стартовое состояние */
-  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.view==='diary'));
-  $('crumb') && ($('crumb').textContent=TITLES.diary);
+  /* стартовое состояние: учитываем возврат из приложения (?view=apps) */
+  let startView='diary';
+  try{
+    const q=new URLSearchParams(location.search).get('view');
+    const h=(location.hash||'').replace('#','');
+    if(TITLES[q]) startView=q; else if(TITLES[h]) startView=h;
+  }catch(e){}
+  if(startView!=='diary'){
+    currentView=startView;
+    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+startView));
+  }
+  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.view===startView));
+  $('crumb') && ($('crumb').textContent=TITLES[startView]);
 
   /* ================== ДНЕВНИК: НЕДЕЛЯ И РАСПИСАНИЕ ================== */
   const DAYS_SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
@@ -913,14 +923,15 @@
   }
   const myRole=roleOf(u);
 
+  /* Каждое приложение — отдельная HTML-страница со своей кнопкой «назад» */
   const APPS=[
-    { id:'panel',   roles:['dev'],
-      name:'Панель управления', desc:'Пользователи, расписание и данные системы',
+    { id:'panel',   roles:['dev'],   url:'../Dev/panel.html',
+      name:'Панель управления', desc:'Пользователи, роли и данные системы',
       icon:'sliders-horizontal', grad:'from-indigo-500 to-purple-600' },
-    { id:'support', roles:['student'],
+    { id:'support', roles:['student'], url:'support.html',
       name:'Поддержка', desc:'Вопрос в учебную часть и техподдержку',
       icon:'life-buoy', grad:'from-cyan-500 to-sky-500' },
-    { id:'rating',  roles:['student'],
+    { id:'rating',  roles:['student'], url:'rating.html',
       name:'Рейтинг', desc:'Ваше место в группе и на потоке',
       icon:'trophy', grad:'from-amber-500 to-orange-500' }
   ];
@@ -930,140 +941,18 @@
   $('appsCount').textContent=myApps.length+' доступно';
 
   $('appsGrid').innerHTML=myApps.map((a,i)=>
-    '<button class="app-tile st" style="--i:'+(i+1)+'" data-app="'+a.id+'" data-name="'+a.name+'">'
+    '<a href="'+a.url+'" class="app-tile st" style="--i:'+(i+1)+'" data-app="'+a.id+'" data-name="'+a.name+'">'
     +'<span class="ai bg-gradient-to-br '+a.grad+'"><i data-lucide="'+a.icon+'" class="w-5 h-5"></i></span>'
     +'<span><span class="block font-semibold text-[15px]">'+a.name+'</span>'
     +'<span class="block text-[12.5px] text-white/40 mt-1">'+a.desc+'</span></span>'
-    +'<span class="flex items-center gap-1.5 mt-auto pt-2 text-[11px] mono tracking-wider text-indigo-300/70">ОТКРЫТЬ<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></span>'
-    +'</button>').join('');
+    +'<span class="flex items-center gap-1.5 mt-auto pt-2 text-[11px] mono tracking-wider text-indigo-300/70">ОТКРЫТЬ ПРИЛОЖЕНИЕ<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></span>'
+    +'</a>').join('');
   lucide.createIcons();
 
-  /* ---- содержимое приложений ---- */
-  function panelHTML(id){
-    const head=(ic,t,s)=>'<div class="flex items-center gap-3 mb-5">'
-      +'<span class="w-10 h-10 rounded-xl bg-white/[.05] border border-white/10 flex items-center justify-center">'
-      +'<i data-lucide="'+ic+'" class="w-[18px] h-[18px] text-indigo-300"></i></span>'
-      +'<span class="min-w-0"><span class="block font-semibold text-[15px]">'+t+'</span>'
-      +'<span class="block text-[12px] text-white/35 mt-0.5">'+s+'</span></span>'
-      +'<button id="panelClose" class="ml-auto shrink-0 w-9 h-9 rounded-xl border border-white/10 '
-      +'text-white/40 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-center">'
-      +'<i data-lucide="x" class="w-4 h-4"></i></button></div>';
-
-    if(id==='panel'){
-      const total=CollegeDB.count();
-      const list=CollegeDB.all().slice(-6).reverse();
-      return head('sliders-horizontal','Панель управления','Служебный раздел · роль «Разработчик»')
-        +'<div class="grid sm:grid-cols-3 gap-3 mb-5">'
-        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ПОЛЬЗОВАТЕЛИ</p>'
-        +'<p class="font-display text-2xl" style="font-weight:700">'+total+'</p></div>'
-        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">РЕЖИМ БАЗЫ</p>'
-        +'<p class="font-display text-2xl" style="font-weight:700">'+(CollegeDB.isServer?(CollegeDB.isServer()?'Сервер':'Локально'):'Локально')+'</p></div>'
-        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ЗАНЯТИЙ В БАЗЕ</p>'
-        +'<p class="font-display text-2xl" style="font-weight:700">'+Object.keys(SCHEDULE).length+'</p></div>'
-        +'</div>'
-        +'<p class="dlbl">Последние регистрации</p>'
-        +'<div class="space-y-2">'
-        +(list.length?list.map(x=>'<div class="row"><span class="min-w-0">'
-            +'<span class="block text-[13px] font-semibold truncate">'+(x.fio||x.login)+'</span>'
-            +'<span class="block text-[11px] text-white/35 mono mt-0.5">'+x.login+(x.group?' · '+x.group:'')+'</span></span>'
-            +'<button type="button" class="pill pill-btn shrink-0 role-tgl" data-login="'+x.login+'" title="Клик — сменить роль">'
-            +(((x.role||'student')).toLowerCase()==='dev'?'DEV':'СТУДЕНТ')
-            +'<i data-lucide="repeat-2" class="w-3 h-3"></i></button></div>').join('')
-          :'<div class="dbox">Пока нет зарегистрированных пользователей</div>')
-        +'</div>'
-        +'<div class="grid sm:grid-cols-3 gap-3 mt-5">'
-        +'<button id="pExport" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2">'
-        +'<i data-lucide="download" class="w-4 h-4"></i>Выгрузить базу</button>'
-        +'<button id="pRefresh" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2">'
-        +'<i data-lucide="refresh-cw" class="w-4 h-4"></i>Обновить</button>'
-        +'<button id="pReset" class="btn btn-danger h-[46px] text-sm flex items-center justify-center gap-2">'
-        +'<i data-lucide="trash-2" class="w-4 h-4"></i>Сбросить базу</button>'
-        +'</div>';
-    }
-
-    if(id==='support'){
-      return head('life-buoy','Поддержка','Учебная часть и техническая помощь')
-        +'<div class="space-y-2.5">'
-        +'<div class="row"><span class="text-[13px] text-white/45">Учебная часть</span><span class="text-sm font-semibold">каб. 114, корпус А</span></div>'
-        +'<div class="row"><span class="text-[13px] text-white/45">Часы приёма</span><span class="text-sm font-semibold">Пн–Пт, 09:00–17:00</span></div>'
-        +'<div class="row"><span class="text-[13px] text-white/45">Телефон</span><span class="text-sm font-semibold mono">+7 (800) 000-00-00</span></div>'
-        +'<div class="row"><span class="text-[13px] text-white/45">Почта</span><span class="text-sm font-semibold mono">help@college.id</span></div>'
-        +'</div>'
-        +'<div class="dsec"><p class="dlbl">Обращение</p>'
-        +'<textarea id="supMsg" rows="3" placeholder="Опишите вопрос или проблему…" '
-        +'style="width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);'
-        +'border-radius:14px;padding:12px 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;resize:vertical"></textarea>'
-        +'<button id="supSend" class="btn btn-primary w-full h-[46px] text-sm flex items-center justify-center gap-2 mt-3">'
-        +'<i data-lucide="send" class="w-4 h-4"></i>Отправить обращение</button></div>';
-    }
-
-    if(id==='rating'){
-      return head('trophy','Рейтинг','Ваше место в группе и на потоке')
-        +'<div class="grid sm:grid-cols-2 gap-3 mb-5">'
-        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">МЕСТО В ГРУППЕ</p>'
-        +'<p class="font-display text-2xl" style="font-weight:700">—</p></div>'
-        +'<div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">СРЕДНИЙ БАЛЛ</p>'
-        +'<p class="font-display text-2xl" style="font-weight:700">—</p></div>'
-        +'</div>'
-        +'<div class="dbox">Рейтинг появится, как только в системе накопятся оценки за занятия.</div>';
-    }
-    return '';
-  }
-
-  function openApp(id){
-    const p=$('appPanel');
-    p.innerHTML=panelHTML(id);
-    p.classList.remove('hidden');
-    lucide.createIcons();
-    document.querySelectorAll('.app-tile').forEach(t=>t.classList.toggle('sel',t.dataset.app===id));
-    p.scrollIntoView({behavior:'smooth',block:'nearest'});
-
-    const close=$('panelClose');
-    if(close) close.addEventListener('click',()=>{ p.classList.add('hidden'); p.innerHTML=''; });
-
-    if(id==='panel'){
-      const ex=$('pExport'); if(ex) ex.addEventListener('click',()=>{ CollegeDB.exportFile(); toast('База выгружена в файл'); });
-      const rf=$('pRefresh'); if(rf) rf.addEventListener('click',()=>{
-        if(CollegeDB.refresh) CollegeDB.refresh().then(()=>{ openApp('panel'); toast('Данные обновлены'); });
-        else toast('Данные актуальны');
-      });
-      const rs=$('pReset'); if(rs) rs.addEventListener('click',()=>{
-        if(!confirm('Удалить ВСЕХ пользователей?\n\nБудет создана резервная копия в Data/backups/, но текущая база обнулиётся. Продолжить?')) return;
-        if(!confirm('Точно удалить? Второе подтверждение.')) return;
-        if(CollegeDB.reset){
-          CollegeDB.reset().then(()=>{ 
-            toast('База сброшена. Перезагрузите страницу.'); 
-            setTimeout(()=>location.reload(),1500);
-          }).catch(e=>toast('Ошибка: '+(e.message||'нет связи')));
-        } else toast('Функция доступна только при работающем сервере');
-      });
-      /* смена роли кликом по бейджу (доступно разработчику) */
-      p.querySelectorAll('.role-tgl').forEach(b=>b.addEventListener('click',()=>{
-        const current=b.textContent.trim().toUpperCase()==='DEV'?'dev':'student';
-        const next=current==='dev'?'student':'dev';
-        b.style.opacity='.5'; b.disabled=true;
-        CollegeDB.setRole(b.dataset.login,next).then(ok=>{
-          b.style.opacity=''; b.disabled=false;
-          if(ok){
-            toast('«'+b.dataset.login+'» теперь: '+(next==='dev'?'Разработчик':'Студент'));
-            openApp('panel');
-          } else toast('Не удалось сменить роль');
-        });
-      }));
-    }
-    if(id==='support'){
-      const sd=$('supSend'); if(sd) sd.addEventListener('click',()=>{
-        const v=($('supMsg').value||'').trim();
-        if(v.length<10) return toast('Опишите вопрос подробнее (от 10 символов)');
-        $('supMsg').value=''; toast('Обращение отправлено — ответим в течение суток');
-      });
-    }
-  }
-
+  /* подсветка плитки за курсором; переход выполняет сама ссылка */
   document.querySelectorAll('.app-tile').forEach(t=>{
     t.addEventListener('mousemove',e=>{ const r=t.getBoundingClientRect();
       t.style.setProperty('--mx',(e.clientX-r.left)+'px'); t.style.setProperty('--my',(e.clientY-r.top)+'px'); });
-    t.addEventListener('click',()=>openApp(t.dataset.app));
   });
 
   /* счётчик в боковом меню */
