@@ -116,13 +116,110 @@
   @media (max-width:1023.98px){ #sideNav { display:none !important; } }
   @media (min-width:1024px){ .dock { display:none !important; } }
 
-  /* ===== элементы дневника ===== */
-  .lesson { display:flex; gap:14px; padding:14px; border-radius:18px;
-    background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.06);
-    transition:background .22s, border-color .22s, transform .2s; }
-  .lesson:hover { background:rgba(255,255,255,.055); border-color:rgba(255,255,255,.14); transform:translateX(3px); }
+  /* ===== НЕДЕЛЬНЫЙ КАЛЕНДАРЬ ===== */
+  .wnav { width:38px;height:38px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6);
+    cursor:pointer;transition:background .2s,color .2s,transform .18s; }
+  .wnav:hover { background:rgba(255,255,255,.09);color:#fff; }
+  .wnav:active { transform:scale(.92); }
+  .day { position:relative; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:9px 2px 8px; border-radius:15px; cursor:pointer; min-width:0;
+    background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05);
+    transition:background .22s,border-color .22s,transform .2s cubic-bezier(.22,1,.36,1); }
+  .day:hover { background:rgba(255,255,255,.07); }
+  .day .dw { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.1em;
+    text-transform:uppercase; color:rgba(255,255,255,.35); }
+  .day .dn { font-size:15px; font-weight:800; line-height:1.1; }
+  .day .dd { width:4px;height:4px;border-radius:99px;background:rgba(129,140,248,.55);margin-top:1px; }
+  .day .dd.off { background:transparent; }
+  .day.wknd .dw, .day.wknd .dn { color:rgba(251,113,133,.65); }
+  .day.today { border-color:rgba(129,140,248,.5); }
+  .day.today::after { content:''; position:absolute; bottom:4px; left:50%; transform:translateX(-50%);
+    width:14px;height:2px;border-radius:2px;background:#818cf8; }
+  .day.sel { background:linear-gradient(145deg,#6366f1,#a855f7); border-color:transparent;
+    box-shadow:0 10px 24px -8px rgba(124,58,237,.7); transform:translateY(-2px); }
+  .day.sel .dw, .day.sel .dn { color:#fff; }
+  .day.sel .dd { background:rgba(255,255,255,.85); }
+  .day.sel::after { background:#fff; }
+
+  /* ===== КАРТОЧКА ПАРЫ ===== */
+  .lcard { border-radius:18px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.06);
+    overflow:hidden; transition:background .22s,border-color .22s; }
+  .lcard:hover { background:rgba(255,255,255,.045); border-color:rgba(255,255,255,.13); }
+  .lcard.live { border-color:rgba(52,211,153,.45); background:rgba(16,185,129,.07); }
+  .lcard.open { border-color:rgba(129,140,248,.45); background:rgba(99,102,241,.07); }
+  .lhead { width:100%; display:flex; gap:12px; padding:13px 14px; text-align:left; cursor:pointer; align-items:flex-start; }
+  .ltime { flex:none; width:46px; display:flex; flex-direction:column; gap:2px; padding-top:1px; }
+  .ltime .t1 { font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#a5b4fc; font-weight:500; }
+  .ltime .t2 { font-family:'JetBrains Mono',monospace; font-size:10.5px; color:rgba(255,255,255,.3); }
+  .lmain { flex:1; min-width:0; }
+  .lname { display:block; font-size:14.5px; font-weight:700; line-height:1.25; margin:5px 0 3px; overflow-wrap:anywhere; }
+  .lteach, .lroom { display:block; font-size:11.5px; color:rgba(255,255,255,.42); line-height:1.4; overflow-wrap:anywhere; }
+  .lbadges { display:flex; }
+  .ltype { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:7px;
+    font-size:9.5px; font-family:'JetBrains Mono',monospace; letter-spacing:.08em; text-transform:uppercase; }
+  .ltype.lec { background:rgba(99,102,241,.16); color:#a5b4fc; border:1px solid rgba(99,102,241,.25); }
+  .ltype.prac { background:rgba(45,212,191,.14); color:#5eead4; border:1px solid rgba(45,212,191,.25); }
+  .lchev { flex:none; color:rgba(255,255,255,.28); transition:transform .3s cubic-bezier(.22,1,.36,1); margin-top:2px; }
+  .lcard.open .lchev { transform:rotate(180deg); color:#a5b4fc; }
+  .lbadges { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+
   .mark { width:34px;height:34px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;
     font-weight:800;font-size:15px; }
+  .mk { width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px; }
+  .st-b { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px;
+    font-size:11px; font-weight:700; }
+  .stN { background:rgba(148,163,184,.16); color:#cbd5e1; border:1px solid rgba(148,163,184,.3); }
+  .stU { background:rgba(244,63,94,.14); color:#fda4af; border:1px solid rgba(244,63,94,.3); }
+  .stO { background:rgba(251,191,36,.14); color:#fcd34d; border:1px solid rgba(251,191,36,.3); }
+  .stB { background:rgba(34,211,238,.13); color:#67e8f9; border:1px solid rgba(34,211,238,.3); }
+
+  /* индикатор идущей пары */
+  .lprog { padding:0 14px 12px; }
+  .lprog .pbar { height:4px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .lprog .pfill { height:100%; border-radius:99px; background:linear-gradient(90deg,#34d399,#22d3ee); transition:width .6s ease; }
+  .lprog .ptxt { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.4); }
+  .livedot { display:inline-block;width:6px;height:6px;border-radius:99px;background:#34d399;margin-right:5px;
+    box-shadow:0 0 0 0 rgba(52,211,153,.7); animation:livep 1.8s infinite; }
+  @keyframes livep { 70%{box-shadow:0 0 0 7px rgba(52,211,153,0)} 100%{box-shadow:0 0 0 0 rgba(52,211,153,0)} }
+  html.lite .livedot { animation:none; }
+
+  /* детали пары */
+  .ldet { display:none; padding:0 14px 14px; border-top:1px solid rgba(255,255,255,.06); margin-top:2px; }
+  .lcard.open .ldet { display:block; animation:detIn .32s cubic-bezier(.22,1,.36,1); }
+  @keyframes detIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+  html.lite .lcard.open .ldet { animation:none; }
+  .dsec { margin-top:13px; }
+  .dlbl { font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.18em; text-transform:uppercase;
+    color:rgba(255,255,255,.3); margin-bottom:7px; }
+  .dgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  @media (max-width:420px){ .dgrid { grid-template-columns:1fr; } }
+  .dcell { padding:9px 11px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); min-width:0; }
+  .dcell .k { font-size:10px; color:rgba(255,255,255,.33); margin-bottom:2px; }
+  .dcell .v { font-size:12.5px; font-weight:600; overflow-wrap:anywhere; }
+  .dbox { padding:11px 12px; border-radius:13px; background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06); font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.65); overflow-wrap:anywhere; }
+  .dbox.quote { border-left:2px solid rgba(129,140,248,.6); }
+  .hwbtn { width:100%; display:flex; align-items:center; justify-content:center; gap:7px; margin-top:9px;
+    padding:10px; border-radius:12px; font-size:12.5px; font-weight:700; cursor:pointer;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.7);
+    transition:background .22s,border-color .22s,color .22s; }
+  .hwbtn:hover { background:rgba(255,255,255,.09); }
+  .hwbtn.done { background:linear-gradient(120deg,rgba(16,185,129,.22),rgba(45,212,191,.14));
+    border-color:rgba(52,211,153,.45); color:#6ee7b7; }
+
+  /* перемена */
+  .brk { display:flex; align-items:center; gap:9px; padding:3px 2px; }
+  .brk .bl { flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent); }
+  .brk .bt { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px;
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:rgba(255,255,255,.32); background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); white-space:nowrap; }
+
+  .empty { text-align:center; padding:34px 16px; }
+  .empty .ei { width:52px;height:52px;margin:0 auto 12px;border-radius:17px;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.35); }
   .m5 { background:rgba(52,211,153,.16); color:#6ee7b7; border:1px solid rgba(52,211,153,.3); }
   .m4 { background:rgba(99,102,241,.16); color:#a5b4fc; border:1px solid rgba(99,102,241,.32); }
   .m3 { background:rgba(251,191,36,.14); color:#fcd34d; border:1px solid rgba(251,191,36,.3); }
@@ -269,50 +366,37 @@
 
         <!-- ======= ДНЕВНИК ======= -->
         <section id="view-diary" class="view on" role="tabpanel">
-          <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
-            <div class="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-2">РАСПИСАНИЕ И ОЦЕНКИ</p>
-                <h1 class="font-display text-[24px] sm:text-4xl leading-tight" style="font-weight:800">Мой <span class="grad-text">дневник</span></h1>
-                <p class="text-white/45 text-sm mt-2">Группа ИС-101 · неделя 12 · осенний семестр</p>
+
+          <!-- НЕДЕЛЬНЫЙ КАЛЕНДАРЬ -->
+          <div class="st card rounded-[24px] p-4 sm:p-5 mb-5" style="--i:0">
+            <div class="flex items-center justify-between gap-3 mb-3.5">
+              <button id="wPrev" class="wnav" aria-label="Предыдущая неделя">
+                <i data-lucide="chevron-left" class="w-[18px] h-[18px]"></i>
+              </button>
+              <div class="text-center min-w-0">
+                <p id="wLabel" class="font-semibold text-[15px] leading-tight truncate">—</p>
+                <p id="wRange" class="mono text-[9.5px] tracking-[.2em] text-white/30 mt-1 truncate">—</p>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <span class="pill"><i data-lucide="calendar-days" class="w-3.5 h-3.5 text-indigo-300"></i>Сегодня</span>
-                <span class="pill"><i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-300"></i>6 пар</span>
-              </div>
+              <button id="wNext" class="wnav" aria-label="Следующая неделя">
+                <i data-lucide="chevron-right" class="w-[18px] h-[18px]"></i>
+              </button>
             </div>
+            <div id="weekDays" class="grid grid-cols-7 gap-1 sm:gap-1.5"></div>
+            <button id="wToday" class="hidden w-full mt-3 py-2 rounded-xl text-[12px] font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-400/25 hover:bg-indigo-500/20 transition-colors">
+              Вернуться к текущей неделе
+            </button>
           </div>
 
-          <div class="grid sm:grid-cols-3 gap-4 mb-5">
-            <div class="st panel p-5" style="--i:1">
-              <div class="flex items-center justify-between mb-2">
-                <span class="mono text-[10px] tracking-[.2em] text-white/35">ПОСЕЩАЕМОСТЬ</span>
-                <i data-lucide="user-check" class="w-4 h-4 text-emerald-300/70"></i>
+          <!-- РАСПИСАНИЕ ВЫБРАННОГО ДНЯ -->
+          <div class="st card rounded-[24px] p-4 sm:p-6" style="--i:1">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div class="min-w-0">
+                <h2 id="dayTitle" class="font-semibold text-[15px] truncate">—</h2>
+                <p id="daySub" class="mono text-[9.5px] tracking-[.2em] text-white/30 mt-1">—</p>
               </div>
-              <p class="font-display text-2xl" style="font-weight:700">96%</p>
+              <span id="dayCount" class="pill shrink-0"><i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-300"></i>—</span>
             </div>
-            <div class="st panel p-5" style="--i:2">
-              <div class="flex items-center justify-between mb-2">
-                <span class="mono text-[10px] tracking-[.2em] text-white/35">ДОМАШКИ</span>
-                <i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-300/70"></i>
-              </div>
-              <p class="font-display text-2xl" style="font-weight:700">3 <span class="text-base text-white/35">новых</span></p>
-            </div>
-            <div class="st panel p-5" style="--i:3">
-              <div class="flex items-center justify-between mb-2">
-                <span class="mono text-[10px] tracking-[.2em] text-white/35">РЕЙТИНГ</span>
-                <i data-lucide="trophy" class="w-4 h-4 text-amber-300/70"></i>
-              </div>
-              <p class="font-display text-2xl" style="font-weight:700">#4 <span class="text-base text-white/35">в группе</span></p>
-            </div>
-          </div>
-
-          <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:4">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="font-semibold">Пары на сегодня</h2>
-              <span class="mono text-[10px] tracking-[.2em] text-white/30" id="todayStr"></span>
-            </div>
-            <div class="space-y-2.5" id="lessons"></div>
+            <div id="lessons" class="space-y-1"></div>
           </div>
         </section>
 
@@ -508,22 +592,295 @@
   document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.view==='diary'));
   $('crumb') && ($('crumb').textContent=TITLES.diary);
 
-  /* ---------- дневник ---------- */
-  $('todayStr').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
-  const lessons=[
-    ['08:30','Математический анализ','Петрова Л. И.','ауд. 304','5','m5'],
-    ['10:15','Базы данных','Соколов А. В.','ауд. 212','4','m4'],
-    ['12:00','Иностранный язык','Ким Е. О.','ауд. 118','5','m5'],
-    ['13:45','Веб-разработка','Орлов Д. С.','лаб. 401','—','mn'],
-    ['15:30','Физическая культура','Жуков П. Н.','спортзал','4','m4'],
-    ['17:00','Операционные системы','Белова Н. А.','ауд. 207','3','m3']
+  /* ================== ДНЕВНИК: НЕДЕЛЯ И РАСПИСАНИЕ ================== */
+  const DAYS_SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const STARTS=['08:30','10:15','12:00','13:45','15:30','17:15'];
+  const LESSON_MIN=90;
+
+  const SUBJECTS=[
+    ['Математический анализ','Петрова Людмила Ивановна','304','корпус А'],
+    ['Базы данных','Соколов Артём Викторович','212','корпус Б'],
+    ['Иностранный язык','Ким Елена Олеговна','118','корпус А'],
+    ['Веб-разработка','Орлов Дмитрий Сергеевич','401 (лаб.)','корпус В'],
+    ['Физическая культура','Жуков Павел Николаевич','Спортзал','корпус Г'],
+    ['Операционные системы','Белова Наталья Андреевна','207','корпус Б'],
+    ['Программирование на Python','Гаврилов Игорь Петрович','312 (лаб.)','корпус В'],
+    ['Компьютерные сети','Зайцев Руслан Маратович','208','корпус Б'],
+    ['История России','Лебедева Ольга Ивановна','105','корпус А'],
+    ['Философия','Новиков Сергей Львович','110','корпус А']
   ];
-  $('lessons').innerHTML=lessons.map(([t,n,p,r,m,c])=>
-    '<div class="lesson">'
-    +'<div class="mono text-[12px] text-indigo-300/80 pt-1 w-12 flex-none">'+t+'</div>'
-    +'<div class="min-w-0 flex-1"><p class="font-semibold text-[14px] truncate">'+n+'</p>'
-    +'<p class="text-[12px] text-white/40 mt-0.5 truncate">'+p+' · '+r+'</p></div>'
-    +'<div class="mark '+c+'">'+m+'</div></div>').join('');
+  const HW_POOL=[
+    'Решить задачи № 14–20 из учебника, оформить в тетради',
+    'Подготовить конспект по теме следующей пары',
+    'Выполнить лабораторную работу и загрузить отчёт в систему',
+    'Прочитать главу 5 и ответить на контрольные вопросы',
+    'Подготовить доклад на 5 минут с презентацией',
+    'Повторить пройденный материал — на следующей паре тест',
+    'Доделать практическое задание, начатое на занятии'
+  ];
+  const COMMENTS=[
+    'Активно работал на паре, хороший уровень подготовки.',
+    'Отличный ответ у доски — так держать.',
+    'Нужно подтянуть теоретическую часть к следующему занятию.',
+    'Работа сдана вовремя, но есть замечания по оформлению.',
+    'Пропустил вводную часть, уточните материал у одногруппников.',
+    'Хорошо справился с практическим заданием.'
+  ];
+  const STATUSES=[
+    ['Н','Не был','stN'],
+    ['У','Не был по неуважительной причине','stU'],
+    ['О','Опоздал','stO'],
+    ['Б','Больничный','stB']
+  ];
+
+  const pad=n=>String(n).padStart(2,'0');
+  const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(0,0,0,0);return x;};
+  const startOfWeek=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;};
+  const sameDay=(a,b)=>keyOf(a)===keyOf(b);
+  const toMin=t=>{const p=t.split(':');return +p[0]*60+ +p[1];};
+  const toHHMM=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);
+
+  /* стабильный псевдослучайный генератор по строке-ключу */
+  function seeded(str){
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+    return function(){ h+=0x6D2B79F5; let t=h;
+      t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61);
+      return ((t^t>>>14)>>>0)/4294967296; };
+  }
+
+  /* отметки «домашнее задание выполнено» */
+  function hwLoad(){ try{ return JSON.parse(localStorage.getItem('collegeid_hw'))||{}; }catch(e){ return {}; } }
+  function hwSave(){ try{ localStorage.setItem('collegeid_hw',JSON.stringify(hwDone)); }catch(e){} }
+  let hwDone=hwLoad();
+
+  /* расписание на дату — одинаковое при каждом открытии */
+  function scheduleFor(date){
+    const key=keyOf(date), dow=(date.getDay()+6)%7;
+    if(dow===6) return [];                                   // воскресенье — выходной
+    const rnd=seeded(key);
+    const count = dow===5 ? (rnd()<.5?0:3) : 4+Math.floor(rnd()*3);
+    if(!count) return [];
+    const pool=SUBJECTS.slice();
+    for(let i=pool.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+    const today=new Date(); today.setHours(0,0,0,0);
+    const isPast=date<today;
+    const out=[];
+    for(let i=0;i<count;i++){
+      const s=pool[i], st=toMin(STARTS[i]);
+      let grades=[], status=null;
+      if(isPast){
+        const r=rnd();
+        if(r<.15) status=STATUSES[Math.floor(rnd()*4)];
+        else if(r<.65){
+          grades.push([5,4,4,3,5][Math.floor(rnd()*5)]);
+          if(rnd()<.2) grades.push([5,4,3][Math.floor(rnd()*3)]);
+        }
+      }
+      out.push({
+        id:key+'#'+i, idx:i, start:st, end:st+LESSON_MIN,
+        name:s[0], teacher:s[1], room:s[2], building:s[3],
+        type: rnd()<.45 ? 'Лекция' : 'Практическое занятие',
+        grades, status,
+        hw: rnd()<.72 ? HW_POOL[Math.floor(rnd()*HW_POOL.length)] : null,
+        comment: (grades.length||status) && rnd()<.6 ? COMMENTS[Math.floor(rnd()*COMMENTS.length)] : null
+      });
+    }
+    return out;
+  }
+
+  /* ---------------- состояние ---------------- */
+  let weekStart=startOfWeek(new Date());
+  let selected=new Date(); selected.setHours(0,0,0,0);
+  let openId=null;
+
+  /* ---------------- неделя ---------------- */
+  function renderWeek(){
+    const last=addDays(weekStart,6);
+    const ml=weekStart.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    $('wLabel').textContent=ml.charAt(0).toUpperCase()+ml.slice(1);
+    $('wRange').textContent=weekStart.getDate()+' — '+last.getDate()+' '+
+      last.toLocaleDateString('ru-RU',{month:'short'}).replace('.','').toUpperCase();
+
+    const today=new Date();
+    let html='';
+    for(let i=0;i<7;i++){
+      const d=addDays(weekStart,i), n=scheduleFor(d).length;
+      html+='<button type="button" class="day'+(sameDay(d,selected)?' sel':'')
+        +(sameDay(d,today)?' today':'')+(i>4?' wknd':'')+'" data-key="'+keyOf(d)+'">'
+        +'<span class="dw">'+DAYS_SHORT[i]+'</span>'
+        +'<span class="dn">'+d.getDate()+'</span>'
+        +'<span class="dd'+(n?'':' off')+'"></span></button>';
+    }
+    $('weekDays').innerHTML=html;
+    $('wToday').classList.toggle('hidden', keyOf(startOfWeek(new Date()))===keyOf(weekStart));
+    $('weekDays').querySelectorAll('.day').forEach(b=>b.addEventListener('click',()=>{
+      const p=b.dataset.key.split('-');
+      selected=new Date(+p[0],+p[1]-1,+p[2]);
+      openId=null; renderWeek(); renderDay();
+    }));
+  }
+
+  /* ---------------- день ---------------- */
+  function renderDay(){
+    const list=scheduleFor(selected);
+    const t=selected.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+    $('dayTitle').textContent=t.charAt(0).toUpperCase()+t.slice(1);
+    const today=new Date(); today.setHours(0,0,0,0);
+    $('daySub').textContent = sameDay(selected,today) ? 'СЕГОДНЯ · ГРУППА ИС-101'
+      : (selected<today ? 'ПРОШЕДШИЙ ДЕНЬ · ГРУППА ИС-101' : 'ПРЕДСТОЯЩИЙ ДЕНЬ · ГРУППА ИС-101');
+    $('dayCount').innerHTML='<i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-300"></i>'+
+      (list.length?list.length+' пар.':'нет пар');
+
+    if(!list.length){
+      $('lessons').innerHTML='<div class="empty"><div class="ei">'
+        +'<i data-lucide="coffee" class="w-5 h-5"></i></div>'
+        +'<p class="text-[14px] font-semibold">Занятий нет</p>'
+        +'<p class="text-[12px] text-white/35 mt-1">Можно выдохнуть и отдохнуть</p></div>';
+      lucide.createIcons(); return;
+    }
+
+    let html='';
+    list.forEach((L,i)=>{
+      html+=lessonCard(L);
+      if(i<list.length-1){
+        const br=list[i+1].start-L.end;
+        if(br>0) html+='<div class="brk" data-b="'+L.end+'-'+list[i+1].start+'">'
+          +'<span class="bl"></span><span class="bt"><i data-lucide="coffee" class="w-3 h-3"></i>'
+          +'перемена '+br+' мин</span><span class="bl"></span></div>';
+      }
+    });
+    $('lessons').innerHTML=html;
+    lucide.createIcons();
+    bindLessons();
+    updateLive();
+  }
+
+  function lessonCard(L){
+    const badges=L.grades.map(g=>'<span class="mk m'+g+'">'+g+'</span>').join('')
+      +(L.status?'<span class="st-b '+L.status[2]+'" title="'+L.status[1]+'">'+L.status[0]+'</span>':'');
+    const done=!!hwDone[L.id];
+
+    return '<article class="lcard'+(openId===L.id?' open':'')+'" data-id="'+L.id+'" data-s="'+L.start+'" data-e="'+L.end+'">'
+      +'<button type="button" class="lhead">'
+        +'<span class="ltime"><span class="t1">'+toHHMM(L.start)+'</span><span class="t2">'+toHHMM(L.end)+'</span></span>'
+        +'<span class="lmain">'
+          +'<span class="ltype '+(L.type==='Лекция'?'lec':'prac')+'">'
+          +'<i data-lucide="'+(L.type==='Лекция'?'book-open':'flask-conical')+'" class="w-3 h-3"></i>'
+          +(L.type==='Лекция'?'Лекция':'Практика')+'</span>'
+          +'<span class="lname">'+L.name+'</span>'
+          +'<span class="lteach">'+L.teacher+'</span>'
+          +'<span class="lroom">каб. '+L.room+' · '+L.building+'</span>'
+          +(badges?'<span class="lbadges">'+badges+'</span>':'')
+        +'</span>'
+        +'<i data-lucide="chevron-down" class="lchev w-[18px] h-[18px]"></i>'
+      +'</button>'
+      +'<div class="lprog" hidden></div>'
+      +'<div class="ldet">'
+        +'<div class="dsec"><p class="dlbl">Информация о занятии</p><div class="dgrid">'
+          +'<div class="dcell"><p class="k">Преподаватель</p><p class="v">'+L.teacher+'</p></div>'
+          +'<div class="dcell"><p class="k">Тип занятия</p><p class="v">'+L.type+'</p></div>'
+          +'<div class="dcell"><p class="k">Кабинет</p><p class="v">'+L.room+'</p></div>'
+          +'<div class="dcell"><p class="k">Корпус</p><p class="v">'+L.building.replace('корпус ','Корпус ')+'</p></div>'
+          +'<div class="dcell"><p class="k">Время</p><p class="v">'+toHHMM(L.start)+' — '+toHHMM(L.end)+'</p></div>'
+          +'<div class="dcell"><p class="k">Длительность</p><p class="v">90 минут</p></div>'
+        +'</div></div>'
+
+        +'<div class="dsec"><p class="dlbl">Оценки за пару</p>'
+        +(L.grades.length
+          ? '<div class="flex flex-wrap gap-2">'+L.grades.map(g=>'<span class="mk m'+g+'">'+g+'</span>').join('')+'</div>'
+          : '<div class="dbox">Оценок за это занятие пока нет</div>')
+        +'</div>'
+
+        +'<div class="dsec"><p class="dlbl">Посещение</p>'
+        +(L.status
+          ? '<div class="flex items-center gap-2 flex-wrap"><span class="st-b '+L.status[2]+'">'+L.status[0]+'</span>'
+            +'<span class="text-[12.5px] text-white/60">'+L.status[1]+'</span></div>'
+          : '<div class="flex items-center gap-2"><span class="st-b" style="background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)">✓</span>'
+            +'<span class="text-[12.5px] text-white/60">Присутствовал</span></div>')
+        +'</div>'
+
+        +'<div class="dsec"><p class="dlbl">Домашнее задание</p>'
+        +(L.hw
+          ? '<div class="dbox">'+L.hw+'</div>'
+            +'<button type="button" class="hwbtn'+(done?' done':'')+'" data-hw="'+L.id+'">'
+            +'<i data-lucide="'+(done?'check-circle-2':'circle')+'" class="w-4 h-4"></i>'
+            +(done?'Выполнено':'Отметить выполненным')+'</button>'
+          : '<div class="dbox">Домашнее задание не задано</div>')
+        +'</div>'
+
+        +(L.comment
+          ? '<div class="dsec"><p class="dlbl">Комментарий преподавателя</p>'
+            +'<div class="dbox quote">«'+L.comment+'»</div></div>'
+          : '')
+      +'</div></article>';
+  }
+
+  function bindLessons(){
+    $('lessons').querySelectorAll('.lhead').forEach(h=>{
+      h.addEventListener('click',()=>{
+        const card=h.closest('.lcard'), id=card.dataset.id;
+        const willOpen=openId!==id;
+        $('lessons').querySelectorAll('.lcard').forEach(c=>c.classList.remove('open'));
+        openId=willOpen?id:null;
+        if(willOpen) card.classList.add('open');
+      });
+    });
+    $('lessons').querySelectorAll('[data-hw]').forEach(b=>{
+      b.addEventListener('click',e=>{
+        e.stopPropagation();
+        const id=b.dataset.hw, now=!hwDone[id];
+        if(now) hwDone[id]=1; else delete hwDone[id];
+        hwSave();
+        b.classList.toggle('done',now);
+        b.innerHTML='<i data-lucide="'+(now?'check-circle-2':'circle')+'" class="w-4 h-4"></i>'
+          +(now?'Выполнено':'Отметить выполненным');
+        lucide.createIcons();
+        toast(now?'Домашнее задание отмечено выполненным':'Отметка снята');
+      });
+    });
+  }
+
+  /* --------- индикатор идущей пары (обновляется каждые 30 сек) --------- */
+  function updateLive(){
+    const today=new Date(); today.setHours(0,0,0,0);
+    const isToday=sameDay(selected,today);
+    const n=new Date(), nowMin=n.getHours()*60+n.getMinutes();
+    $('lessons').querySelectorAll('.lcard').forEach(card=>{
+      const s=+card.dataset.s, e=+card.dataset.e, bar=card.querySelector('.lprog');
+      const live=isToday && nowMin>=s && nowMin<e;
+      card.classList.toggle('live',live);
+      if(live){
+        const passed=nowMin-s, pct=Math.min(100,Math.round(passed/LESSON_MIN*100));
+        bar.hidden=false;
+        bar.innerHTML='<div class="pbar"><div class="pfill" style="width:'+pct+'%"></div></div>'
+          +'<div class="ptxt"><span><span class="livedot"></span>идёт '+passed+' из '+LESSON_MIN+' мин</span>'
+          +'<span>осталось '+(LESSON_MIN-passed)+' мин</span></div>';
+      } else { bar.hidden=true; bar.innerHTML=''; }
+    });
+    /* активная перемена */
+    $('lessons').querySelectorAll('.brk').forEach(el=>{
+      const p=el.dataset.b.split('-').map(Number);
+      const act=isToday && nowMin>=p[0] && nowMin<p[1];
+      const bt=el.querySelector('.bt');
+      if(act){ bt.style.color='#6ee7b7'; bt.style.borderColor='rgba(52,211,153,.35)';
+        bt.style.background='rgba(16,185,129,.1)';
+        bt.innerHTML='<span class="livedot"></span>перемена · осталось '+(p[1]-nowMin)+' мин'; }
+    });
+  }
+  setInterval(updateLive,30000);
+
+  /* --------- навигация по неделям --------- */
+  $('wPrev').addEventListener('click',()=>{ weekStart=addDays(weekStart,-7); selected=addDays(selected,-7); openId=null; renderWeek(); renderDay(); });
+  $('wNext').addEventListener('click',()=>{ weekStart=addDays(weekStart,7); selected=addDays(selected,7); openId=null; renderWeek(); renderDay(); });
+  $('wToday').addEventListener('click',()=>{ weekStart=startOfWeek(new Date()); selected=new Date(); selected.setHours(0,0,0,0); openId=null; renderWeek(); renderDay(); });
+
+  renderWeek(); renderDay();
+
+  /* счётчик пар в боковом меню */
+  const navCount=document.querySelector('.nav-btn[data-view="diary"] .nv-count');
+  if(navCount) navCount.textContent=scheduleFor(new Date()).length;
 
   /* ---------- кольцо среднего балла ---------- */
   setTimeout(()=>{ const r=$('gpaRing'); if(r) r.style.strokeDashoffset=(125.6*(1-4.6/5)).toFixed(1); },400);
