@@ -462,9 +462,15 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res, pathname);
 });
 
-/* аккуратное завершение: сохраняем базу */
+/* аккуратное завершение: сначала освобождаем порт, затем сохраняем базу */
+let shuttingDown = false;
 function shutdown(signal) {
-  console.log('\n[server] Получен ' + signal + ' — сохраняем базу и выключаемся…');
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('\n[server] Получен ' + signal + ' — закрываем соединения и сохраняем базу…');
+  try { server.close(() => { /* порт освобождён */ }); } catch (e) { /* noop */ }
+  /* принудительный выход, если закрытие зависло */
+  setTimeout(() => process.exit(0), 5000).unref();
   Promise.resolve(db.save()).then(() => {
     const backup = db.backup();
     if (backup) console.log('[server] Резервная копия: ' + backup);
@@ -478,26 +484,103 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 const BACKUP_EVERY = Number(process.env.BACKUP_EVERY_MS || 12 * 60 * 60 * 1000);
 setInterval(() => { const b = db.backup(); if (b) console.log('[server] Автобэкап: ' + b); }, BACKUP_EVERY).unref();
 
-/* --------------------------------------------------------------- запуск */
+/* страховка от краш-лупа: фатальные ошибки логируем, процесс не роняем */
+process.on('uncaughtException', err => {
+  console.error('[server] Неперехваченная ошибка (процесс продолжает работать):', err);
+});
+process.on('unhandledRejection', reason => {
+  console.error('[server] Необработанный промис (процесс продолжает работать):', reason);
+});
+
+/* ------------------------------------------------------------ умный запуск
+   Логика при занятом порту (EADDRINUSE):
+   • если PORT задан хостингом — слушаем строго его и терпеливо ждём
+     освобождения (обычно это умирающий прежний наш же процесс);
+   • если PORT не задан — ждём немного, затем сканируем соседние порты
+     (3001, 3002, …) и поднимаемся на первом свободном. */
 seed();
-server.listen(PORT, HOST, () => {
+
+const PORT_ASSIGNED = !!process.env.PORT;
+const RETRY_MS = 1500;          // пауза между попытками
+const WAIT_TRIES = 10;          // попыток на одном порту до вывода о статусе/сканировании
+const MAX_SCAN = 30;            // сколько соседних портов перебирать
+
+let actualPort = PORT;
+let movedFromBusy = false;
+
+function onOpen(port) {
   const lines = [
     '',
     '  ┌─────────────────────────────────────────────────┐',
     '  │            КОЛЛЕДЖ·ID — БЭКЕНД v1.0.0           │',
     '  ├─────────────────────────────────────────────────┤',
-    '  │  Сайт:       http://localhost:' + String(PORT).padEnd(12) + '│',
-    '  │  API:        http://localhost:' + PORT + '/api/health'.padEnd(1) + '  │',
+    '  │  Сайт:       http://localhost:' + String(port).padEnd(11) + '│',
+    '  │  API:        http://localhost:' + port + '/api/health',
     '  │  Node:       ' + process.version.padEnd(35) + '│',
     '  │  Пользоват.: ' + String(db.data.users.length).padEnd(35) + '│',
     '  │  База:       Data/database.json                 │',
     '  │  Зависимости: нет (только встроенные модули)    │',
     '  └─────────────────────────────────────────────────┘',
-    '',
+    (movedFromBusy
+      ? '  ⚠ Порт ' + PORT + ' был занят — сервер поднялся на ' + port + '.\n' +
+        '  В панели хостинга настройте этот порт как открытый наружу,\n' +
+        '  либо задайте переменную окружения PORT и перезапустите.\n'
+      : ''),
     '  Демо-доступ: demo / demo123',
     '  Все данные живут в папке Data/ — скопируйте её, чтобы',
     '  перенести базу на другой хостинг без потерь.',
     ''
   ];
-  console.log(lines.join('\n'));
-});
+  console.log(lines.filter(s => s !== '').join('\n'));
+}
+
+function listenOn(port, attempt) {
+  if (shuttingDown) return;
+
+  function onError(err) {
+    if (!err || err.code !== 'EADDRINUSE') {
+      if (err && err.code === 'EACCES') {
+        console.error('[server] Нет прав на порт ' + port + '. Задайте порт > 1024 через переменную окружения PORT.');
+      } else {
+        console.error('[server] Ошибка слушающего сокета:', err);
+      }
+      return process.exit(1);
+    }
+
+    /* порт занят */
+    if (attempt < WAIT_TRIES) {
+      if (attempt % 3 === 1) {
+        console.warn('[server] Порт ' + port + ' занят — жду освобождения (' + attempt + '/' + WAIT_TRIES + ')…');
+      }
+      return setTimeout(() => listenOn(port, attempt + 1), RETRY_MS);
+    }
+
+    if (PORT_ASSIGNED) {
+      console.error('[server] Порт ' + port + ', назначенный хостингом, долго не освобождается.\n' +
+        '[server] Вероятно, прежний процесс завис — перезапустите контейнер в панели хостинга.');
+      return process.exit(1);   // пусть платформа корректно перезапустит
+    }
+
+    const next = port + 1;
+    if (next >= PORT + MAX_SCAN) {
+      console.error('[server] Порты ' + PORT + '–' + (PORT + MAX_SCAN - 1) + ' заняты.\n' +
+        '[server] Задайте свободный порт через переменную окружения PORT и перезапустите.');
+      return process.exit(1);
+    }
+    movedFromBusy = true;
+    console.warn('[server] Порт ' + port + ' занят → пробую ' + next + '…');
+    setTimeout(() => listenOn(next, 1), 200);
+  }
+
+  function onListening() {
+    server.removeListener('error', onError);
+    actualPort = server.address().port;
+    onOpen(actualPort);
+  }
+
+  server.once('error', onError);
+  server.once('listening', onListening);
+  server.listen(port, HOST);
+}
+
+listenOn(PORT, 1);
