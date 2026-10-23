@@ -37,7 +37,18 @@ const { createStore } = require('./Data/store.js');
 
 /* ------------------------------------------------------------------ настройки */
 const ROOT = __dirname;
-const DATA_DIR = path.join(ROOT, 'Data');
+const CODE_DATA_DIR = path.join(ROOT, 'Data');
+/* Bothost монтирует постоянный диск в /app/data (нижний регистр).
+   Исходники адаптера остаются в Data/, а runtime-база живёт на volume.
+   Для других хостингов путь можно задать через DATA_DIR/DATABASE_PATH. */
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : (process.env.DATABASE_PATH
+      ? path.dirname(path.resolve(process.env.DATABASE_PATH))
+      : (fs.existsSync('/app/data') ? '/app/data' : CODE_DATA_DIR));
+const DATABASE_FILE = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(DATA_DIR, 'database.json');
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const TOKEN_TTL = 7 * 24 * 60 * 60;            // 7 дней, секунды
@@ -64,7 +75,7 @@ const normLogin = l => String(l || '').trim().toLowerCase();
 
 /* --------------------------------------------------------------- база данных */
 const db = createStore({
-  file: path.join(DATA_DIR, 'database.json'),
+  file: DATABASE_FILE,
   backupDir: path.join(DATA_DIR, 'backups'),
   keep: Number(process.env.BACKUPS_KEEP || 20),
   defaults: { version: 1, createdAt: nowISO(), updatedAt: null, users: [] }
@@ -328,10 +339,24 @@ async function handleAPI(req, res, pathname) {
 
   /* --- здоровье сервера --- */
   if (route === '/api/health' && method === 'GET') {
+    const envLogin = envValue('ADMIN_LOGIN', false);
+    const envPass = envValue('ADMIN_PASSWORD', true);
+    const envAdmin = envLogin
+      ? db.data.users.find(u => normLogin(u.login) === normLogin(envLogin))
+      : null;
     return sendJSON(res, 200, {
       ok: true, service: 'college-id', version: '1.0.0',
       node: process.version, users: db.data.users.length,
-      uptime: Math.round(process.uptime()), time: nowISO()
+      uptime: Math.round(process.uptime()), time: nowISO(),
+      database: {
+        persistentPath: DATA_DIR,
+        resetVersion: db.data.resetVersion || null
+      },
+      environment: {
+        adminLoginSet: !!envLogin,
+        adminPasswordSet: !!envPass,
+        adminProvisioned: !!(envAdmin && envAdmin.role === 'dev')
+      }
     });
   }
 
@@ -554,6 +579,15 @@ const server = http.createServer((req, res) => {
   securityHeaders(res);
   const pathname = new URL(req.url, 'http://x').pathname;
 
+  /* Стандартные health-check адреса Bothost. */
+  if ((pathname === '/health' || pathname === '/healthz') && req.method === 'GET') {
+    handleAPI(req, res, '/api/health').catch(err => {
+      console.error('[health]', err);
+      if (!res.headersSent) sendJSON(res, 500, { ok: false });
+    });
+    return;
+  }
+
   if (pathname.startsWith('/api/')) {
     handleAPI(req, res, pathname).catch(err => {
       console.error('[api]', err);
@@ -680,7 +714,7 @@ function onOpen(port) {
     '  │  API:        http://localhost:' + port + '/api/health',
     '  │  Node:       ' + process.version.padEnd(35) + '│',
     '  │  Пользоват.: ' + String(db.data.users.length).padEnd(35) + '│',
-    '  │  База:       Data/database.json                 │',
+    '  │  База:       ' + String(DATABASE_FILE).slice(-35).padEnd(35) + '│',
     '  │  Зависимости: нет (только встроенные модули)    │',
     '  │  ADMIN_*:    ' + ((process.env.ADMIN_LOGIN ? ('ADMIN_LOGIN=' + process.env.ADMIN_LOGIN + ((process.env.ADMIN_PASSWORD ? ' + пароль задан' : '')).padEnd(33)) : ('не заданы')).padEnd(35)) + '│',
     '  └─────────────────────────────────────────────────┘',
