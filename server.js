@@ -404,10 +404,24 @@ async function handleAPI(req, res, pathname) {
     return sendJSON(res, 200, { ok: true, login: rec.login, role: rec.role });
   }
 
+  /* --- сброс базы (только для разработчика) --- */
+  if (route === '/api/reset' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const myRole = String(me.role || 'student').toLowerCase();
+    if (myRole !== 'dev' && myRole !== 'admin') return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    db.backup();                    // страховка перед удалением
+    db.data.users.length = 0;
+    db.data.updatedAt = nowISO();
+    await db.save();
+    console.log('[server] База сброшена пользователем ' + me.login + ' (осталось 0 пользователей)');
+    return sendJSON(res, 200, { ok: true, action: 'reset', backup: true });
+  }
+
   if (route.startsWith('/api/users/') && method === 'DELETE') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const target = decodeURIComponent(route.slice('/api/users/'.length));
-    if ((me.role || 'student') !== 'admin') return sendJSON(res, 403, { error: 'Недостаточно прав' });
+    const myRole = String(me.role || 'student').toLowerCase();
+    if (myRole !== 'dev' && myRole !== 'admin') return sendJSON(res, 403, { error: 'Недостаточно прав' });
     const before = db.data.users.length;
     db.data.users = db.data.users.filter(u => normLogin(u.login) !== normLogin(target));
     if (db.data.users.length === before) return sendJSON(res, 404, { error: 'Пользователь не найден' });
@@ -540,6 +554,36 @@ process.on('unhandledRejection', reason => {
      освобождения (обычно это умирающий прежний наш же процесс);
    • если PORT не задан — ждём немного, затем сканируем соседние порты
      (3001, 3002, …) и поднимаемся на первом свободном. */
+
+/* ------------------------- CLI: сброс базы данных -------------------------
+     node server.js --reset          → спросит подтверждение (y)
+     node server.js --reset --yes    → сброс без вопросов
+     Перед удалением поднимает резервную копию в Data/backups/.          */
+if (process.argv.includes('--reset')) {
+  const yes = process.argv.includes('--yes');
+  console.log('\n  СБРОС БАЗЫ ДАННЫХ КОЛЛЕДЖ·ID');
+  const doReset = () => {
+    const backup = db.backup();
+    db.data.users.length = 0;
+    db.data.updatedAt = nowISO();
+    db.save().then(() => {
+      console.log('  ✔ База обнулена (' + db.data.users.length + ' пользователей).');
+      if (backup) console.log('  ✔ Резервная копия: ' + backup);
+      console.log('  ✔ При следующем запуске будет создан чистый демо-аккаунт demo/demo123\n');
+      process.exit(0);
+    });
+  };
+  if (yes) { doReset(); }
+  else {
+    process.stdout.write('  ⚠ Удалить всех пользователей? (y/N): ');
+    process.stdin.once('data', d => {
+      const a = String(d).trim().toLowerCase();
+      if (a === 'y' || a === 'yes') doReset();
+      else { console.log('  Отменено.\n'); process.exit(0); }
+    });
+  }
+} else {
+
 seed();
 
 /* ------------------------- CLI: управление ролями -------------------------
@@ -657,3 +701,5 @@ function listenOn(port, attempt) {
 }
 
 listenOn(PORT, 1);
+
+}  // конец блока else (основной запуск), парный к «if (process.argv.includes('--reset'))»

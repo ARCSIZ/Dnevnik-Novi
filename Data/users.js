@@ -314,6 +314,20 @@
       return Promise.resolve(true);
     },
 
+    /**
+     * Сброс всей базы (удалить всех пользователей).
+     * Только для разработчика (роль dev/admin) при работающем сервере.
+     * Перед удалением автоматически создаётся бэкап в Data/backups/.
+     */
+    reset: function () {
+      if (mode !== 'server') return Promise.reject(new Error('Сброс доступен только через сервер'));
+      return request('/api/reset', { method: 'POST' })
+        .then(function () {
+          mirror.users = []; saveMirror();
+          return true;
+        });
+    },
+
     /** Удаление пользователя (на сервере — только администратору) */
     remove: function (login) {
       if (mode === 'server') {
