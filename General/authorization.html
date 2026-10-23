@@ -158,9 +158,12 @@
 
   .spin { animation:sp 0.9s linear infinite; } @keyframes sp { to { transform:rotate(360deg) } }
 
-  /* ---------- тост ---------- */
-  #toast { position:fixed; left:50%; bottom:28px; transform:translate(-50%, 20px); opacity:0; transition:opacity .3s, transform .3s; z-index:99; pointer-events:none; }
+  /* ---------- тост (компактный, с аккуратными переносами) ---------- */
+  #toast { position:fixed; left:50%; bottom:28px; transform:translate(-50%, 20px); opacity:0; transition:opacity .3s, transform .3s; z-index:99; pointer-events:none; max-width:calc(100vw - 24px); }
   #toast.show { opacity:1; transform:translate(-50%, 0); }
+  #toast > div { max-width:100%; padding:10px 16px; }
+  #toastMsg { overflow-wrap:anywhere; line-height:1.35; font-size:13.5px; }
+  @supports (text-wrap:balance){ #toastMsg { text-wrap:balance; } }
 </style>
 </head>
 <body class="text-white antialiased overflow-x-hidden min-h-screen">

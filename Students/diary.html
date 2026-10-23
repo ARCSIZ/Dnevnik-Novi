@@ -158,7 +158,9 @@
 
   #toast { position:fixed; left:50%; bottom:92px; transform:translate(-50%,16px); opacity:0; transition:.3s; z-index:99; pointer-events:none; max-width:calc(100vw - 24px); }
   #toast.show { opacity:1; transform:translate(-50%,0); }
-  #toastMsg { overflow-wrap:anywhere; }
+  #toast > div { max-width:100%; padding:10px 16px; }
+  #toastMsg { overflow-wrap:anywhere; line-height:1.35; font-size:13.5px; }
+  @supports (text-wrap:balance){ #toastMsg { text-wrap:balance; } }
   @media (min-width:1024px){ #toast { bottom:28px; } }
 
   /* ===== анти-переполнение (мобильные) ===== */

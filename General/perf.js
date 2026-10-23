@@ -89,31 +89,41 @@
       /* короткие и дешёвые переходы */
       'html.lite *{transition-duration:.14s!important;animation-duration:.2s!important}',
       'html.lite .app-tile:hover,html.lite .panel:hover,html.lite .lesson:hover{transform:none!important}',
-      /* баннер */
+      /* баннер — компактный, дружелюбный к узким экранам */
       '#perf-banner{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:200;',
-      ' display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:22px;',
-      ' background:rgba(16,16,26,.97);border:1px solid rgba(255,255,255,.12);',
+      ' padding:12px 14px 14px;border-radius:20px;',
+      ' background:rgba(16,16,26,.98);border:1px solid rgba(255,255,255,.12);',
       ' box-shadow:0 24px 60px -16px rgba(0,0,0,.85);color:#fff;',
       ' font-family:Manrope,system-ui,sans-serif;max-width:430px;margin:0 auto;',
-      ' opacity:0;transform:translateY(18px);transition:opacity .35s ease,transform .35s cubic-bezier(.22,1,.36,1)}',
+      ' opacity:0;transform:translateY(14px);transition:opacity .32s ease,transform .32s cubic-bezier(.22,1,.36,1)}',
       '#perf-banner.show{opacity:1;transform:none}',
-      '#perf-banner.above-dock{bottom:calc(96px + env(safe-area-inset-bottom,0px))}',
-      '#perf-banner .pb-ic{width:40px;height:40px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;',
-      ' background:linear-gradient(135deg,#f59e0b,#f43f5e);box-shadow:0 10px 24px -8px rgba(244,63,94,.6)}',
-      '#perf-banner h4{margin:0 0 4px;font-size:14.5px;font-weight:800;letter-spacing:-.01em}',
-      '#perf-banner p{margin:0;font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.55)}',
-      '#perf-banner .pb-fps{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;',
-      ' color:rgba(255,255,255,.3);margin-top:7px;text-transform:uppercase}',
-      '#perf-banner .pb-row{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}',
+      '#perf-banner.above-dock{bottom:calc(94px + env(safe-area-inset-bottom,0px))}',
+      /* шапка: иконка + заголовок + крестик — одной строкой */
+      '#perf-banner .pb-head{display:flex;align-items:center;gap:9px;margin-bottom:7px}',
+      '#perf-banner .pb-ic{width:28px;height:28px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;',
+      ' background:linear-gradient(135deg,#f59e0b,#f43f5e);box-shadow:0 8px 18px -6px rgba(244,63,94,.55)}',
+      '#perf-banner .pb-ic svg{width:14px;height:14px}',
+      '#perf-banner h4{margin:0;flex:1;min-width:0;font-size:14px;font-weight:800;letter-spacing:-.01em;',
+      ' white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '#perf-banner .pb-x{flex:none;background:none;border:0;color:rgba(255,255,255,.35);padding:6px;margin:-4px -6px -4px 0;cursor:pointer}',
+      '#perf-banner .pb-x:hover{color:rgba(255,255,255,.75)}',
+      /* текст: на всю ширину, переносы по слогам без «лесенки» */
+      '#perf-banner p{margin:0;font-size:12.5px;line-height:1.45;color:rgba(255,255,255,.58);',
+      ' hyphens:auto;-webkit-hyphens:auto;overflow-wrap:normal;text-align:left}',
+      /* качественный перенос — где поддерживается */
+      '@supports (text-wrap:pretty){#perf-banner p{text-wrap:pretty}}',
+      /* действия: короткие кнопки в один ряд */
+      '#perf-banner .pb-row{display:flex;gap:8px;margin-top:12px}',
       '#perf-banner button{border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:12.5px;',
-      ' padding:9px 15px;border-radius:11px;transition:filter .2s,background .2s}',
-      '#perf-banner .pb-yes{background:linear-gradient(120deg,#6366f1,#a855f7);color:#fff;box-shadow:0 10px 24px -8px rgba(124,58,237,.6)}',
+      ' padding:9px 12px;border-radius:11px;white-space:nowrap;text-align:center;transition:filter .2s,background .2s}',
+      '#perf-banner .pb-yes{flex:1;background:linear-gradient(120deg,#6366f1,#a855f7);color:#fff;box-shadow:0 10px 22px -8px rgba(124,58,237,.55)}',
       '#perf-banner .pb-yes:hover{filter:brightness(1.12)}',
       '#perf-banner .pb-no{background:rgba(255,255,255,.07);color:rgba(255,255,255,.65)}',
       '#perf-banner .pb-no:hover{background:rgba(255,255,255,.12)}',
-      '#perf-banner .pb-x{position:absolute;top:10px;right:12px;background:none;color:rgba(255,255,255,.3);padding:4px}',
-      '#perf-banner .pb-x:hover{color:rgba(255,255,255,.7)}',
-      '@media (min-width:1024px){#perf-banner{left:auto;right:24px;bottom:24px;margin:0}}'
+      /* совсем узкие экраны — кнопки столбиком на всю ширину */
+      '@media (max-width:340px){#perf-banner .pb-row{flex-direction:column}#perf-banner button{width:100%}}',
+      /* десктоп — компактная карточка в углу */
+      '@media (min-width:1024px){#perf-banner{left:auto;right:24px;bottom:24px;margin:0;width:400px;max-width:400px}}'
     ].join('\n');
     document.head.appendChild(css);
   }
@@ -157,20 +167,20 @@
     banner.id = 'perf-banner';
     banner.setAttribute('role', 'dialog');
     banner.setAttribute('aria-live', 'polite');
-    banner.style.position = 'fixed';
     banner.innerHTML =
-      '<span class="pb-ic">' + ICON_WARN + '</span>' +
-      '<div style="min-width:0;flex:1">' +
+      /* шапка одной строкой: иконка · заголовок · закрыть */
+      '<div class="pb-head">' +
+        '<span class="pb-ic">' + ICON_WARN + '</span>' +
         '<h4>Интерфейс подтормаживает</h4>' +
-        '<p>Мы заметили просадку плавности на вашем устройстве. Включить лёгкий режим? ' +
-        'Отключим фоновые частицы, размытия и сложные переходы — станет заметно быстрее.</p>' +
-        '<div class="pb-fps">ЗАМЕР: ~' + Math.round(lastFps) + ' FPS</div>' +
-        '<div class="pb-row">' +
-          '<button class="pb-yes" type="button">Включить лёгкий режим</button>' +
-          '<button class="pb-no" type="button">Оставить как есть</button>' +
-        '</div>' +
+        '<button class="pb-x" type="button" aria-label="Закрыть">' + ICON_X + '</button>' +
       '</div>' +
-      '<button class="pb-x" type="button" aria-label="Закрыть">' + ICON_X + '</button>';
+      /* короткий текст — переносится ровно, без лесенки */
+      '<p>Замерили просадку до ~' + Math.round(lastFps) + ' FPS. ' +
+      'Лёгкий режим отключит частицы, размытия и тяжёлые переходы.</p>' +
+      '<div class="pb-row">' +
+        '<button class="pb-yes" type="button">Включить лёгкий режим</button>' +
+        '<button class="pb-no" type="button">Не сейчас</button>' +
+      '</div>';
 
     /* поднимаем над нижней навигацией на мобильных */
     if (document.querySelector('.dock') && innerWidth < 1024) banner.classList.add('above-dock');
