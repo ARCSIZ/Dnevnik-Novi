@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Журнал — Колледж·ID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2310b981'/%3E%3Cstop offset='1' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M10 9h12v14H10z' fill='white'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  body{font-family:'Manrope',sans-serif;background:#07070d}
+  .font-display{font-family:'Unbounded',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  *{scrollbar-width:none;-ms-overflow-style:none}
+  *::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}
+  svg{flex:none;display:block}
+  html,body{overflow-x:clip}
+
+  .orb{position:absolute;border-radius:9999px;filter:blur(90px)}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;background:radial-gradient(circle,rgba(16,185,129,.2),transparent 65%);animation:f1 16s ease-in-out infinite}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;background:radial-gradient(circle,rgba(99,102,241,.22),transparent 65%);animation:f2 20s ease-in-out infinite}
+  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-30px)}}
+  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,40px)}}
+  .gridln{position:fixed;inset:0;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%);
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%)}
+
+  .card{background:rgba(13,13,21,.8);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
+  .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;max-width:100%;
+    font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+  .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);
+    cursor:pointer;transition:background .22s,transform .18s}
+  .back:hover{background:rgba(255,255,255,.1);color:#fff}
+  .back:active{transform:scale(.96)}
+  .btn{border-radius:13px;font-weight:700;cursor:pointer;transition:transform .2s,filter .25s}
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:linear-gradient(120deg,#059669,#0ea5e9);color:#fff;box-shadow:0 14px 30px -10px rgba(5,150,105,.5)}
+  .btn-primary:hover{filter:brightness(1.12)}
+  .btn-ghost{border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75);background:transparent}
+  .btn-ghost:hover{background:rgba(255,255,255,.05)}
+  .btn-danger{border:1px solid rgba(251,113,133,.3);color:#fda4af;background:transparent}
+  .btn-danger:hover{background:rgba(244,63,94,.1)}
+  .dbox{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+    font-size:13px;line-height:1.6;color:rgba(255,255,255,.55)}
+  .lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px}
+  input,select,textarea{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+    border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;font-family:inherit}
+  input:focus,select:focus,textarea:focus{border-color:rgba(52,211,153,.6);box-shadow:0 0 0 4px rgba(16,185,129,.1)}
+  select option{background:#15151f}
+
+  /* слоты пар */
+  .slot{border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);padding:12px 13px;
+    transition:border-color .2s,background .2s}
+  .slot.filled{border-color:rgba(52,211,153,.3);background:rgba(16,185,129,.06)}
+  .slot.repl{border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.07)}
+  .slot.evt{border-color:rgba(168,85,247,.45);background:rgba(168,85,247,.07)}
+  .slot-h{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex-wrap:wrap}
+  .slot-n{width:26px;height:26px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#6ee7b7}
+  .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:7px;font-size:9.5px;
+    font-family:'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+  .tag-r{background:rgba(251,191,36,.16);color:#fcd34d;border:1px solid rgba(251,191,36,.3)}
+  .tag-e{background:rgba(168,85,247,.16);color:#d8b4fe;border:1px solid rgba(168,85,247,.3)}
+  .grid3{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:520px){.grid3{grid-template-columns:1fr}}
+
+  .day{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:13px;cursor:pointer;
+    background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);min-width:0;transition:all .2s}
+  .day:hover{background:rgba(255,255,255,.07)}
+  .day .dw{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase}
+  .day .dn{font-size:14px;font-weight:800}
+  .day .dd{width:4px;height:4px;border-radius:99px;background:rgba(52,211,153,.6)}
+  .day .dd.off{background:transparent}
+  .day.sel{background:linear-gradient(145deg,#059669,#0ea5e9);border-color:transparent}
+  .day.sel .dw,.day.sel .dn{color:#fff}
+  .day.today{border-color:rgba(52,211,153,.5)}
+
+  .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  html.lite .st{animation:none;opacity:1}
+  html.lite .orb{animation:none}
+
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);opacity:0;transition:.3s;z-index:99;
+    pointer-events:none;max-width:calc(100vw - 24px)}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body class="text-white antialiased min-h-screen">
+
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="orb o1"></div><div class="orb o2"></div>
+  </div>
+  <div class="gridln" aria-hidden="true"></div>
+
+  <div class="relative max-w-[1000px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+
+    <header class="flex items-center justify-between gap-3 mb-7">
+      <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i>Приложения</button>
+      <span class="pill"><i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-emerald-300"></i><span id="rolePill">ЖУРНАЛ</span></span>
+    </header>
+
+    <div id="denied" class="hidden">
+      <div class="card rounded-[24px] p-8 text-center">
+        <span class="w-16 h-16 mx-auto mb-5 rounded-[20px] bg-rose-500/15 border border-rose-400/30 flex items-center justify-center">
+          <i data-lucide="lock" class="w-7 h-7 text-rose-300"></i></span>
+        <h1 class="font-display text-xl mb-2" style="font-weight:800">Доступ ограничен</h1>
+        <p class="text-white/45 text-[13.5px] max-w-[360px] mx-auto mb-6" id="deniedMsg">
+          Журнал доступен старостам и кураторам групп.</p>
+        <button id="btnBack3" class="btn btn-primary w-full max-w-[300px] mx-auto h-[46px] text-sm flex items-center justify-center gap-2">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться</button>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
+        <div class="flex items-start gap-4">
+          <span class="w-14 h-14 shrink-0 rounded-[18px] bg-gradient-to-br from-emerald-500 to-sky-500 flex items-center justify-center shadow-lg shadow-emerald-600/30">
+            <i data-lucide="clipboard-list" class="w-6 h-6 text-white"></i></span>
+          <div class="min-w-0">
+            <p class="mono text-[10px] tracking-[.3em] text-emerald-300/70 mb-1.5" id="appKind">ПРИЛОЖЕНИЕ</p>
+            <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800" id="appTitle">Журнал</h1>
+            <p class="text-white/45 text-[13.5px] mt-2">Группа <b id="myGroup" class="text-white/70">—</b> · расписание, замены и мероприятия</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ЗАГРУЗКА ИЗ ТАБЛИЦЫ -->
+      <div class="st card rounded-[24px] p-5 sm:p-6 mb-5" style="--i:1">
+        <h2 class="font-semibold mb-3 flex items-center gap-2"><i data-lucide="table" class="w-4 h-4 text-emerald-300"></i>Загрузка расписания из таблицы</h2>
+        <p class="text-[12.5px] text-white/45 leading-relaxed mb-4">
+          Скачайте шаблон, заполните его в Excel или Google Таблицах и загрузите обратно — расписание появится у всей группы.
+          Формат: <span class="mono text-emerald-300/80">дата; пара; предмет; преподаватель; кабинет; корпус; тип; замена; примечание</span>
+        </p>
+        <div class="grid sm:grid-cols-3 gap-2.5">
+          <button id="tplBtn" class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Скачать шаблон</button>
+          <label class="btn btn-primary h-[44px] text-sm flex items-center justify-center gap-2" style="cursor:pointer">
+            <i data-lucide="upload" class="w-4 h-4"></i>Загрузить таблицу
+            <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+          </label>
+          <button id="exportBtn" class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2"><i data-lucide="file-down" class="w-4 h-4"></i>Выгрузить текущее</button>
+        </div>
+        <div id="importInfo" class="dbox mt-3 hidden"></div>
+      </div>
+
+      <!-- КАЛЕНДАРЬ -->
+      <div class="st card rounded-[24px] p-4 sm:p-5 mb-5" style="--i:2">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <button id="wPrev" class="back" style="padding:8px 12px"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+          <div class="text-center min-w-0">
+            <p id="wLabel" class="font-semibold text-[14px] truncate">—</p>
+            <p id="wRange" class="mono text-[9.5px] tracking-[.2em] text-white/30 mt-0.5 truncate">—</p>
+          </div>
+          <button id="wNext" class="back" style="padding:8px 12px"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+        </div>
+        <div id="weekDays" class="grid grid-cols-7 gap-1 sm:gap-1.5"></div>
+      </div>
+
+      <!-- РЕДАКТОР ДНЯ -->
+      <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:3">
+        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h2 class="font-semibold text-[15px]" id="dayTitle">—</h2>
+          <div class="flex gap-2">
+            <button id="addEvent" class="btn btn-ghost px-3 py-2 text-[12px] flex items-center gap-1.5"><i data-lucide="party-popper" class="w-3.5 h-3.5"></i>Мероприятие</button>
+            <button id="clearDay" class="btn btn-danger px-3 py-2 text-[12px] flex items-center gap-1.5"><i data-lucide="eraser" class="w-3.5 h-3.5"></i>Очистить</button>
+          </div>
+        </div>
+        <div id="slots" class="space-y-2.5"></div>
+        <div id="events" class="space-y-2.5 mt-2.5"></div>
+        <button id="saveDay" class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-4">
+          <i data-lucide="save" class="w-4 h-4"></i>Сохранить расписание дня
+        </button>
+      </div>
+
+      <button id="btnBack2" class="back w-full justify-center mt-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения</button>
+    </div>
+  </div>
+
+  <div id="toast">
+    <div class="flex items-center gap-2.5 bg-[#15151f]/95 border border-white/10 rounded-full px-5 py-3 shadow-2xl backdrop-blur">
+      <i data-lucide="info" class="w-4 h-4 text-emerald-300"></i><span id="toastMsg" class="text-sm text-white/80"></span>
+    </div>
+  </div>
+
+  <script src="../Data/users.js?v=20260302-groups3"></script>
+  <script src="../General/notice.js?v=1"></script>
+  <script src="../General/perf.js"></script>
+<script>
+(async function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const BACK='diary.html?view=apps';
+  const goBack=()=>{ location.href=BACK; };
+  ['btnBack','btnBack2','btnBack3'].forEach(id=>{const b=$(id); if(b) b.addEventListener('click',goBack);});
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') goBack(); });
+  let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show');
+    clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),3000); }
+
+  /* ---- расписание звонков ---- */
+  const SLOTS=[
+    {n:1,start:'09:00',end:'10:30'},
+    {n:2,start:'10:45',end:'12:15'},
+    {n:3,start:'13:00',end:'14:30'},
+    {n:4,start:'14:40',end:'16:10'},
+    {n:5,start:'16:20',end:'17:50'}
+  ];
+  const DAYS_SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const pad=n=>String(n).padStart(2,'0');
+  const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(0,0,0,0);return x;};
+  const startOfWeek=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;};
+  const sameDay=(a,b)=>keyOf(a)===keyOf(b);
+
+  await CollegeDB.init();
+  if(CollegeDB.startSync) CollegeDB.startSync(20000);
+  const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
+  const s=CollegeDB.session();
+  const me=(s&&CollegeDB.findByLogin(s.login))||null;
+  const role=R(me&&me.role);
+
+  if(['prefect','curator','dev'].indexOf(role)<0){
+    $('denied').classList.remove('hidden'); lucide.createIcons(); return;
+  }
+  if(!me.group&&role!=='dev'){
+    $('denied').classList.remove('hidden');
+    $('deniedMsg').textContent='Вам не назначена группа. Обратитесь к разработчику системы.';
+    lucide.createIcons(); return;
+  }
+  $('app').classList.remove('hidden');
+
+  const GROUP=me.group||((CollegeDB.listGroups()[0]||{}).code||'');
+  $('myGroup').textContent=GROUP||'—';
+  $('appKind').textContent='ПРИЛОЖЕНИЕ · '+(role==='curator'?'КУРАТОР':role==='prefect'?'СТАРОСТА':'DEV');
+  $('appTitle').textContent=role==='curator'?'Журнал куратора':'Журнал старосты';
+  $('rolePill').textContent=role==='curator'?'КУРАТОР':'СТАРОСТА';
+
+  let schedule=await CollegeDB.loadSchedule(GROUP);
+  let weekStart=startOfWeek(new Date());
+  let selected=new Date(); selected.setHours(0,0,0,0);
+
+  /* ================== ШАБЛОН CSV ================== */
+  function downloadCSV(text,name){
+    const blob=new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }
+  function template(){
+    const d=keyOf(new Date()), d2=keyOf(addDays(new Date(),1));
+    return [
+      'дата;пара;предмет;преподаватель;кабинет;корпус;тип;замена;примечание',
+      d+';1;Математический анализ;Петрова Л. И.;304;А;Лекция;;',
+      d+';2;Базы данных;Соколов А. В.;212;Б;Практическое занятие;;Принести ноутбук',
+      d+';3;Иностранный язык;Ким Е. О.;118;А;Практическое занятие;Физика;Замена по приказу',
+      d2+';1;Веб-разработка;Орлов Д. С.;401;В;Практическое занятие;;',
+      d2+';0;День открытых дверей;;Актовый зал;А;Мероприятие;;Сбор в 12:00',
+      '',
+      '# ПОДСКАЗКА:',
+      '# дата — в формате ГГГГ-ММ-ДД',
+      '# пара — номер 1..5 (1: 09:00-10:30, 2: 10:45-12:15, 3: 13:00-14:30, 4: 14:40-16:10, 5: 16:20-17:50)',
+      '# пара = 0 — мероприятие (вне сетки пар)',
+      '# тип — Лекция / Практическое занятие / Мероприятие',
+      '# замена — название пары, которую заменили (если это замена)',
+      '# строки, начинающиеся с #, игнорируются'
+    ].join('\n');
+  }
+  $('tplBtn').addEventListener('click',()=>{ downloadCSV(template(),'шаблон-расписания.csv');
+    toast('Шаблон скачан — заполните и загрузите обратно'); });
+
+  $('exportBtn').addEventListener('click',()=>{
+    const rows=['дата;пара;предмет;преподаватель;кабинет;корпус;тип;замена;примечание'];
+    Object.keys(schedule).sort().forEach(dt=>{
+      (schedule[dt]||[]).forEach(L=>{
+        rows.push([dt,L.event?0:L.slot,L.name,L.teacher,L.room,L.building,
+          L.type,L.replacedFrom||'',L.note||''].join(';'));
+      });
+    });
+    downloadCSV(rows.join('\n'),'расписание-'+GROUP+'.csv');
+    toast('Текущее расписание выгружено');
+  });
+
+  /* ================== ИМПОРТ ================== */
+  $('fileInput').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ parseCSV(String(rd.result||'')); e.target.value=''; };
+    rd.readAsText(f,'utf-8');
+  });
+
+  function parseCSV(text){
+    const lines=text.replace(/\r/g,'').split('\n')
+      .map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+    if(!lines.length) return toast('Файл пуст');
+    if(/дата|date/i.test(lines[0])) lines.shift();
+    const next={}; let ok=0, bad=0;
+    lines.forEach(line=>{
+      const c=line.split(/;|\t/).map(x=>x.trim());
+      const date=c[0], slot=parseInt(c[1],10);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!c[2]){ bad++; return; }
+      const isEvent=!slot||isNaN(slot)||slot<1||slot>5||/меропр/i.test(c[6]||'');
+      const sl=SLOTS[(slot||1)-1]||SLOTS[0];
+      next[date]=next[date]||[];
+      next[date].push({
+        slot:isEvent?0:slot, name:c[2]||'', teacher:c[3]||'', room:c[4]||'',
+        building:c[5]||'', type:isEvent?'Мероприятие':(c[6]||'Лекция'),
+        event:isEvent, start:isEvent?'':sl.start, end:isEvent?'':sl.end,
+        replaced:!!c[7], replacedFrom:c[7]||'', note:c[8]||'', hw:''
+      });
+      ok++;
+    });
+    if(!ok) return toast('Не распознано ни одной строки — проверьте формат');
+    Object.keys(next).forEach(d=>{ schedule[d]=next[d].sort((a,b)=>(a.slot||99)-(b.slot||99)); });
+    $('importInfo').classList.remove('hidden');
+    $('importInfo').innerHTML='Распознано строк: <b class="text-emerald-300">'+ok+'</b>'
+      +(bad?(' · пропущено: <b class="text-rose-300">'+bad+'</b>'):'')
+      +' · дней: <b>'+Object.keys(next).length+'</b>. Нажмите «Сохранить», чтобы опубликовать.';
+    save(true);
+  }
+
+  /* ================== СОХРАНЕНИЕ ================== */
+  function save(silent){
+    return CollegeDB.saveSchedule(GROUP,schedule).then(()=>{
+      if(!silent) toast('Расписание сохранено и видно всей группе');
+      else toast('Импорт применён — расписание опубликовано');
+      renderWeek(); renderDay();
+    }).catch(err=>toast('Ошибка сохранения: '+(err.message||'нет связи')));
+  }
+
+  /* ================== КАЛЕНДАРЬ ================== */
+  function renderWeek(){
+    const last=addDays(weekStart,6), today=new Date();
+    const ml=weekStart.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    $('wLabel').textContent=ml.charAt(0).toUpperCase()+ml.slice(1);
+    $('wRange').textContent=weekStart.getDate()+' — '+last.getDate()+' '+
+      last.toLocaleDateString('ru-RU',{month:'short'}).replace('.','').toUpperCase();
+    let html='';
+    for(let i=0;i<7;i++){
+      const d=addDays(weekStart,i), n=(schedule[keyOf(d)]||[]).length;
+      html+='<button type="button" class="day'+(sameDay(d,selected)?' sel':'')+(sameDay(d,today)?' today':'')
+        +'" data-key="'+keyOf(d)+'"><span class="dw">'+DAYS_SHORT[i]+'</span>'
+        +'<span class="dn">'+d.getDate()+'</span><span class="dd'+(n?'':' off')+'"></span></button>';
+    }
+    $('weekDays').innerHTML=html;
+    $('weekDays').querySelectorAll('.day').forEach(b=>b.addEventListener('click',()=>{
+      const p=b.dataset.key.split('-');
+      selected=new Date(+p[0],+p[1]-1,+p[2]);
+      renderWeek(); renderDay();
+    }));
+  }
+  $('wPrev').addEventListener('click',()=>{ weekStart=addDays(weekStart,-7); selected=addDays(selected,-7); renderWeek(); renderDay(); });
+  $('wNext').addEventListener('click',()=>{ weekStart=addDays(weekStart,7); selected=addDays(selected,7); renderWeek(); renderDay(); });
+
+  /* ================== РЕДАКТОР ДНЯ ================== */
+  function dayList(){ return schedule[keyOf(selected)]||[]; }
+  function setDay(list){
+    const k=keyOf(selected);
+    if(list.length) schedule[k]=list; else delete schedule[k];
+  }
+
+  function renderDay(){
+    const t=selected.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+    $('dayTitle').textContent=t.charAt(0).toUpperCase()+t.slice(1);
+    const list=dayList();
+
+    $('slots').innerHTML=SLOTS.map(sl=>{
+      const L=list.find(x=>!x.event&&Number(x.slot)===sl.n)||{};
+      const filled=!!L.name;
+      return '<div class="slot'+(filled?(L.replaced?' repl':' filled'):'')+'" data-slot="'+sl.n+'">'
+        +'<div class="slot-h"><span class="slot-n">'+sl.n+'</span>'
+          +'<span class="mono text-[11.5px] text-white/45">'+sl.start+' — '+sl.end+'</span>'
+          +(L.replaced?'<span class="tag tag-r"><i data-lucide="repeat" class="w-3 h-3"></i>замена'
+            +(L.replacedFrom?(' · '+L.replacedFrom):'')+'</span>':'')
+          +'<button type="button" class="ml-auto text-white/30 hover:text-rose-300 transition-colors clr" data-slot="'+sl.n+'" title="Очистить пару">'
+          +'<i data-lucide="x" class="w-4 h-4"></i></button></div>'
+        +'<input class="f-name mb-2" data-slot="'+sl.n+'" placeholder="Предмет (пусто — пары нет)" value="'+(L.name||'').replace(/"/g,'&quot;')+'">'
+        +'<div class="grid3 mb-2">'
+          +'<input class="f-teacher" data-slot="'+sl.n+'" placeholder="Преподаватель" value="'+(L.teacher||'').replace(/"/g,'&quot;')+'">'
+          +'<select class="f-type" data-slot="'+sl.n+'">'
+            +'<option'+(L.type==='Лекция'||!L.type?' selected':'')+'>Лекция</option>'
+            +'<option'+(L.type==='Практическое занятие'?' selected':'')+'>Практическое занятие</option>'
+          +'</select></div>'
+        +'<div class="grid3 mb-2">'
+          +'<input class="f-room" data-slot="'+sl.n+'" placeholder="Кабинет" value="'+(L.room||'').replace(/"/g,'&quot;')+'">'
+          +'<input class="f-building" data-slot="'+sl.n+'" placeholder="Корпус" value="'+(L.building||'').replace(/"/g,'&quot;')+'">'
+        +'</div>'
+        +'<input class="f-repl mb-2" data-slot="'+sl.n+'" placeholder="Замена: что было раньше (пусто — не замена)" value="'+(L.replacedFrom||'').replace(/"/g,'&quot;')+'">'
+        +'<input class="f-note" data-slot="'+sl.n+'" placeholder="Примечание / домашнее задание" value="'+(L.note||'').replace(/"/g,'&quot;')+'">'
+        +'</div>';
+    }).join('');
+
+    const evs=list.filter(x=>x.event);
+    $('events').innerHTML=evs.map((L,i)=>
+      '<div class="slot evt" data-ev="'+i+'">'
+      +'<div class="slot-h"><span class="tag tag-e"><i data-lucide="party-popper" class="w-3 h-3"></i>мероприятие</span>'
+      +'<button type="button" class="ml-auto text-white/30 hover:text-rose-300 transition-colors ev-del" data-ev="'+i+'">'
+      +'<i data-lucide="x" class="w-4 h-4"></i></button></div>'
+      +'<input class="e-name mb-2" data-ev="'+i+'" placeholder="Название мероприятия" value="'+(L.name||'').replace(/"/g,'&quot;')+'">'
+      +'<div class="grid3 mb-2">'
+        +'<input class="e-start" data-ev="'+i+'" placeholder="Начало (12:00)" value="'+(L.start||'').replace(/"/g,'&quot;')+'">'
+        +'<input class="e-end" data-ev="'+i+'" placeholder="Конец (14:00)" value="'+(L.end||'').replace(/"/g,'&quot;')+'">'
+      +'</div>'
+      +'<input class="e-room mb-2" data-ev="'+i+'" placeholder="Место проведения" value="'+(L.room||'').replace(/"/g,'&quot;')+'">'
+      +'<input class="e-note" data-ev="'+i+'" placeholder="Примечание" value="'+(L.note||'').replace(/"/g,'&quot;')+'">'
+      +'</div>').join('');
+
+    lucide.createIcons();
+
+    $('slots').querySelectorAll('.clr').forEach(b=>b.addEventListener('click',()=>{
+      setDay(dayList().filter(x=>x.event||Number(x.slot)!==Number(b.dataset.slot)));
+      renderDay();
+    }));
+    $('events').querySelectorAll('.ev-del').forEach(b=>b.addEventListener('click',()=>{
+      const evs=dayList().filter(x=>x.event), rest=dayList().filter(x=>!x.event);
+      evs.splice(Number(b.dataset.ev),1);
+      setDay(rest.concat(evs)); renderDay();
+    }));
+  }
+
+  function collect(){
+    const out=[];
+    SLOTS.forEach(sl=>{
+      const g=c=>{const el=$('slots').querySelector('.'+c+'[data-slot="'+sl.n+'"]'); return el?el.value.trim():'';};
+      const name=g('f-name'); if(!name) return;
+      const repl=g('f-repl');
+      out.push({ slot:sl.n, name:name, teacher:g('f-teacher'), room:g('f-room'),
+        building:g('f-building'), type:g('f-type')||'Лекция', event:false,
+        start:sl.start, end:sl.end, replaced:!!repl, replacedFrom:repl, note:g('f-note'), hw:'' });
+    });
+    $('events').querySelectorAll('[data-ev]').forEach(el=>{
+      if(!el.classList.contains('slot')) return;
+      const i=el.dataset.ev;
+      const g=c=>{const x=$('events').querySelector('.'+c+'[data-ev="'+i+'"]'); return x?x.value.trim():'';};
+      const name=g('e-name'); if(!name) return;
+      out.push({ slot:0, name:name, teacher:'', room:g('e-room'), building:'',
+        type:'Мероприятие', event:true, start:g('e-start'), end:g('e-end'),
+        replaced:false, replacedFrom:'', note:g('e-note'), hw:'' });
+    });
+    return out;
+  }
+
+  $('saveDay').addEventListener('click',()=>{ setDay(collect()); save(false); });
+  $('addEvent').addEventListener('click',()=>{
+    const cur=collect();
+    cur.push({slot:0,name:'',teacher:'',room:'',building:'',type:'Мероприятие',
+      event:true,start:'',end:'',replaced:false,replacedFrom:'',note:'',hw:''});
+    setDay(cur); renderDay();
+  });
+  $('clearDay').addEventListener('click',()=>{
+    if(!confirm('Очистить расписание на этот день?')) return;
+    setDay([]); save(false);
+  });
+
+  if(CollegeDB.onSync) CollegeDB.onSync(()=>{
+    CollegeDB.loadSchedule(GROUP).then(d=>{ schedule=d; renderWeek(); renderDay(); });
+  });
+
+  renderWeek(); renderDay();
+})();
+</script>
+</body>
+</html>

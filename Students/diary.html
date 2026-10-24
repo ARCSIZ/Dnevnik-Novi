@@ -148,6 +148,18 @@
   .lcard:hover { background:rgba(255,255,255,.045); border-color:rgba(255,255,255,.13); }
   .lcard.live { border-color:rgba(52,211,153,.45); background:rgba(16,185,129,.07); }
   .lcard.open { border-color:rgba(129,140,248,.45); background:rgba(99,102,241,.07); }
+  /* прошедшая пара — гаснет */
+  .lcard.past { opacity:.42; filter:saturate(.6); }
+  .lcard.past:hover { opacity:.7; }
+  .lcard.past .ltime .t1 { color:rgba(255,255,255,.35); }
+  /* замена и мероприятие */
+  .ltype.repl { background:rgba(251,191,36,.16); color:#fcd34d; border:1px solid rgba(251,191,36,.3); }
+  .ltype.evt { background:rgba(168,85,247,.16); color:#d8b4fe; border:1px solid rgba(168,85,247,.3); }
+  .lcard.evt { border-color:rgba(168,85,247,.35); background:rgba(168,85,247,.06); }
+  /* активная перемена */
+  .brk.now .bt { color:#6ee7b7; border-color:rgba(52,211,153,.4); background:rgba(16,185,129,.12);
+    box-shadow:0 0 18px -6px rgba(52,211,153,.6); }
+  .brk.past .bt { opacity:.4; }
   .lhead { width:100%; display:flex; gap:12px; padding:13px 14px; text-align:left; cursor:pointer; align-items:flex-start; }
   .ltime { flex:none; width:46px; display:flex; flex-direction:column; gap:2px; padding-top:1px; }
   .ltime .t1 { font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#a5b4fc; font-weight:500; }
@@ -626,7 +638,14 @@
 
   /* ================== ДНЕВНИК: НЕДЕЛЯ И РАСПИСАНИЕ ================== */
   const DAYS_SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-  const STARTS=['08:30','10:15','12:00','13:45','15:30','17:15'];
+  /* расписание звонков колледжа */
+  const BELLS=[
+    {n:1,start:'09:00',end:'10:30'},
+    {n:2,start:'10:45',end:'12:15'},
+    {n:3,start:'13:00',end:'14:30'},
+    {n:4,start:'14:40',end:'16:10'},
+    {n:5,start:'16:20',end:'17:50'}
+  ];
   const LESSON_MIN=90;
 
   const STATUSES=[
@@ -653,26 +672,40 @@
      Реальные занятия хранятся по датам: { "2025-03-17": [ {...}, ... ] }.
      Пока данных нет — дни показываются пустыми. Заполнять будет
      «Панель управления» (роль «Разработчик») или серверный API. */
-  function loadSchedule(){
-    try { return JSON.parse(localStorage.getItem('collegeid_schedule')) || {}; }
-    catch(e){ return {}; }
+  /* Расписание группы приходит с сервера — его ведёт староста или куратор */
+  let SCHEDULE={};
+  const MY_GROUP=(u&&u.group)||'';
+  if(MY_GROUP){
+    CollegeDB.loadSchedule(MY_GROUP).then(d=>{
+      SCHEDULE=d||{};
+      if(typeof renderWeek==='function'){ renderWeek(); renderDay(); }
+      if(typeof applyStats==='function') applyStats();
+    });
+    if(CollegeDB.onSync) CollegeDB.onSync(()=>{
+      CollegeDB.loadSchedule(MY_GROUP).then(d=>{
+        SCHEDULE=d||{};
+        if(typeof renderWeek==='function'){ renderWeek(); renderDay(); }
+      });
+    });
   }
-  const SCHEDULE=loadSchedule();
 
   function scheduleFor(date){
     const key=keyOf(date);
     const raw=SCHEDULE[key];
     if(!Array.isArray(raw)||!raw.length) return [];
     return raw.map((L,i)=>{
-      const st = L.start!=null ? (typeof L.start==='string'?toMin(L.start):L.start) : toMin(STARTS[i]||STARTS[0]);
-      const stat = L.status ? STATUSES.find(s=>s[0]===L.status) || null : null;
+      const bell=BELLS[(Number(L.slot)||1)-1]||BELLS[0];
+      const isEvent=!!L.event;
+      const st=toMin(L.start|| (isEvent?'00:00':bell.start));
+      const en=L.end?toMin(L.end):(isEvent?st+60:st+LESSON_MIN);
+      const stat=L.status?STATUSES.find(s=>s[0]===L.status)||null:null;
       return {
-        id:key+'#'+i, idx:i, start:st, end:st+LESSON_MIN,
-        name:L.name||'Занятие', teacher:L.teacher||'—',
-        room:L.room||'—', building:L.building||'—',
-        type:L.type||'Лекция',
+        id:key+'#'+i, idx:i, slot:Number(L.slot)||0, start:st, end:en,
+        name:L.name||'Занятие', teacher:L.teacher||'', room:L.room||'',
+        building:L.building||'', type:L.type||'Лекция', event:isEvent,
+        replaced:!!L.replaced, replacedFrom:L.replacedFrom||'',
         grades:Array.isArray(L.grades)?L.grades:[],
-        status:stat, hw:L.hw||null, comment:L.comment||null
+        status:stat, hw:L.hw||L.note||null, comment:L.comment||null
       };
     }).sort((a,b)=>a.start-b.start);
   }
@@ -752,16 +785,25 @@
       +(L.status?'<span class="st-b '+L.status[2]+'" title="'+L.status[1]+'">'+L.status[0]+'</span>':'');
     const done=!!hwDone[L.id];
 
-    return '<article class="lcard'+(openId===L.id?' open':'')+'" data-id="'+L.id+'" data-s="'+L.start+'" data-e="'+L.end+'">'
+    const typeTag = L.event
+      ? '<span class="ltype evt"><i data-lucide="party-popper" class="w-3 h-3"></i>Мероприятие</span>'
+      : '<span class="ltype '+(L.type==='Лекция'?'lec':'prac')+'">'
+        +'<i data-lucide="'+(L.type==='Лекция'?'book-open':'flask-conical')+'" class="w-3 h-3"></i>'
+        +(L.type==='Лекция'?'Лекция':'Практика')+'</span>';
+    const replTag = L.replaced
+      ? '<span class="ltype repl"><i data-lucide="repeat" class="w-3 h-3"></i>Замена'
+        +(L.replacedFrom?(' · '+L.replacedFrom):'')+'</span>' : '';
+    const place=[L.room?('каб. '+L.room):'',L.building].filter(Boolean).join(' · ');
+
+    return '<article class="lcard'+(openId===L.id?' open':'')+(L.event?' evt':'')
+      +'" data-id="'+L.id+'" data-s="'+L.start+'" data-e="'+L.end+'">'
       +'<button type="button" class="lhead">'
         +'<span class="ltime"><span class="t1">'+toHHMM(L.start)+'</span><span class="t2">'+toHHMM(L.end)+'</span></span>'
         +'<span class="lmain">'
-          +'<span class="ltype '+(L.type==='Лекция'?'lec':'prac')+'">'
-          +'<i data-lucide="'+(L.type==='Лекция'?'book-open':'flask-conical')+'" class="w-3 h-3"></i>'
-          +(L.type==='Лекция'?'Лекция':'Практика')+'</span>'
+          +'<span class="flex flex-wrap gap-1.5">'+typeTag+replTag+'</span>'
           +'<span class="lname">'+L.name+'</span>'
-          +'<span class="lteach">'+L.teacher+'</span>'
-          +'<span class="lroom">каб. '+L.room+' · '+L.building+'</span>'
+          +(L.teacher?'<span class="lteach">'+L.teacher+'</span>':'')
+          +(place?'<span class="lroom">'+place+'</span>':'')
           +(badges?'<span class="lbadges">'+badges+'</span>':'')
         +'</span>'
         +'<i data-lucide="chevron-down" class="lchev w-[18px] h-[18px]"></i>'
@@ -853,10 +895,16 @@
     const nowSec=n.getHours()*3600+n.getMinutes()*60+n.getSeconds();
     let anyLive=false;
 
+    const today0=new Date(); today0.setHours(0,0,0,0);
+    const isPastDay=selected<today0;
+
     lessonsEl.querySelectorAll('.lcard').forEach(card=>{
       const s=+card.dataset.s*60, e=+card.dataset.e*60;   // границы пары в секундах
       const bar=card.querySelector('.lprog');
       const live=isToday && nowSec>=s && nowSec<e;
+      /* пара прошла — перестаёт подсвечиваться */
+      const past=isPastDay || (isToday && nowSec>=e);
+      card.classList.toggle('past',past);
       card.classList.toggle('live',live);
 
       if(live){
@@ -872,23 +920,24 @@
       }
     });
 
-    /* перемены: активная получает живой отсчёт */
+    /* перемены: идущая подсвечивается и ведёт обратный отсчёт */
     lessonsEl.querySelectorAll('.brk').forEach(el=>{
       const p=el.dataset.b.split('-').map(Number);
       const from=p[0]*60, to=p[1]*60;
       const act=isToday && nowSec>=from && nowSec<to;
+      const done=isPastDay || (isToday && nowSec>=to);
       const bt=el.querySelector('.bt');
+      el.classList.toggle('now',act);
+      el.classList.toggle('past',done&&!act);
       if(act){
         anyLive=true;
-        bt.style.color='#6ee7b7'; bt.style.borderColor='rgba(52,211,153,.35)';
-        bt.style.background='rgba(16,185,129,.1)';
+        bt.dataset.state='live';
         const left=to-nowSec;
         bt.innerHTML='<span class="livedot"></span>перемена · осталось '+
           (left<=600?mmss(left):Math.ceil(left/60)+' мин');
-      } else if(bt.dataset.reset!=='1'&&bt.style.color){
-        bt.style.color=''; bt.style.borderColor=''; bt.style.background='';
+      } else if(bt.dataset.state!=='idle'){
         bt.innerHTML='<i data-lucide="coffee" class="w-3 h-3"></i>перемена '+(p[1]-p[0])+' мин';
-        bt.dataset.reset='1'; lucide.createIcons();
+        bt.dataset.state='idle'; lucide.createIcons();
       }
     });
     return anyLive;
@@ -933,33 +982,33 @@
     const att=lessons?Math.round((lessons-absents)/lessons*100):0;
     return { gpa, att, lessons, grades:grades.length };
   }
-  const stats=realStats();
-  const gpaVal=$('gpaValue'), gpaRing=$('gpaRing');
-  if(gpaVal) gpaVal.textContent=stats.grades?stats.gpa.toFixed(1):'—';
-  const gpaSub=$('gpaSub');
-  if(gpaSub) gpaSub.textContent=stats.grades?('по '+stats.grades+' оценкам'):'нет оценок';
-  setTimeout(()=>{ if(gpaRing) gpaRing.style.strokeDashoffset=(125.6*(1-(stats.gpa||0)/5)).toFixed(1); },400);
+  function applyStats(){
+    const stats=realStats();
+    const gpaVal=$('gpaValue'), gpaRing=$('gpaRing'), gpaSub=$('gpaSub');
+    if(gpaVal) gpaVal.textContent=stats.grades?stats.gpa.toFixed(1):'—';
+    if(gpaSub) gpaSub.textContent=stats.grades?('по '+stats.grades+' оценкам'):'нет оценок';
+    if(gpaRing) gpaRing.style.strokeDashoffset=(125.6*(1-(stats.gpa||0)/5)).toFixed(1);
+  }
+  setTimeout(applyStats,400);
 
   /* ================== ПРИЛОЖЕНИЯ: ДОСТУП ПО РОЛЯМ ==================
      dev     → «Панель управления»
      student → «Поддержка», «Рейтинг»                                   */
-  const ROLE_NAMES={ dev:'Разработчик', student:'Студент' };
-  function roleOf(user){
-    const r=String((user&&user.role)||'student').toLowerCase();
-    if(r==='dev'||r==='developer'||r==='admin') return 'dev';
-    return 'student';
-  }
-  const myRole=roleOf(u);
+  const ROLE_NAMES={ dev:'Разработчик', student:'Студент', prefect:'Староста', curator:'Куратор' };
+  const myRole=CollegeDB.normRole?CollegeDB.normRole(u&&u.role):'student';
 
   /* Каждое приложение — отдельная HTML-страница со своей кнопкой «назад» */
   const APPS=[
     { id:'panel',   roles:['dev'],   url:'../Dev/panel.html',
       name:'Панель управления', desc:'Пользователи, роли и данные системы',
       icon:'sliders-horizontal', grad:'from-indigo-500 to-purple-600' },
-    { id:'support', roles:['student'], url:'support.html',
+    { id:'journal', roles:['prefect','curator','dev'], url:'journal.html',
+      name:'Журнал', desc:'Расписание группы, замены и мероприятия',
+      icon:'clipboard-list', grad:'from-emerald-500 to-sky-500' },
+    { id:'support', roles:['student','prefect','curator'], url:'support.html',
       name:'Поддержка', desc:'Вопрос в учебную часть и техподдержку',
       icon:'life-buoy', grad:'from-cyan-500 to-sky-500' },
-    { id:'rating',  roles:['student'], url:'rating.html',
+    { id:'rating',  roles:['student','prefect'], url:'rating.html',
       name:'Рейтинг', desc:'Ваше место в группе и на потоке',
       icon:'trophy', grad:'from-amber-500 to-orange-500' }
   ];

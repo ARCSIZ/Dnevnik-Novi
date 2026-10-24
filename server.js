@@ -423,6 +423,58 @@ async function handleAPI(req, res, pathname) {
   const session = authPayload(req);
   const me = session ? db.data.users.find(u => u.id === session.sub) : null;
 
+  /* ===================== РАСПИСАНИЕ ГРУППЫ =====================
+     GET  /api/schedule?group=ИС-101        — читать (любой вошедший)
+     PUT  /api/schedule                     — сохранить (староста/куратор своей
+                                              группы либо разработчик)         */
+  if (route === '/api/schedule' && method === 'GET') {
+    const g = new URL(req.url, 'http://x').searchParams.get('group') || '';
+    const all = db.data.schedule || {};
+    return sendJSON(res, 200, {
+      group: g, days: (all[g] || {}),
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
+  if (route === '/api/schedule' && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const myRole = normRole(me.role);
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const g = String(body.group || '').trim();
+    if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
+    const canEdit = myRole === 'dev'
+      || ((myRole === 'prefect' || myRole === 'curator') && String(me.group || '') === g);
+    if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на редактирование этой группы' });
+
+    db.data.schedule = db.data.schedule || {};
+    db.data.schedule[g] = db.data.schedule[g] || {};
+    const days = body.days && typeof body.days === 'object' ? body.days : {};
+    Object.keys(days).slice(0, 400).forEach(date => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      const list = Array.isArray(days[date]) ? days[date].slice(0, 12) : [];
+      db.data.schedule[g][date] = list.map(L => ({
+        slot: Math.min(5, Math.max(1, Number(L.slot) || 1)),
+        name: String(L.name || '').slice(0, 160),
+        teacher: String(L.teacher || '').slice(0, 160),
+        room: String(L.room || '').slice(0, 60),
+        building: String(L.building || '').slice(0, 60),
+        type: String(L.type || 'Лекция').slice(0, 40),
+        event: !!L.event,
+        start: String(L.start || '').slice(0, 5),
+        end: String(L.end || '').slice(0, 5),
+        replaced: !!L.replaced,
+        replacedFrom: String(L.replacedFrom || '').slice(0, 160),
+        note: String(L.note || '').slice(0, 400),
+        hw: String(L.hw || '').slice(0, 600)
+      }));
+      if (!db.data.schedule[g][date].length) delete db.data.schedule[g][date];
+    });
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, group: g, dataVersion: db.data.dataVersion });
+  }
+
   /* --- режим технических работ (только dev) --- */
   if (route === '/api/maintenance' && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
