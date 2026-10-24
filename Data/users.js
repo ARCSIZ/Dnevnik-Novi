@@ -205,7 +205,13 @@
               sDel(LS_USERS, localStorage);
               return CollegeDB.refresh()
                 .then(function () { return CollegeDB.loadGroups(); })
-                .then(function () { return true; });
+                .then(function () {
+                  /* init завершён: уведомляем уже подписанные страницы и
+                     только теперь запускаем фоновую синхронизацию. */
+                  emitSync();
+                  CollegeDB.startSync(20000);
+                  return true;
+                });
             }
             return tryNext(i + 1);
           })

@@ -241,7 +241,7 @@
     </div>
   </div>
 
-  <script src="../Data/users.js?v=20260301-reset1"></script>
+  <script src="../Data/users.js?v=20260302-groups3"></script>
   <script src="../General/perf.js"></script>
 <script>
 (async function(){
@@ -256,6 +256,18 @@
     clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2800); }
 
   await CollegeDB.init();
+  /* Панель не имеет локального режима: все административные действия должны
+     быть общими для всех пользователей и проходить только через сервер. */
+  if(!CollegeDB.isServer || !CollegeDB.isServer()){
+    const d=$('denied');
+    d.classList.remove('hidden');
+    d.querySelector('h1').textContent='Сервер данных недоступен';
+    d.querySelector('p').innerHTML='Панель не подключилась к общему API. Локальные изменения отключены, '
+      +'чтобы не создавать группы только в этом браузере. Проверьте <b>/api/health</b> и повторите вход.';
+    $('curRole').textContent='офлайн';
+    lucide.createIcons();
+    return;
+  }
   if(CollegeDB.startSync) CollegeDB.startSync(15000);
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{
     renderUsers(); renderGroups(); renderStats();

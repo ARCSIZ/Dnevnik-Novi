@@ -463,7 +463,11 @@ async function handleAPI(req, res, pathname) {
 
   if (route === '/api/users' && method === 'GET') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
-    return sendJSON(res, 200, { users: db.data.users.map(publicUser), total: db.data.users.length });
+    return sendJSON(res, 200, {
+      users: db.data.users.map(publicUser),
+      total: db.data.users.length,
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
   }
 
   if (route === '/api/export' && method === 'GET') {
