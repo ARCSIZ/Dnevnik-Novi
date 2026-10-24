@@ -302,6 +302,30 @@
         });
     },
 
+    /** Журнал посещаемости и оценок группы */
+    loadAttendance: function (group) {
+      if (mode !== 'server') {
+        try { return Promise.resolve(JSON.parse(localStorage.getItem('collegeid_att_' + group)) || {}); }
+        catch (e) { return Promise.resolve({}); }
+      }
+      return request('/api/attendance?group=' + encodeURIComponent(group || ''))
+        .then(function (d) { return d.days || {}; })
+        .catch(function () { return {}; });
+    },
+
+    /** Сохранить журнал (староста/куратор своей группы, dev — любой) */
+    saveAttendance: function (group, days) {
+      if (mode !== 'server') {
+        try { localStorage.setItem('collegeid_att_' + group, JSON.stringify(days || {})); } catch (e) { /* noop */ }
+        return Promise.resolve(true);
+      }
+      return request('/api/attendance', { method: 'PUT', body: { group: group, days: days || {} } })
+        .then(function (d) {
+          if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          emitSync(); return true;
+        });
+    },
+
     /* --------------------------- оповещения и техработы --------------------------- */
     /** Публичное состояние системы: {maintenance, notice} */
     state: function () { return clone(stateCache); },

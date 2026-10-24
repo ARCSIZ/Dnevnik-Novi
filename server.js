@@ -482,6 +482,59 @@ async function handleAPI(req, res, pathname) {
     return sendJSON(res, 200, { ok: true, group: g, dataVersion: db.data.dataVersion });
   }
 
+  /* ===================== ЖУРНАЛ: ПОСЕЩАЕМОСТЬ И ОЦЕНКИ =====================
+     GET  /api/attendance?group=ИС-101   — журнал группы (вошедшим)
+     PUT  /api/attendance                — сохранить отметки/оценки
+     Структура: { "2026-03-02": { "login": { "1": {st:'Н', g:[5,4]} } } }   */
+  if (route === '/api/attendance' && method === 'GET') {
+    const g = new URL(req.url, 'http://x').searchParams.get('group') || '';
+    const all = db.data.attendance || {};
+    return sendJSON(res, 200, {
+      group: g, days: (all[g] || {}),
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
+  if (route === '/api/attendance' && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const myRole = normRole(me.role);
+    const body = await readBody(req);
+    if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Слишком большой объём данных' });
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const g = String(body.group || '').trim();
+    if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
+    const canEdit = myRole === 'dev'
+      || ((myRole === 'prefect' || myRole === 'curator') && String(me.group || '') === g);
+    if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на журнал этой группы' });
+
+    const STATUS_SET = ['', 'Н', 'У', 'Б', 'О'];
+    db.data.attendance = db.data.attendance || {};
+    db.data.attendance[g] = db.data.attendance[g] || {};
+    const days = body.days && typeof body.days === 'object' ? body.days : {};
+    Object.keys(days).slice(0, 400).forEach(date => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      const perUser = days[date] && typeof days[date] === 'object' ? days[date] : {};
+      const clean = {};
+      Object.keys(perUser).slice(0, 200).forEach(login => {
+        const slots = perUser[login] && typeof perUser[login] === 'object' ? perUser[login] : {};
+        const cs = {};
+        Object.keys(slots).slice(0, 12).forEach(slot => {
+          const rec = slots[slot] || {};
+          const st = STATUS_SET.indexOf(String(rec.st || '')) > -1 ? String(rec.st || '') : '';
+          const g2 = Array.isArray(rec.g)
+            ? rec.g.map(Number).filter(n => n >= 2 && n <= 5).slice(0, 4) : [];
+          if (st || g2.length) cs[String(slot)] = { st, g: g2 };
+        });
+        if (Object.keys(cs).length) clean[String(login)] = cs;
+      });
+      if (Object.keys(clean).length) db.data.attendance[g][date] = clean;
+      else delete db.data.attendance[g][date];
+    });
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, group: g, dataVersion: db.data.dataVersion });
+  }
+
   /* --- режим технических работ (только dev) --- */
   if (route === '/api/maintenance' && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
