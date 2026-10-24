@@ -131,6 +131,18 @@
             <p class="text-white/45 text-[13.5px] mt-2">Группа <b id="myGroup" class="text-white/70">—</b> · расписание, замены и мероприятия</p>
           </div>
         </div>
+
+        <!-- Выбор группы: доступен только разработчику -->
+        <div id="groupPicker" class="hidden mt-5 pt-5 border-t border-white/[.07]">
+          <label class="lbl">Редактируемая группа (режим разработчика)</label>
+          <div class="flex gap-2.5 flex-wrap">
+            <select id="groupSelect" style="flex:1;min-width:180px"></select>
+            <button id="groupApply" class="btn btn-ghost px-4 text-[13px] flex items-center gap-2 shrink-0">
+              <i data-lucide="check" class="w-4 h-4"></i>Открыть
+            </button>
+          </div>
+          <p class="text-[11.5px] text-white/30 mt-2">У каждой группы своё расписание — выберите нужную перед редактированием.</p>
+        </div>
       </div>
 
       <!-- ЗАГРУЗКА ИЗ ТАБЛИЦЫ -->
@@ -236,13 +248,38 @@
   }
   $('app').classList.remove('hidden');
 
-  const GROUP=me.group||((CollegeDB.listGroups()[0]||{}).code||'');
+  /* Разработчик выбирает любую группу, староста и куратор — только свою.
+     Выбор запоминается, чтобы не терялся при обновлении страницы. */
+  const allGroups=CollegeDB.listGroups()||[];
+  let GROUP=me.group||'';
+  if(role==='dev'){
+    let saved=''; try{ saved=localStorage.getItem('collegeid_journal_group')||''; }catch(e){}
+    GROUP=(saved&&allGroups.some(g=>g.code===saved))?saved:((allGroups[0]||{}).code||'');
+    $('groupPicker').classList.remove('hidden');
+    $('groupSelect').innerHTML=allGroups.length
+      ? allGroups.map(g=>'<option value="'+g.code+'"'+(g.code===GROUP?' selected':'')+'>'
+          +g.code+' · '+g.name+' ('+g.course+' курс)</option>').join('')
+      : '<option value="">Группы не созданы</option>';
+    $('groupApply').addEventListener('click',()=>{
+      const next=$('groupSelect').value;
+      if(!next) return toast('Сначала создайте группу в панели управления');
+      try{ localStorage.setItem('collegeid_journal_group',next); }catch(e){}
+      location.reload();
+    });
+  }
+
   $('myGroup').textContent=GROUP||'—';
   $('appKind').textContent='ПРИЛОЖЕНИЕ · '+(role==='curator'?'КУРАТОР':role==='prefect'?'СТАРОСТА':'DEV');
-  $('appTitle').textContent=role==='curator'?'Журнал куратора':'Журнал старосты';
-  $('rolePill').textContent=role==='curator'?'КУРАТОР':'СТАРОСТА';
+  $('appTitle').textContent=role==='dev'?'Журнал (режим разработчика)'
+    :(role==='curator'?'Журнал куратора':'Журнал старосты');
+  $('rolePill').textContent=role==='curator'?'КУРАТОР':(role==='dev'?'DEV':'СТАРОСТА');
 
-  let schedule=await CollegeDB.loadSchedule(GROUP);
+  if(!GROUP){
+    $('myGroup').textContent='не выбрана';
+    toast('Создайте группу в панели управления');
+  }
+
+  let schedule=GROUP?await CollegeDB.loadSchedule(GROUP):{};
   let weekStart=startOfWeek(new Date());
   let selected=new Date(); selected.setHours(0,0,0,0);
 
@@ -327,11 +364,21 @@
 
   /* ================== СОХРАНЕНИЕ ================== */
   function save(silent){
+    if(!GROUP) return Promise.resolve(toast('Группа не выбрана'));
+    const btn=$('saveDay'); btn.disabled=true; btn.style.opacity='.6';
     return CollegeDB.saveSchedule(GROUP,schedule).then(()=>{
-      if(!silent) toast('Расписание сохранено и видно всей группе');
-      else toast('Импорт применён — расписание опубликовано');
+      btn.disabled=false; btn.style.opacity='';
+      toast(silent?'Импорт применён — расписание опубликовано'
+                  :'Расписание сохранено и видно всей группе');
       renderWeek(); renderDay();
-    }).catch(err=>toast('Ошибка сохранения: '+(err.message||'нет связи')));
+    }).catch(err=>{
+      btn.disabled=false; btn.style.opacity='';
+      const st=err&&err.status;
+      toast(st===413?'Слишком большой файл — загрузите расписание по частям'
+           :st===403?'Нет прав на редактирование этой группы'
+           :st===401?'Сессия истекла — войдите заново'
+           :'Ошибка сохранения: '+((err&&err.message)||'нет связи с сервером'));
+    });
   }
 
   /* ================== КАЛЕНДАРЬ ================== */

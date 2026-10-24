@@ -52,7 +52,7 @@ const DATABASE_FILE = process.env.DATABASE_PATH
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const TOKEN_TTL = 7 * 24 * 60 * 60;            // 7 дней, секунды
-const BODY_LIMIT = 64 * 1024;                  // 64 КБ на запрос
+const BODY_LIMIT = Number(process.env.BODY_LIMIT) || 4 * 1024 * 1024;  // 4 МБ: расписание семестра
 
 /* Роли системы: студент, староста, куратор, разработчик */
 function normRole(role) {
@@ -280,21 +280,26 @@ function sendJSON(res, code, obj) {
   res.end(body);
 }
 
+/* Чтение тела запроса.
+   ВАЖНО: при превышении лимита соединение НЕ разрывается (это давало 502 на
+   прокси хостинга) — дочитываем поток и возвращаем признак «слишком большое». */
 function readBody(req) {
   return new Promise(resolve => {
-    let size = 0;
+    let size = 0, tooLarge = false;
     const chunks = [];
     req.on('data', c => {
       size += c.length;
-      if (size > BODY_LIMIT) { req.destroy(); return resolve(null); }
+      if (size > BODY_LIMIT) { tooLarge = true; return; }   // просто перестаём копить
       chunks.push(c);
     });
     req.on('end', () => {
+      if (tooLarge) return resolve({ __tooLarge: true });
       if (!chunks.length) return resolve({});
       try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
       catch (e) { resolve(null); }
     });
     req.on('error', () => resolve(null));
+    req.on('aborted', () => resolve(null));
   });
 }
 
@@ -440,6 +445,7 @@ async function handleAPI(req, res, pathname) {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const myRole = normRole(me.role);
     const body = await readBody(req);
+    if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Слишком большое расписание за один раз. Загружайте по семестру.' });
     if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
     const g = String(body.group || '').trim();
     if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
@@ -454,7 +460,8 @@ async function handleAPI(req, res, pathname) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       const list = Array.isArray(days[date]) ? days[date].slice(0, 12) : [];
       db.data.schedule[g][date] = list.map(L => ({
-        slot: Math.min(5, Math.max(1, Number(L.slot) || 1)),
+        /* slot 0 — мероприятие вне сетки пар, 1..5 — обычная пара */
+        slot: L.event ? 0 : Math.min(5, Math.max(1, Number(L.slot) || 1)),
         name: String(L.name || '').slice(0, 160),
         teacher: String(L.teacher || '').slice(0, 160),
         room: String(L.room || '').slice(0, 60),
