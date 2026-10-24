@@ -181,6 +181,17 @@ function seed() {
   db.save();
 }
 
+/* Очистка HTML объявлений: оформление разрешено, исполняемый код — нет. */
+function sanitizeHTML(html) {
+  return String(html || '')
+    .replace(/<\s*(script|iframe|object|embed|link|meta|form)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/<\s*(script|iframe|object|embed|link|meta|form)\b[^>]*\/?>/gi, '')
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    .replace(/javascript:/gi, '');
+}
+
 /* Запись без хэша пароля уже объявлена ниже; здесь используем только поиск —
    findByLogin объявлен дальше, вызывается ниже перед стартом сервера. */
 
@@ -395,6 +406,66 @@ async function handleAPI(req, res, pathname) {
       groups: (db.data.groups || []).length,
       updatedAt: db.data.updatedAt || null
     });
+  }
+
+  /* --- публичное состояние: техработы и объявление (без авторизации) --- */
+  if (route === '/api/state' && method === 'GET') {
+    return sendJSON(res, 200, {
+      maintenance: db.data.maintenance || { enabled: false, message: '' },
+      notice: db.data.notice || { active: false },
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
+  /* --- режим технических работ (только dev) --- */
+  if (route === '/api/maintenance' && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    db.data.maintenance = {
+      enabled: !!body.enabled,
+      message: sanitizeHTML(String(body.message || '')).slice(0, 2000),
+      startedAt: body.enabled ? nowISO() : null,
+      by: me.login
+    };
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, maintenance: db.data.maintenance, dataVersion: db.data.dataVersion });
+  }
+
+  /* --- публикация объявления всем пользователям (только dev) --- */
+  if (route === '/api/notice' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const html = sanitizeHTML(String(body.html || '')).slice(0, 20000);
+    if (!html.replace(/<[^>]*>/g, '').trim()) return sendJSON(res, 400, { error: 'Текст объявления пуст' });
+    db.data.notice = {
+      active: true,
+      id: 'n_' + Date.now().toString(36),
+      title: sanitizeHTML(String(body.title || '')).slice(0, 200),
+      html: html,
+      banner: String(body.banner || '').slice(0, 2000),
+      theme: ['default', 'neon', 'glass', 'danger'].indexOf(body.theme) > -1 ? body.theme : 'default',
+      dismissible: body.dismissible !== false,
+      createdAt: nowISO(),
+      by: me.login
+    };
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 201, { ok: true, notice: db.data.notice, dataVersion: db.data.dataVersion });
+  }
+
+  /* --- снять объявление (только dev) --- */
+  if (route === '/api/notice' && method === 'DELETE') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    db.data.notice = { active: false };
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, dataVersion: db.data.dataVersion });
   }
 
   /* --- доступность логина --- */

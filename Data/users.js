@@ -119,6 +119,7 @@
   var dataVersion = 0;        // версия данных на сервере
   var syncListeners = [];     // подписчики на обновление данных
   var syncTimer = null;
+  var stateCache = { maintenance: { enabled: false }, notice: { active: false } };
 
   /** Уведомить страницы: данные изменились, перерисуйте интерфейс */
   function emitSync() {
@@ -128,18 +129,20 @@
   /** Синхронизировать кэш с сервером, если версия данных изменилась */
   function checkVersion() {
     if (mode !== 'server') return Promise.resolve(false);
-    return request('/api/version').then(function (d) {
-      if (Number(d.dataVersion) !== Number(dataVersion)) {
-        dataVersion = Number(d.dataVersion) || 0;
-        return CollegeDB.refresh().then(function () {
-          return CollegeDB.loadGroups();
-        }).then(function () {
-          emitSync();
-          return true;
-        });
-      }
-      return false;
-    }).catch(function () { return false; });
+      return request('/api/version').then(function (d) {
+        if (Number(d.dataVersion) !== Number(dataVersion)) {
+          dataVersion = Number(d.dataVersion) || 0;
+          return CollegeDB.refresh().then(function () {
+            return CollegeDB.loadGroups();
+          }).then(function () {
+            return CollegeDB.loadState();     // объявления и техработы
+          }).then(function () {
+            emitSync();
+            return true;
+          });
+        }
+        return false;
+      }).catch(function () { return false; });
   }
 
   /* Куда ходить за API: рассчитываем от адреса самого скрипта */
@@ -205,6 +208,7 @@
               sDel(LS_USERS, localStorage);
               return CollegeDB.refresh()
                 .then(function () { return CollegeDB.loadGroups(); })
+                .then(function () { return CollegeDB.loadState(); })
                 .then(function () {
                   /* init завершён: уведомляем уже подписанные страницы и
                      только теперь запускаем фоновую синхронизацию. */
@@ -248,6 +252,73 @@
     /** Подписка на изменения данных: cb() вызывается при обновлении кэша */
     onSync: function (cb) {
       if (typeof cb === 'function') syncListeners.push(cb);
+    },
+
+    /** Перевод студента в другую группу (роль dev) */
+    setGroup: function (login, group) {
+      var rec = CollegeDB.findByLogin(login);
+      var role = normRole(rec && rec.role);
+      if (mode === 'server') {
+        return request('/api/users/' + encodeURIComponent(login),
+          { method: 'PUT', body: { role: role, group: String(group || '') } })
+          .then(function (d) {
+            var l = normLogin(login);
+            mirror.users = mirror.users.map(function (u) {
+              return normLogin(u.login) === l ? Object.assign({}, u, { group: String(group || '') }) : u;
+            });
+            if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+            saveMirror(); emitSync(); return true;
+          }).catch(function () { return false; });
+      }
+      var u = findLocal(login);
+      if (!u) return Promise.resolve(false);
+      u.group = String(group || '');
+      local.save(localDb);
+      return Promise.resolve(true);
+    },
+
+    /* --------------------------- оповещения и техработы --------------------------- */
+    /** Публичное состояние системы: {maintenance, notice} */
+    state: function () { return clone(stateCache); },
+
+    /** Загрузить состояние с сервера */
+    loadState: function () {
+      if (mode !== 'server') return Promise.resolve(clone(stateCache));
+      return request('/api/state').then(function (d) {
+        stateCache = { maintenance: d.maintenance || { enabled: false }, notice: d.notice || { active: false } };
+        if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+        return clone(stateCache);
+      }).catch(function () { return clone(stateCache); });
+    },
+
+    /** Включить/выключить технические работы (роль dev) */
+    setMaintenance: function (enabled, message) {
+      return request('/api/maintenance', { method: 'PUT', body: { enabled: !!enabled, message: message || '' } })
+        .then(function (d) {
+          stateCache.maintenance = d.maintenance;
+          if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          emitSync(); return true;
+        });
+    },
+
+    /** Опубликовать объявление всем (роль dev) */
+    publishNotice: function (data) {
+      return request('/api/notice', { method: 'POST', body: data })
+        .then(function (d) {
+          stateCache.notice = d.notice;
+          if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          emitSync(); return d.notice;
+        });
+    },
+
+    /** Снять объявление (роль dev) */
+    clearNotice: function () {
+      return request('/api/notice', { method: 'DELETE' })
+        .then(function (d) {
+          stateCache.notice = { active: false };
+          if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          emitSync(); return true;
+        });
     },
 
     /** Текущая версия данных сервера */

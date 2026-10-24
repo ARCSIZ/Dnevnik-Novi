@@ -91,6 +91,30 @@
   .chev{transition:transform .3s}
   .grp.open .chev{transform:rotate(180deg)}
 
+  /* редактор рассылки */
+  .ed{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:30px;padding:0 9px;
+    border-radius:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+    color:rgba(255,255,255,.7);font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+  .ed:hover{background:rgba(255,255,255,.12);color:#fff}
+  #nEditor{min-height:120px;max-height:260px;overflow:auto;padding:13px 15px;border-radius:14px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);font-size:14px;line-height:1.6;
+    color:#fff;outline:none}
+  #nEditor:focus{border-color:rgba(192,132,252,.6);box-shadow:0 0 0 4px rgba(168,85,247,.12)}
+  #nEditor:empty:before{content:attr(data-ph);color:rgba(255,255,255,.25)}
+  #nEditor .neon{color:#f0abfc;text-shadow:0 0 8px rgba(232,121,249,.85),0 0 22px rgba(168,85,247,.55)}
+  #nEditor .neon-cyan{color:#67e8f9;text-shadow:0 0 8px rgba(34,211,238,.85),0 0 22px rgba(6,182,212,.5)}
+  #nEditor .grad{background:linear-gradient(100deg,#818cf8,#c084fc 55%,#e879f9);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #nEditor .hl{background:rgba(99,102,241,.22);border-radius:6px;padding:1px 6px}
+  #nEditor .big{font-size:1.25em;font-weight:800}
+  .th{padding:9px 6px;border-radius:11px;font-size:12px;font-weight:700;cursor:pointer;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);transition:all .2s}
+  .th:hover{background:rgba(255,255,255,.09)}
+  .th.on{background:linear-gradient(120deg,rgba(168,85,247,.25),rgba(99,102,241,.18));
+    border-color:rgba(192,132,252,.55);color:#f5d0fe}
+  .mv{padding:4px 8px;border-radius:8px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6)}
+  .mv:hover{border-color:rgba(129,140,248,.5);color:#c7d2fe}
+
   .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
   html.lite .st{animation:none;opacity:1}
@@ -154,7 +178,13 @@
           <span class="block text-[12px] text-white/40 mt-1">Создание, курс, староста и куратор</span></span>
           <span class="mono text-[10px] tracking-[.2em] text-emerald-300/70 mt-auto pt-2" id="cGroups">—</span>
         </button>
-        <button class="sec-tile st" style="--i:3" data-sec="data">
+        <button class="sec-tile st" style="--i:3" data-sec="notify">
+          <span class="ai bg-gradient-to-br from-fuchsia-500 to-purple-600"><i data-lucide="megaphone" class="w-5 h-5"></i></span>
+          <span><span class="block font-semibold text-[15px]">Оповещения</span>
+          <span class="block text-[12px] text-white/40 mt-1">Техработы и рассылка всем</span></span>
+          <span class="mono text-[10px] tracking-[.2em] text-fuchsia-300/70 mt-auto pt-2" id="cNotify">—</span>
+        </button>
+        <button class="sec-tile st" style="--i:4" data-sec="data">
           <span class="ai bg-gradient-to-br from-rose-500 to-orange-500"><i data-lucide="database" class="w-5 h-5"></i></span>
           <span><span class="block font-semibold text-[15px]">Данные системы</span>
           <span class="block text-[12px] text-white/40 mt-1">Выгрузка, обновление, сброс</span></span>
@@ -208,6 +238,68 @@
 
         <p class="lbl">Существующие группы</p>
         <div id="grpManage" class="space-y-2"></div>
+      </section>
+
+      <!-- ===== ОПОВЕЩЕНИЯ ===== -->
+      <section id="sec-notify" class="sec card rounded-[24px] p-5 sm:p-6 hidden">
+        <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="w-4 h-4 text-fuchsia-300"></i>Оповещения</h2>
+
+        <!-- Технические работы -->
+        <div class="panel p-4 mb-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+              <p class="text-[14px] font-bold">Технические работы</p>
+              <p class="text-[12px] text-white/40 mt-1">Все пользователи увидят страницу <span class="mono">work.html</span>. Разработчики продолжают работать.</p>
+            </div>
+            <button id="mSwitch" class="w-14 h-8 rounded-full bg-white/10 relative transition-colors shrink-0" data-on="0">
+              <span class="dotk absolute top-1 left-1 w-6 h-6 rounded-full bg-white transition-all"></span>
+            </button>
+          </div>
+          <input id="mMsg" class="mt-3" placeholder="Текст на странице работ (необязательно)">
+          <p id="mInfo" class="text-[11.5px] text-white/30 mt-2">Режим выключен</p>
+        </div>
+
+        <!-- Редактор рассылки -->
+        <div class="panel p-4">
+          <p class="lbl">Массовая рассылка — окно поверх экрана у всех</p>
+          <input id="nTitle" placeholder="Заголовок объявления" class="mb-2.5">
+          <input id="nBanner" placeholder="Ссылка на баннер (png/jpg) — необязательно" class="mb-2.5">
+
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <button class="ed" data-cmd="bold" title="Жирный"><b>B</b></button>
+            <button class="ed" data-cmd="italic" title="Курсив"><i>I</i></button>
+            <button class="ed" data-cmd="underline" title="Подчёркнутый"><u>U</u></button>
+            <button class="ed" data-cmd="insertUnorderedList" title="Список">•</button>
+            <span class="w-px h-7 bg-white/10 mx-1"></span>
+            <button class="ed" data-wrap="neon" title="Неон">Неон</button>
+            <button class="ed" data-wrap="neon-cyan" title="Неон бирюза">Неон-C</button>
+            <button class="ed" data-wrap="grad" title="Градиент">Градиент</button>
+            <button class="ed" data-wrap="hl" title="Подсветка">Фон</button>
+            <button class="ed" data-wrap="big" title="Крупно">Крупно</button>
+            <span class="w-px h-7 bg-white/10 mx-1"></span>
+            <label class="ed" title="Цвет выделенного текста" style="padding:0;overflow:hidden">
+              <input type="color" id="nColor" value="#a5b4fc" style="width:34px;height:30px;border:0;background:none;cursor:pointer;padding:0">
+            </label>
+            <button class="ed" data-clear="1" title="Убрать оформление">✕</button>
+          </div>
+
+          <div id="nEditor" contenteditable="true" data-ph="Текст объявления… Выделите фрагмент и примените оформление."></div>
+
+          <p class="lbl mt-4">Тема окна</p>
+          <div class="grid grid-cols-4 gap-2" id="nThemes">
+            <button class="th on" data-th="default">Обычная</button>
+            <button class="th" data-th="neon">Неон</button>
+            <button class="th" data-th="glass">Стекло</button>
+            <button class="th" data-th="danger">Важное</button>
+          </div>
+
+          <div class="grid sm:grid-cols-3 gap-2.5 mt-4">
+            <button id="nPreview" class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2"><i data-lucide="eye" class="w-4 h-4"></i>Предпросмотр</button>
+            <button id="nSend" class="btn btn-primary h-[44px] text-sm flex items-center justify-center gap-2"><i data-lucide="send" class="w-4 h-4"></i>Отправить всем</button>
+            <button id="nClear" class="btn btn-danger h-[44px] text-sm flex items-center justify-center gap-2"><i data-lucide="bell-off" class="w-4 h-4"></i>Снять объявление</button>
+          </div>
+          <p id="nInfo" class="text-[11.5px] text-white/30 mt-3">Активных объявлений нет</p>
+        </div>
       </section>
 
       <!-- ===== ДАННЫЕ СИСТЕМЫ ===== -->
@@ -332,8 +424,10 @@
                 +'<span class="block text-[13px] font-semibold truncate">'+(u.fio||u.login)+(self?' · вы':'')+'</span>'
                 +'<span class="block text-[11px] text-white/35 mono mt-0.5 truncate">'+u.login+'</span></span>'
                 +(self?'<span class="rl rl-dev">DEV</span>'
-                  :'<button type="button" class="rl rl-'+role+' role-btn" data-login="'+u.login+'" data-role="'+role+'">'
-                   +RN(role)+'<i data-lucide="chevron-down" class="w-3 h-3"></i></button>')
+                  :'<span class="flex items-center gap-1.5 shrink-0">'
+                   +'<button type="button" class="mv move-btn" data-login="'+u.login+'" title="Перевести в другую группу">⇄</button>'
+                   +'<button type="button" class="rl rl-'+role+' role-btn" data-login="'+u.login+'" data-role="'+role+'">'
+                   +RN(role)+'<i data-lucide="chevron-down" class="w-3 h-3"></i></button></span>')
                 +'</div>';
             }).join('')+'</div>'
             :'<div class="dbox">В группе пока нет пользователей</div>')
@@ -345,6 +439,33 @@
       const g=h.closest('.grp'), code=g.dataset.g;
       openGroups[code]=!g.classList.contains('open');
       g.classList.toggle('open');
+    }));
+    /* перевод студента в другую группу */
+    $('groupsList').querySelectorAll('.move-btn').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const gl=groups();
+      if(!gl.length) return toast('Сначала создайте группы');
+      const u=users().find(x=>x.login===b.dataset.login);
+      const list=gl.map((g,i)=>(i+1)+') '+g.code+' — '+g.name).join('\n');
+      const ans=prompt('Перевести «'+((u&&u.fio)||b.dataset.login)+'» в группу.\n\n'
+        +list+'\n\nВведите номер или код группы (0 — убрать из группы):',
+        (u&&u.group)||'');
+      if(ans===null) return;
+      const raw=String(ans).trim();
+      let target='';
+      if(raw==='0'){ target=''; }
+      else{
+        const byNum=gl[parseInt(raw,10)-1];
+        const byCode=gl.find(g=>g.code.toUpperCase()===raw.toUpperCase());
+        if(!byNum&&!byCode) return toast('Группа не распознана');
+        target=(byNum||byCode).code;
+      }
+      b.style.opacity='.5';
+      CollegeDB.setGroup(b.dataset.login,target).then(ok=>{
+        b.style.opacity='';
+        if(ok){ toast(target?('Переведён в '+target):'Убран из группы'); renderUsers(); renderGroups(); renderStats(); }
+        else toast('Не удалось перевести');
+      });
     }));
     $('groupsList').querySelectorAll('.role-btn').forEach(b=>b.addEventListener('click',e=>{
       e.stopPropagation();
@@ -440,7 +561,109 @@
       .catch(err=>toast('Ошибка: '+(err.message||'нет связи')));
   });
 
+  /* ================== ОПОВЕЩЕНИЯ ================== */
+  const ed=$('nEditor');
+  let theme='default';
+
+  function selectionInEditor(){
+    const sel=window.getSelection();
+    return sel&&sel.rangeCount&&ed.contains(sel.anchorNode)&&!sel.isCollapsed;
+  }
+  function wrapSelection(cls,style){
+    if(!selectionInEditor()) return toast('Сначала выделите текст в редакторе');
+    const sel=window.getSelection(), range=sel.getRangeAt(0);
+    const span=document.createElement('span');
+    if(cls) span.className=cls;
+    if(style) span.setAttribute('style',style);
+    try{ range.surroundContents(span); }
+    catch(e){ span.appendChild(range.extractContents()); range.insertNode(span); }
+    sel.removeAllRanges();
+  }
+
+  document.querySelectorAll('.ed').forEach(b=>b.addEventListener('mousedown',e=>{
+    if(b.querySelector('input')) return;              // палитра цвета
+    e.preventDefault();                                // не теряем выделение
+    if(b.dataset.cmd){ document.execCommand(b.dataset.cmd,false,null); return; }
+    if(b.dataset.wrap){ wrapSelection(b.dataset.wrap,''); return; }
+    if(b.dataset.clear){
+      if(!selectionInEditor()) return toast('Выделите текст для очистки');
+      document.execCommand('removeFormat',false,null);
+      const sel=window.getSelection(), r=sel.getRangeAt(0);
+      const frag=r.cloneContents(), tmp=document.createElement('div');
+      tmp.appendChild(frag);
+      r.deleteContents(); r.insertNode(document.createTextNode(tmp.textContent));
+      sel.removeAllRanges();
+    }
+  }));
+  $('nColor').addEventListener('input',e=>{
+    if(!selectionInEditor()) return toast('Выделите текст, затем выберите цвет');
+    wrapSelection('', 'color:'+e.target.value);
+  });
+  $('nThemes').addEventListener('click',e=>{
+    const b=e.target.closest('.th'); if(!b)return;
+    theme=b.dataset.th;
+    $('nThemes').querySelectorAll('.th').forEach(x=>x.classList.toggle('on',x===b));
+  });
+
+  function noticePayload(){
+    return { title:$('nTitle').value.trim(), html:ed.innerHTML,
+      banner:$('nBanner').value.trim(), theme:theme, dismissible:true };
+  }
+
+  $('nPreview').addEventListener('click',()=>{
+    const p=noticePayload();
+    if(!ed.textContent.trim()) return toast('Введите текст объявления');
+    if(window.CollegeNotice) CollegeNotice.render(Object.assign({id:'preview_'+Date.now()},p));
+  });
+
+  $('nSend').addEventListener('click',()=>{
+    const p=noticePayload();
+    if(!ed.textContent.trim()) return toast('Введите текст объявления');
+    if(!confirm('Отправить объявление ВСЕМ пользователям системы?')) return;
+    CollegeDB.publishNotice(p).then(()=>{
+      toast('Объявление отправлено всем пользователям');
+      renderNotify();
+    }).catch(err=>toast('Ошибка: '+(err.message||'нет связи')));
+  });
+
+  $('nClear').addEventListener('click',()=>{
+    CollegeDB.clearNotice().then(()=>{ toast('Объявление снято'); renderNotify(); })
+      .catch(err=>toast('Ошибка: '+(err.message||'нет связи')));
+  });
+
+  /* технические работы */
+  const mSw=$('mSwitch');
+  mSw.addEventListener('click',()=>{
+    const on=mSw.dataset.on==='1', next=!on;
+    if(next && !confirm('Включить технические работы?\n\nВсе пользователи, кроме разработчиков, будут переведены на страницу work.html.')) return;
+    mSw.style.opacity='.5';
+    CollegeDB.setMaintenance(next,$('mMsg').value.trim()).then(()=>{
+      mSw.style.opacity='';
+      toast(next?'Технические работы включены':'Технические работы выключены');
+      renderNotify();
+    }).catch(err=>{ mSw.style.opacity=''; toast('Ошибка: '+(err.message||'нет связи')); });
+  });
+
+  function renderNotify(){
+    const st=CollegeDB.state()||{};
+    const m=st.maintenance||{}, n=st.notice||{};
+    mSw.dataset.on=m.enabled?'1':'0';
+    mSw.classList.toggle('bg-indigo-500',!!m.enabled);
+    mSw.classList.toggle('bg-white/10',!m.enabled);
+    mSw.querySelector('.dotk').style.left=m.enabled?'28px':'4px';
+    $('mInfo').textContent=m.enabled
+      ? 'Режим включён'+(m.startedAt?(' · с '+new Date(m.startedAt).toLocaleString('ru-RU')):'')
+      : 'Режим выключен';
+    if(m.message&&!$('mMsg').value) $('mMsg').value=String(m.message).replace(/<[^>]*>/g,'');
+    $('nInfo').textContent=n.active
+      ? 'Активно: «'+(n.title||'без заголовка')+'» · '+(n.createdAt?new Date(n.createdAt).toLocaleString('ru-RU'):'')
+      : 'Активных объявлений нет';
+    $('cNotify').textContent=(m.enabled?'ТЕХРАБОТЫ':(n.active?'ЕСТЬ ОБЪЯВЛЕНИЕ':'ВЫКЛЮЧЕНО'));
+  }
+
   renderUsers(); renderGroups(); renderStats();
+  CollegeDB.loadState().then(renderNotify);
+  if(CollegeDB.onSync) CollegeDB.onSync(renderNotify);
 })();
 </script>
 </body>

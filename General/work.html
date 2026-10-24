@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Технические работы — Колледж·ID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f59e0b'/%3E%3Cstop offset='1' stop-color='%23f43f5e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M16 8v10M16 22v2' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  *{margin:0;box-sizing:border-box;scrollbar-width:none}
+  *::-webkit-scrollbar{display:none}
+  body{font-family:'Manrope',sans-serif;background:#07070d;color:#fff;min-height:100vh;
+    display:flex;align-items:center;justify-content:center;padding:24px;overflow-x:hidden}
+  .font-display{font-family:'Unbounded',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  svg{flex:none;display:block}
+
+  .orb{position:fixed;border-radius:9999px;filter:blur(90px);pointer-events:none}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;background:radial-gradient(circle,rgba(245,158,11,.22),transparent 65%);animation:f1 14s ease-in-out infinite}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;background:radial-gradient(circle,rgba(244,63,94,.2),transparent 65%);animation:f2 18s ease-in-out infinite}
+  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-30px)}}
+  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,40px)}}
+  .gridln{position:fixed;inset:0;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 45%,black 30%,transparent 75%);
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 45%,black 30%,transparent 75%)}
+
+  .card{position:relative;z-index:5;max-width:520px;width:100%;text-align:center;padding:38px 30px;
+    border-radius:28px;background:rgba(13,13,21,.86);backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.1);box-shadow:0 40px 90px -30px rgba(0,0,0,.8)}
+  .gear{width:84px;height:84px;margin:0 auto 22px;border-radius:26px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#f59e0b,#f43f5e);box-shadow:0 18px 44px -12px rgba(244,63,94,.6)}
+  .gear i{animation:spin 4.5s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:24px 0 10px}
+  .bar i{display:block;height:100%;width:38%;border-radius:99px;
+    background:linear-gradient(90deg,#f59e0b,#f43f5e);animation:slide 2.2s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-110%)}100%{transform:translateX(320%)}}
+  .msg{margin-top:20px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.65)}
+  .btn{margin-top:22px;width:100%;height:46px;border:0;border-radius:14px;cursor:pointer;font-family:inherit;
+    font-weight:700;font-size:14px;color:#fff;background:linear-gradient(120deg,#6366f1,#a855f7);
+    box-shadow:0 14px 30px -10px rgba(124,58,237,.55);transition:filter .2s}
+  .btn:hover{filter:brightness(1.12)}
+  .lnk{display:inline-block;margin-top:14px;font-size:12.5px;color:rgba(165,180,252,.7);text-decoration:none}
+  .lnk:hover{color:#c7d2fe}
+</style>
+</head>
+<body>
+  <div class="orb o1"></div><div class="orb o2"></div><div class="gridln"></div>
+
+  <div class="card">
+    <div class="gear"><i data-lucide="settings" class="w-9 h-9 text-white"></i></div>
+    <p class="mono" style="font-size:10px;letter-spacing:.3em;color:rgba(255,255,255,.35);margin-bottom:10px">SYSTEM MAINTENANCE</p>
+    <h1 class="font-display" style="font-weight:800;font-size:26px;line-height:1.2">Технические работы</h1>
+    <p style="margin-top:12px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.5)">
+      Мы обновляем систему Колледж·ID. Сервис скоро снова будет доступен.
+    </p>
+    <div class="bar"><i></i></div>
+    <p class="mono" style="font-size:10px;letter-spacing:.2em;color:rgba(255,255,255,.25)" id="clock">—</p>
+    <div class="msg" id="msg" style="display:none"></div>
+    <button class="btn" id="retry">Проверить доступность</button>
+    <a class="lnk" href="authorization.html" id="devLink">Вход для администрации</a>
+  </div>
+
+  <script src="../Data/users.js?v=20260302-groups3"></script>
+<script>
+(async function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const tick=()=>{ $('clock').textContent=new Date().toLocaleTimeString('ru-RU'); };
+  tick(); setInterval(tick,1000);
+
+  await CollegeDB.init();
+  async function check(){
+    const st=await CollegeDB.loadState();
+    const m=(st&&st.maintenance)||{};
+    if(m.message){ $('msg').style.display='block'; $('msg').innerHTML=m.message; }
+    /* работы завершены — возвращаем пользователя в систему */
+    if(!m.enabled) location.href='authorization.html';
+  }
+  await check();
+  setInterval(check,15000);
+  $('retry').addEventListener('click',check);
+})();
+</script>
+</body>
+</html>
