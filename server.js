@@ -417,6 +417,12 @@ async function handleAPI(req, res, pathname) {
     });
   }
 
+  /* ===== Авторизация: дальше все маршруты могут проверять сессию =====
+     Объявление перенесено СЮДА — раньше оно было ниже, а маршруты
+     maintenance/notice обращались к `me` до инициализации (ReferenceError). */
+  const session = authPayload(req);
+  const me = session ? db.data.users.find(u => u.id === session.sub) : null;
+
   /* --- режим технических работ (только dev) --- */
   if (route === '/api/maintenance' && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
@@ -518,9 +524,7 @@ async function handleAPI(req, res, pathname) {
     return sendJSON(res, 200, { user: publicUser(rec), token });
   }
 
-  /* --- дальше только для авторизованных --- */
-  const session = authPayload(req);
-  const me = session ? db.data.users.find(u => u.id === session.sub) : null;
+  /* --- дальше только для авторизованных (session и me уже объявлены выше) --- */
 
   if (route === '/api/me' && method === 'GET') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
