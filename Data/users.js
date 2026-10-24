@@ -93,6 +93,16 @@
   var apiBase = null;        // например "" (тот же origin) — пути абсолютные
   var token = null;
   var mirror = loadMirror(); // локальная копия пользователей для синхронных методов
+  var groupsCache = [];      // справочник групп с сервера
+
+  /* Роли системы: student | prefect (староста) | curator | dev */
+  function normRole(role) {
+    var r = String(role || 'student').toLowerCase();
+    if (r === 'dev' || r === 'developer' || r === 'admin') return 'dev';
+    if (r === 'prefect' || r === 'starosta') return 'prefect';
+    if (r === 'curator') return 'curator';
+    return 'student';
+  }
 
   function loadMirror() {
     try {
@@ -166,7 +176,9 @@
                  во входе после полного сброса серверной базы. */
               localDb = { version: 1, updatedAt: nowISO(), users: [] };
               sDel(LS_USERS, localStorage);
-              return CollegeDB.refresh().then(function () { return true; });
+              return CollegeDB.refresh()
+                .then(function () { return CollegeDB.loadGroups(); })
+                .then(function () { return true; });
             }
             return tryNext(i + 1);
           })
@@ -303,8 +315,82 @@
      * Локальный режим — меняет сразу. Сервер — требует, чтобы текущая
      * сессия уже имела роль разработчика.
      */
+    normRole: normRole,
+
+    roleName: function (role) {
+      var map = { student: 'Студент', prefect: 'Староста', curator: 'Куратор', dev: 'Разработчик' };
+      return map[normRole(role)] || 'Студент';
+    },
+
+    /** Список групп (синхронно) */
+    listGroups: function () {
+      return mode === 'server' ? clone(groupsCache) : clone(localDb.groups || []);
+    },
+
+    /** Загрузить справочник групп */
+    loadGroups: function () {
+      if (mode !== 'server') return Promise.resolve(clone(localDb.groups || []));
+      return request('/api/groups').then(function (d) {
+        groupsCache = d.groups || [];
+        return clone(groupsCache);
+      }).catch(function () { return clone(groupsCache); });
+    },
+
+    /** Создать группу (роль dev) */
+    addGroup: function (g) {
+      var item = {
+        code: String(g.code || '').trim().toUpperCase(),
+        name: String(g.name || '').trim(),
+        course: Number(g.course) || 1
+      };
+      if (!item.code || !item.name) return Promise.reject(new Error('Укажите код и название'));
+      if (mode === 'server') {
+        return request('/api/groups', { method: 'POST', body: item })
+          .then(function (d) { groupsCache = d.groups || groupsCache; return true; });
+      }
+      localDb.groups = localDb.groups || [];
+      if (localDb.groups.some(function (x) { return x.code === item.code; }))
+        return Promise.reject(new Error('GROUP_EXISTS'));
+      localDb.groups.push(item); local.save(localDb);
+      return Promise.resolve(true);
+    },
+
+    /** Удалить группу (роль dev) */
+    removeGroup: function (code) {
+      if (mode === 'server') {
+        return request('/api/groups/' + encodeURIComponent(code), { method: 'DELETE' })
+          .then(function (d) { groupsCache = d.groups || groupsCache; return true; })
+          .catch(function () { return false; });
+      }
+      localDb.groups = (localDb.groups || []).filter(function (x) { return x.code !== code; });
+      local.save(localDb);
+      return Promise.resolve(true);
+    },
+
+    /** Создать аккаунт старосты/куратора (роль dev) */
+    createUser: function (data) {
+      var p = {
+        login: String(data.login || '').trim(), pass: String(data.pass || ''),
+        fio: String(data.fio || '').trim(), group: String(data.group || ''),
+        role: normRole(data.role)
+      };
+      if (mode === 'server') {
+        return request('/api/users', { method: 'POST', body: p }).then(function (d) {
+          if (d.user) { mirror.users.push(d.user); saveMirror(); }
+          return d.user;
+        });
+      }
+      if (findLocal(p.login)) return Promise.reject(new Error('LOGIN_TAKEN'));
+      return hashPass(p.pass).then(function (h) {
+        var u = { id: uid(), login: p.login, passHash: h, fio: p.fio || p.login,
+          birth: '', group: p.group, role: p.role, registeredAt: nowISO() };
+        localDb.users.push(u); local.save(localDb);
+        return pubLocal(u);
+      });
+    },
+
     setRole: function (login, role) {
-      var r = (role === 'dev' || role === 'developer' || role === 'admin') ? 'dev' : 'student';
+      var r = normRole(role);
       if (mode === 'server') {
         return request('/api/users/' + encodeURIComponent(login), { method: 'PUT', body: { role: r } })
           .then(function () {

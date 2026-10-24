@@ -54,11 +54,17 @@ const HOST = process.env.HOST || '0.0.0.0';
 const TOKEN_TTL = 7 * 24 * 60 * 60;            // 7 дней, секунды
 const BODY_LIMIT = 64 * 1024;                  // 64 КБ на запрос
 
-/* Одноразовая миграция базы. Изменение этого значения очищает users ровно
-   один раз на существующем хостинге и записывает маркер в database.json. */
-const DATABASE_RESET_VERSION = 'clean-2026-03-01';
+/* Роли системы: студент, староста, куратор, разработчик */
+function normRole(role) {
+  const r = String(role || 'student').toLowerCase();
+  if (r === 'dev' || r === 'developer' || r === 'admin') return 'dev';
+  if (r === 'prefect' || r === 'starosta') return 'prefect';
+  if (r === 'curator') return 'curator';
+  return 'student';
+}
+const isDev = u => normRole(u && u.role) === 'dev';
 
-const GROUPS = [
+const DEFAULT_GROUPS = [
   ['ИС-101', 'Информационные системы'],
   ['ПИ-202', 'Прикладная информатика'],
   ['КБ-110', 'Компьютерная безопасность'],
@@ -74,6 +80,28 @@ const uid = () => 'u_' + Date.now().toString(36) + '_' + crypto.randomBytes(4).t
 const normLogin = l => String(l || '').trim().toLowerCase();
 
 /* --------------------------------------------------------------- база данных */
+/* Безопасная миграция прежнего пути /app/Data → /app/data. Никогда не
+   перезаписываем уже существующую постоянную базу. */
+function migrateLegacyStorage() {
+  const legacyDb = path.join(CODE_DATA_DIR, 'database.json');
+  if (path.resolve(legacyDb) === path.resolve(DATABASE_FILE)) return;
+  try {
+    if (!fs.existsSync(DATABASE_FILE) && fs.existsSync(legacyDb)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.copyFileSync(legacyDb, DATABASE_FILE);
+      const legacySecret = path.join(CODE_DATA_DIR, 'secret.key');
+      const targetSecret = path.join(DATA_DIR, 'secret.key');
+      if (fs.existsSync(legacySecret) && !fs.existsSync(targetSecret)) {
+        fs.copyFileSync(legacySecret, targetSecret);
+      }
+      console.log('[server] База перенесена в постоянное хранилище: ' + DATABASE_FILE);
+    }
+  } catch (err) {
+    console.error('[server] Не удалось перенести прежнюю базу:', err.message);
+  }
+}
+migrateLegacyStorage();
+
 const db = createStore({
   file: DATABASE_FILE,
   backupDir: path.join(DATA_DIR, 'backups'),
@@ -108,28 +136,9 @@ function envValue(name, preserveSpaces) {
   return preserveSpaces ? value : value.trim();
 }
 
-/* Сид: одноразовая очистка, demo и разработчик из переменных окружения. */
+/* Сид ничего не удаляет: создаёт недостающие начальные данные и обновляет
+   разработчика из ADMIN_* при наличии переменных. */
 function seed() {
-  if (db.data.resetVersion !== DATABASE_RESET_VERSION) {
-    /* Пользователь запросил полное обнуление: удаляем также старые бэкапы
-       и диагностические копии повреждённых баз. secret.key сохраняем. */
-    const backupsDir = path.join(DATA_DIR, 'backups');
-    try {
-      fs.rmSync(backupsDir, { recursive: true, force: true });
-      fs.mkdirSync(backupsDir, { recursive: true });
-      fs.readdirSync(DATA_DIR)
-        .filter(name => name.startsWith('database.json.corrupt-'))
-        .forEach(name => fs.rmSync(path.join(DATA_DIR, name), { force: true }));
-    } catch (err) {
-      console.warn('[server] Не удалось полностью очистить старые копии:', err.message);
-    }
-    db.data.users = [];
-    db.data.resetVersion = DATABASE_RESET_VERSION;
-    db.data.resetAt = nowISO();
-    console.log('[server] База пользователей очищена и пересоздаётся: ' +
-      DATABASE_RESET_VERSION);
-  }
-
   if (!db.data.users.length) {
     db.data.users.push({
       id: uid(), login: 'demo', fio: 'Демо Студентов', birth: '2002-05-14',
@@ -137,6 +146,11 @@ function seed() {
       role: 'student', registeredAt: nowISO(), lastLoginAt: null
     });
   }
+  /* Начальный справочник учебных групп */
+  if (!Array.isArray(db.data.groups) || !db.data.groups.length) {
+    db.data.groups = DEFAULT_GROUPS.map((g, i) => ({ code: g[0], name: g[1], course: (i % 3) + 1 }));
+  }
+
   /* При каждом запуске ADMIN_* является источником истины: существующему
      аккаунту обновляются роль и пароль, а отсутствующий создаётся. */
   const dl = envValue('ADMIN_LOGIN', false);
@@ -314,7 +328,7 @@ function validateRegistration(body) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(birth)) return { error: 'Некорректная дата рождения' }
   const age = (Date.now() - new Date(birth).getTime()) / 3.156e10;
   if (age < 14 || age > 100) return { error: 'Возраст должен быть от 14 до 100 лет' };
-  if (!GROUPS.some(g => g[0] === group)) return { error: 'Выберите группу из списка' };
+  if (!(db.data.groups || []).some(g => g.code === group)) return { error: 'Выберите группу из списка' };
 
   return { login, pass, fio, birth, group };
 }
@@ -362,7 +376,7 @@ async function handleAPI(req, res, pathname) {
 
   /* --- список групп --- */
   if (route === '/api/groups' && method === 'GET') {
-    return sendJSON(res, 200, { groups: GROUPS.map(g => ({ code: g[0], name: g[1] })) });
+    return sendJSON(res, 200, { groups: db.data.groups || [] });
   }
 
   /* --- доступность логина --- */
@@ -464,10 +478,59 @@ async function handleAPI(req, res, pathname) {
     if (normLogin(target) === normLogin(me.login)) return sendJSON(res, 400, { error: 'Свою роль менять нельзя' });
     const rec = findByLogin(target);
     if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
-    const r = String(body.role || '').toLowerCase();
-    rec.role = (r === 'dev' || r === 'developer' || r === 'admin') ? 'dev' : 'student';
+    rec.role = normRole(body.role);
+    if (body.group !== undefined) rec.group = String(body.group || '');
     await db.save();
     return sendJSON(res, 200, { ok: true, login: rec.login, role: rec.role });
+  }
+
+  /* --- создание аккаунта старосты/куратора (только dev) --- */
+  if (route === '/api/users' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const login = String(body.login || '').trim();
+    const pass = String(body.pass || '');
+    if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(login)) return sendJSON(res, 400, { error: 'Логин: 3–24 символа, латиница/цифры' });
+    if (pass.length < 6) return sendJSON(res, 400, { error: 'Пароль — от 6 символов' });
+    if (findByLogin(login)) return sendJSON(res, 409, { error: 'LOGIN_TAKEN' });
+    const user = {
+      id: uid(), login, fio: String(body.fio || '').trim().replace(/\s+/g, ' ') || login,
+      birth: '', group: String(body.group || ''), passHash: hashPassword(pass),
+      role: normRole(body.role), registeredAt: nowISO(), lastLoginAt: null
+    };
+    await db.mutate(d => d.users.push(user));
+    return sendJSON(res, 201, { user: publicUser(user) });
+  }
+
+  /* --- создание группы (только dev) --- */
+  if (route === '/api/groups' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const code = String(body.code || '').trim().toUpperCase();
+    const name = String(body.name || '').trim();
+    const course = Math.min(6, Math.max(1, Number(body.course) || 1));
+    if (!code || !name) return sendJSON(res, 400, { error: 'Укажите код и название группы' });
+    db.data.groups = db.data.groups || [];
+    if (db.data.groups.some(g => g.code === code)) return sendJSON(res, 409, { error: 'GROUP_EXISTS' });
+    db.data.groups.push({ code, name, course });
+    await db.save();
+    return sendJSON(res, 201, { ok: true, groups: db.data.groups });
+  }
+
+  /* --- удаление группы (только dev) --- */
+  if (route.startsWith('/api/groups/') && method === 'DELETE') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const code = decodeURIComponent(route.slice('/api/groups/'.length)).toUpperCase();
+    const before = (db.data.groups || []).length;
+    db.data.groups = (db.data.groups || []).filter(g => g.code !== code);
+    if (db.data.groups.length === before) return sendJSON(res, 404, { error: 'Группа не найдена' });
+    await db.save();
+    return sendJSON(res, 200, { ok: true, groups: db.data.groups });
   }
 
   /* --- сброс базы (только для разработчика) --- */

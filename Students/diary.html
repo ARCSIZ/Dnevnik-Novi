@@ -361,8 +361,8 @@
                 <defs><linearGradient id="rg" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs>
               </svg>
               <div>
-                <p class="font-display text-2xl leading-none" style="font-weight:700">4.6</p>
-                <p class="text-[11px] text-white/35 mt-1">из 5.0</p>
+                <p class="font-display text-2xl leading-none" style="font-weight:700" id="gpaValue">—</p>
+                <p class="text-[11px] text-white/35 mt-1" id="gpaSub">нет оценок</p>
               </div>
             </div>
           </div>
@@ -569,6 +569,7 @@
       b.setAttribute('aria-current',on?'page':'false');
     });
     const cr=$('crumb'); if(cr) cr.textContent=TITLES[view]||'';
+    try{ sessionStorage.setItem('collegeid_view',view); }catch(e){}
 
     // плавная подгонка высоты контейнера
     const fromH=viewport.offsetHeight;
@@ -600,13 +601,18 @@
     b.addEventListener('click',e=>{ pulse(b,e); show(b.dataset.view,e); });
   });
 
-  /* стартовое состояние: учитываем возврат из приложения (?view=apps) */
+  /* стартовое состояние: ?view=apps, #apps или последняя открытая вкладка */
   let startView='diary';
   try{
     const q=new URLSearchParams(location.search).get('view');
     const h=(location.hash||'').replace('#','');
-    if(TITLES[q]) startView=q; else if(TITLES[h]) startView=h;
+    const saved=sessionStorage.getItem('collegeid_view');
+    if(TITLES[q]) startView=q;
+    else if(TITLES[h]) startView=h;
+    else if(TITLES[saved]) startView=saved;
   }catch(e){}
+  /* запоминаем вкладку, чтобы возврат из приложения открывал её же */
+  const rememberView=v=>{ try{ sessionStorage.setItem('collegeid_view',v); }catch(e){} };
   if(startView!=='diary'){
     currentView=startView;
     document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+startView));
@@ -909,8 +915,26 @@
   const navCount=document.querySelector('.nav-btn[data-view="diary"] .nv-count');
   if(navCount) navCount.textContent=scheduleFor(new Date()).length;
 
-  /* ---------- кольцо среднего балла ---------- */
-  setTimeout(()=>{ const r=$('gpaRing'); if(r) r.style.strokeDashoffset=(125.6*(1-4.6/5)).toFixed(1); },400);
+  /* ---------- РЕАЛЬНАЯ СТАТИСТИКА: средний балл из расписания ---------- */
+  function realStats(){
+    let grades=[], lessons=0, absents=0;
+    Object.keys(SCHEDULE).forEach(k=>{
+      (SCHEDULE[k]||[]).forEach(L=>{
+        lessons++;
+        if(Array.isArray(L.grades)) grades=grades.concat(L.grades.map(Number).filter(n=>n>=2&&n<=5));
+        if(L.status&&['Н','У'].indexOf(L.status)>-1) absents++;
+      });
+    });
+    const gpa=grades.length?grades.reduce((a,b)=>a+b,0)/grades.length:0;
+    const att=lessons?Math.round((lessons-absents)/lessons*100):0;
+    return { gpa, att, lessons, grades:grades.length };
+  }
+  const stats=realStats();
+  const gpaVal=$('gpaValue'), gpaRing=$('gpaRing');
+  if(gpaVal) gpaVal.textContent=stats.grades?stats.gpa.toFixed(1):'—';
+  const gpaSub=$('gpaSub');
+  if(gpaSub) gpaSub.textContent=stats.grades?('по '+stats.grades+' оценкам'):'нет оценок';
+  setTimeout(()=>{ if(gpaRing) gpaRing.style.strokeDashoffset=(125.6*(1-(stats.gpa||0)/5)).toFixed(1); },400);
 
   /* ================== ПРИЛОЖЕНИЯ: ДОСТУП ПО РОЛЯМ ==================
      dev     → «Панель управления»

@@ -27,29 +27,25 @@
   @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,40px)}}
   .gridln{position:fixed;inset:0;pointer-events:none;
     background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
-    background-size:56px 56px;
-    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%);
+    background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%);
     mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%)}
 
   .card{background:rgba(13,13,21,.8);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
     border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
   .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:20px}
-  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;flex-wrap:wrap;
-    border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;flex-wrap:wrap;
+    border-radius:15px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
   .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;max-width:100%;
     font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
     border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
-  .pill-btn{cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s}
-  .pill-btn:hover{border-color:rgba(129,140,248,.5);background:rgba(99,102,241,.1)}
-  .pill-dev{color:#c7d2fe;border-color:rgba(129,140,248,.45);background:rgba(99,102,241,.14)}
   .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);
     cursor:pointer;transition:background .22s,border-color .22s,color .22s,transform .18s}
   .back:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)}
   .back:active{transform:scale(.96)}
-  .btn{position:relative;overflow:hidden;border-radius:14px;font-weight:700;transition:transform .2s,filter .25s}
+  .btn{position:relative;overflow:hidden;border-radius:13px;font-weight:700;transition:transform .2s,filter .25s;cursor:pointer}
   .btn:active{transform:scale(.985)}
-  .btn-primary{background:linear-gradient(120deg,#6366f1,#8b5cf6 60%,#a855f7);color:#fff;box-shadow:0 14px 34px -10px rgba(124,58,237,.55)}
+  .btn-primary{background:linear-gradient(120deg,#6366f1,#8b5cf6 60%,#a855f7);color:#fff;box-shadow:0 14px 30px -10px rgba(124,58,237,.55)}
   .btn-primary:hover{filter:brightness(1.12)}
   .btn-ghost{border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75)}
   .btn-ghost:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.22)}
@@ -58,10 +54,42 @@
   .dbox{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
     font-size:13px;line-height:1.6;color:rgba(255,255,255,.55)}
   .lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
-    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px}
-  input{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
-    border-radius:13px;padding:11px 14px;font-size:13.5px;color:#fff;outline:none;font-family:inherit}
-  input:focus{border-color:rgba(129,140,248,.6);box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px}
+  input,select{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+    border-radius:13px;padding:11px 13px;font-size:13.5px;color:#fff;outline:none;font-family:inherit}
+  input:focus,select:focus{border-color:rgba(129,140,248,.6);box-shadow:0 0 0 4px rgba(99,102,241,.12)}
+  select option{background:#15151f}
+
+  /* карточки-разделы */
+  .sec-tile{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:20px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);cursor:pointer;text-align:left;
+    transition:transform .22s,border-color .22s,background .22s}
+  .sec-tile:hover{transform:translateY(-4px);border-color:rgba(129,140,248,.45);background:rgba(99,102,241,.07)}
+  .sec-tile.on{border-color:rgba(129,140,248,.6);background:linear-gradient(100deg,rgba(99,102,241,.16),rgba(168,85,247,.08))}
+  .sec-tile .ai{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff}
+
+  /* роли */
+  .rl{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:8px;font-size:10.5px;font-weight:800;
+    font-family:'JetBrains Mono',monospace;cursor:pointer;white-space:nowrap;transition:filter .2s}
+  .rl:hover{filter:brightness(1.25)}
+  .rl-student{background:rgba(148,163,184,.14);color:#cbd5e1;border:1px solid rgba(148,163,184,.3)}
+  .rl-prefect{background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+  .rl-curator{background:rgba(251,191,36,.14);color:#fcd34d;border:1px solid rgba(251,191,36,.35)}
+  .rl-dev{background:rgba(99,102,241,.16);color:#c7d2fe;border:1px solid rgba(129,140,248,.45)}
+
+  /* группы-аккордеон */
+  .grp{border-radius:18px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);overflow:hidden}
+  .grp.open{border-color:rgba(129,140,248,.35);background:rgba(99,102,241,.05)}
+  .grp-head{width:100%;display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer;text-align:left}
+  .grp-ic{width:38px;height:38px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-weight:800;font-size:11px;
+    font-family:'JetBrains Mono',monospace;color:#a5b4fc}
+  .grp.open .grp-ic{background:linear-gradient(135deg,#6366f1,#a855f7);border-color:transparent;color:#fff}
+  .grp-body{display:none;padding:0 15px 15px}
+  .grp.open .grp-body{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .chev{transition:transform .3s}
+  .grp.open .chev{transform:rotate(180deg)}
 
   .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -80,74 +108,128 @@
   </div>
   <div class="gridln" aria-hidden="true"></div>
 
-  <div class="relative max-w-[1040px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+  <div class="relative max-w-[1060px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
 
     <header class="flex items-center justify-between gap-3 mb-7">
       <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i>Приложения</button>
       <span class="pill"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-indigo-300"></i>DEV ONLY</span>
     </header>
 
-    <!-- ЭКРАН ОТКАЗА В ДОСТУПЕ -->
     <div id="denied" class="hidden">
       <div class="card rounded-[24px] p-8 text-center">
         <span class="w-16 h-16 mx-auto mb-5 rounded-[20px] bg-rose-500/15 border border-rose-400/30 flex items-center justify-center">
-          <i data-lucide="lock" class="w-7 h-7 text-rose-300"></i>
-        </span>
+          <i data-lucide="lock" class="w-7 h-7 text-rose-300"></i></span>
         <h1 class="font-display text-xl mb-2" style="font-weight:800">Доступ ограничен</h1>
         <p class="text-white/45 text-[13.5px] max-w-[360px] mx-auto mb-6">
-          Панель управления доступна только аккаунтам с ролью «Разработчик».
-          Ваша текущая роль — <b id="curRole" class="text-white/70">студент</b>.
-        </p>
+          Панель доступна только роли «Разработчик». Ваша роль — <b id="curRole" class="text-white/70">студент</b>.</p>
         <button id="btnBack3" class="btn btn-primary w-full max-w-[300px] mx-auto h-[46px] text-sm flex items-center justify-center gap-2">
-          <i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения
-        </button>
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения</button>
       </div>
     </div>
 
-    <!-- ОСНОВНОЙ ЭКРАН -->
     <div id="app" class="hidden">
-      <div class="st card rounded-[24px] p-6 sm:p-8 mb-5" style="--i:0">
+      <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
         <div class="flex items-start gap-4">
           <span class="w-14 h-14 shrink-0 rounded-[18px] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
-            <i data-lucide="sliders-horizontal" class="w-6 h-6 text-white"></i>
-          </span>
+            <i data-lucide="sliders-horizontal" class="w-6 h-6 text-white"></i></span>
           <div class="min-w-0">
             <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-1.5">ПРИЛОЖЕНИЕ · DEV</p>
             <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800">Панель управления</h1>
-            <p class="text-white/45 text-[13.5px] mt-2">Пользователи, роли и состояние системы</p>
+            <p class="text-white/45 text-[13.5px] mt-2">Пользователи, группы и данные системы</p>
           </div>
         </div>
       </div>
 
-      <div class="grid sm:grid-cols-4 gap-4 mb-5">
-        <div class="st panel p-5" style="--i:1"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ПОЛЬЗОВАТЕЛИ</p>
-          <p class="font-display text-2xl" style="font-weight:700" id="kUsers">—</p></div>
-        <div class="st panel p-5" style="--i:2"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">РАЗРАБОТЧИКИ</p>
-          <p class="font-display text-2xl" style="font-weight:700" id="kDevs">—</p></div>
-        <div class="st panel p-5" style="--i:3"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">РЕЖИМ БАЗЫ</p>
-          <p class="font-display text-2xl" style="font-weight:700" id="kMode">—</p></div>
-        <div class="st panel p-5" style="--i:4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ДНЕЙ В РАСПИСАНИИ</p>
-          <p class="font-display text-2xl" style="font-weight:700" id="kSched">—</p></div>
+      <!-- КАРТОЧКИ РАЗДЕЛОВ -->
+      <div class="grid sm:grid-cols-3 gap-4 mb-5">
+        <button class="sec-tile st on" style="--i:1" data-sec="users">
+          <span class="ai bg-gradient-to-br from-indigo-500 to-blue-500"><i data-lucide="users" class="w-5 h-5"></i></span>
+          <span><span class="block font-semibold text-[15px]">Пользователи</span>
+          <span class="block text-[12px] text-white/40 mt-1">По группам, смена ролей</span></span>
+          <span class="mono text-[10px] tracking-[.2em] text-indigo-300/70 mt-auto pt-2" id="cUsers">—</span>
+        </button>
+        <button class="sec-tile st" style="--i:2" data-sec="groups">
+          <span class="ai bg-gradient-to-br from-emerald-500 to-teal-500"><i data-lucide="layers" class="w-5 h-5"></i></span>
+          <span><span class="block font-semibold text-[15px]">Группы</span>
+          <span class="block text-[12px] text-white/40 mt-1">Создание, курс, староста и куратор</span></span>
+          <span class="mono text-[10px] tracking-[.2em] text-emerald-300/70 mt-auto pt-2" id="cGroups">—</span>
+        </button>
+        <button class="sec-tile st" style="--i:3" data-sec="data">
+          <span class="ai bg-gradient-to-br from-rose-500 to-orange-500"><i data-lucide="database" class="w-5 h-5"></i></span>
+          <span><span class="block font-semibold text-[15px]">Данные системы</span>
+          <span class="block text-[12px] text-white/40 mt-1">Выгрузка, обновление, сброс</span></span>
+          <span class="mono text-[10px] tracking-[.2em] text-rose-300/70 mt-auto pt-2" id="cMode">—</span>
+        </button>
       </div>
 
-      <div class="st card rounded-[24px] p-5 sm:p-6 mb-5" style="--i:5">
+      <!-- ===== ПОЛЬЗОВАТЕЛИ ===== -->
+      <section id="sec-users" class="sec card rounded-[24px] p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h2 class="font-semibold flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-indigo-300"></i>Пользователи</h2>
-          <input id="search" placeholder="Поиск по логину, ФИО или группе…" style="max-width:280px">
+          <h2 class="font-semibold flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-indigo-300"></i>Пользователи по группам</h2>
+          <input id="search" placeholder="Поиск: логин, ФИО, группа…" style="max-width:260px">
         </div>
-        <div id="list" class="space-y-2"></div>
-        <p class="text-[11.5px] text-white/30 mt-3">Клик по бейджу роли переключает «Студент ⇄ Разработчик». Свою роль менять нельзя.</p>
-      </div>
+        <div id="groupsList" class="space-y-2.5"></div>
+        <p class="text-[11.5px] text-white/30 mt-3">Клик по бейджу роли открывает выбор: Студент · Староста · Куратор · Разработчик.</p>
+      </section>
 
-      <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:6">
-        <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="database" class="w-4 h-4 text-indigo-300"></i>Данные системы</h2>
+      <!-- ===== ГРУППЫ ===== -->
+      <section id="sec-groups" class="sec card rounded-[24px] p-5 sm:p-6 hidden">
+        <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-emerald-300"></i>Управление группами</h2>
+
+        <div class="panel p-4 mb-5">
+          <p class="lbl">Создать группу</p>
+          <div class="grid sm:grid-cols-4 gap-2.5">
+            <input id="gCode" placeholder="ИС-101">
+            <input id="gName" placeholder="Название направления" class="sm:col-span-2">
+            <select id="gCourse">
+              <option value="1">1 курс</option><option value="2">2 курс</option><option value="3">3 курс</option>
+              <option value="4">4 курс</option><option value="5">5 курс</option><option value="6">6 курс</option>
+            </select>
+          </div>
+          <button id="gAdd" class="btn btn-primary w-full h-[44px] text-sm flex items-center justify-center gap-2 mt-3">
+            <i data-lucide="plus" class="w-4 h-4"></i>Создать группу</button>
+        </div>
+
+        <div class="panel p-4 mb-5">
+          <p class="lbl">Создать аккаунт старосты или куратора</p>
+          <div class="grid sm:grid-cols-2 gap-2.5">
+            <input id="sFio" placeholder="ФИО">
+            <select id="sGroup"></select>
+            <input id="sLogin" placeholder="Логин (латиница)">
+            <input id="sPass" placeholder="Пароль (от 6 символов)" type="text">
+          </div>
+          <div class="grid grid-cols-2 gap-2.5 mt-2.5">
+            <button class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2 mk-role" data-role="prefect">
+              <i data-lucide="user-check" class="w-4 h-4 text-emerald-300"></i>Создать старосту</button>
+            <button class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2 mk-role" data-role="curator">
+              <i data-lucide="user-cog" class="w-4 h-4 text-amber-300"></i>Создать куратора</button>
+          </div>
+        </div>
+
+        <p class="lbl">Существующие группы</p>
+        <div id="grpManage" class="space-y-2"></div>
+      </section>
+
+      <!-- ===== ДАННЫЕ СИСТЕМЫ ===== -->
+      <section id="sec-data" class="sec card rounded-[24px] p-5 sm:p-6 hidden">
+        <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="database" class="w-4 h-4 text-rose-300"></i>Данные системы</h2>
+        <div class="grid sm:grid-cols-4 gap-4 mb-5">
+          <div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ПОЛЬЗОВАТЕЛИ</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="kUsers">—</p></div>
+          <div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">ГРУППЫ</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="kGroups">—</p></div>
+          <div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">СОТРУДНИКИ</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="kStaff">—</p></div>
+          <div class="panel p-4"><p class="mono text-[9.5px] tracking-[.2em] text-white/30 mb-1.5">РЕЖИМ БАЗЫ</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="kMode">—</p></div>
+        </div>
         <div class="grid sm:grid-cols-3 gap-3">
-          <button id="bExport" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Выгрузить базу</button>
+          <button id="bExport" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2"><i data-lucide="download" class="w-4 h-4"></i>Выгрузить данные</button>
           <button id="bRefresh" class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Обновить</button>
-          <button id="bReset" class="btn btn-danger h-[46px] text-sm flex items-center justify-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i>Сбросить базу</button>
+          <button id="bReset" class="btn btn-danger h-[46px] text-sm flex items-center justify-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i>Удалить базу</button>
         </div>
         <div class="dbox mt-4" id="sysInfo">—</div>
-      </div>
+      </section>
 
       <button id="btnBack2" class="back w-full justify-center mt-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения</button>
     </div>
@@ -166,7 +248,7 @@
   lucide.createIcons();
   const $=id=>document.getElementById(id);
   const BACK='../Students/diary.html?view=apps';
-  const goBack=()=>{ if(document.referrer.indexOf('diary.html')>-1) history.back(); else location.href=BACK; };
+  const goBack=()=>{ location.href=BACK; };
   ['btnBack','btnBack2','btnBack3'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',goBack); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') goBack(); });
 
@@ -174,81 +256,175 @@
     clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2800); }
 
   await CollegeDB.init();
+  const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
+  const RN=r=>CollegeDB.roleName?CollegeDB.roleName(r):'Студент';
   const s=CollegeDB.session();
   const me=(s&&CollegeDB.findByLogin(s.login))||null;
-  const roleOf=u=>{ const r=String((u&&u.role)||'student').toLowerCase();
-    return (r==='dev'||r==='developer'||r==='admin')?'dev':'student'; };
 
-  /* защита по роли */
-  if(roleOf(me)!=='dev'){
+  if(R(me&&me.role)!=='dev'){
     $('denied').classList.remove('hidden');
-    $('curRole').textContent=me?'студент':'гость';
-    lucide.createIcons();
-    return;
+    $('curRole').textContent=me?RN(me.role):'гость';
+    lucide.createIcons(); return;
   }
   $('app').classList.remove('hidden');
 
-  function schedDays(){
-    try{ return Object.keys(JSON.parse(localStorage.getItem('collegeid_schedule'))||{}).length; }catch(e){ return 0; }
-  }
+  /* ---- переключение разделов ---- */
+  document.querySelectorAll('.sec-tile').forEach(t=>t.addEventListener('click',()=>{
+    const id=t.dataset.sec;
+    document.querySelectorAll('.sec-tile').forEach(x=>x.classList.toggle('on',x===t));
+    document.querySelectorAll('.sec').forEach(x=>x.classList.toggle('hidden',x.id!=='sec-'+id));
+  }));
 
-  function renderStats(){
-    const all=CollegeDB.all();
-    $('kUsers').textContent=all.length;
-    $('kDevs').textContent=all.filter(u=>roleOf(u)==='dev').length;
-    $('kMode').textContent=(CollegeDB.isServer&&CollegeDB.isServer())?'Сервер':'Локально';
-    $('kSched').textContent=schedDays();
-    $('sysInfo').innerHTML='Режим: <b>'+((CollegeDB.isServer&&CollegeDB.isServer())?'серверная база (Data/database.json)':'локальная база браузера')
-      +'</b><br>Вы вошли как: <b>'+(me.fio||me.login)+'</b> ('+me.login+') · роль «Разработчик»';
-  }
+  const ROLE_LIST=[['student','Студент'],['prefect','Староста'],['curator','Куратор'],['dev','Разработчик']];
+  let filter='', openGroups={};
 
-  let filter='';
-  function renderList(){
+  function users(){ return CollegeDB.all(); }
+  function groups(){ return CollegeDB.listGroups(); }
+
+  /* ---- ПОЛЬЗОВАТЕЛИ: карточки групп ---- */
+  function renderUsers(){
     const q=filter.trim().toLowerCase();
-    const all=CollegeDB.all().filter(u=>!q
+    const all=users().filter(u=>!q
       || String(u.login||'').toLowerCase().indexOf(q)>-1
       || String(u.fio||'').toLowerCase().indexOf(q)>-1
       || String(u.group||'').toLowerCase().indexOf(q)>-1);
-    if(!all.length){ $('list').innerHTML='<div class="dbox">Ничего не найдено</div>'; return; }
-    $('list').innerHTML=all.slice().reverse().map(u=>{
-      const dev=roleOf(u)==='dev', self=me&&u.login===me.login;
-      return '<div class="row"><span class="min-w-0 flex-1">'
-        +'<span class="block text-[13.5px] font-semibold truncate">'+(u.fio||u.login)+(self?' · вы':'')+'</span>'
-        +'<span class="block text-[11px] text-white/35 mono mt-0.5 truncate">'+u.login+(u.group?' · '+u.group:'')+'</span></span>'
-        +(self
-          ? '<span class="pill shrink-0 pill-dev">DEV</span>'
-          : '<button type="button" class="pill pill-btn shrink-0 role-tgl'+(dev?' pill-dev':'')+'" data-login="'+u.login+'">'
-            +(dev?'DEV':'СТУДЕНТ')+'<i data-lucide="repeat-2" class="w-3 h-3"></i></button>')
-        +'</div>';
-    }).join('');
+
+    const gl=groups();
+    const buckets=gl.map(g=>({ g:g, list:all.filter(u=>u.group===g.code) }));
+    const other=all.filter(u=>!u.group||!gl.some(g=>g.code===u.group));
+    if(other.length) buckets.push({ g:{code:'—',name:'Без группы',course:0}, list:other });
+
+    $('groupsList').innerHTML=buckets.map(b=>{
+      const open=!!openGroups[b.g.code]||!!q;
+      const pref=b.list.find(u=>R(u.role)==='prefect'), cur=b.list.find(u=>R(u.role)==='curator');
+      return '<div class="grp'+(open?' open':'')+'" data-g="'+b.g.code+'">'
+        +'<button type="button" class="grp-head">'
+          +'<span class="grp-ic">'+(b.g.course?b.g.course+'К':'—')+'</span>'
+          +'<span class="min-w-0 flex-1"><span class="block text-[14px] font-bold truncate">'+b.g.code+'</span>'
+          +'<span class="block text-[11.5px] text-white/40 truncate">'+b.g.name+'</span></span>'
+          +'<span class="pill shrink-0">'+b.list.length+'</span>'
+          +'<i data-lucide="chevron-down" class="chev w-4 h-4 text-white/35"></i>'
+        +'</button>'
+        +'<div class="grp-body">'
+          +'<div class="flex flex-wrap gap-2 mb-3">'
+            +'<span class="pill">Староста: '+(pref?(pref.fio||pref.login):'не назначен')+'</span>'
+            +'<span class="pill">Куратор: '+(cur?(cur.fio||cur.login):'не назначен')+'</span>'
+          +'</div>'
+          +(b.list.length?'<div class="space-y-2">'+b.list.map(u=>{
+              const role=R(u.role), self=me&&u.login===me.login;
+              return '<div class="row"><span class="min-w-0 flex-1">'
+                +'<span class="block text-[13px] font-semibold truncate">'+(u.fio||u.login)+(self?' · вы':'')+'</span>'
+                +'<span class="block text-[11px] text-white/35 mono mt-0.5 truncate">'+u.login+'</span></span>'
+                +(self?'<span class="rl rl-dev">DEV</span>'
+                  :'<button type="button" class="rl rl-'+role+' role-btn" data-login="'+u.login+'" data-role="'+role+'">'
+                   +RN(role)+'<i data-lucide="chevron-down" class="w-3 h-3"></i></button>')
+                +'</div>';
+            }).join('')+'</div>'
+            :'<div class="dbox">В группе пока нет пользователей</div>')
+        +'</div></div>';
+    }).join('')||'<div class="dbox">Ничего не найдено</div>';
     lucide.createIcons();
-    $('list').querySelectorAll('.role-tgl').forEach(b=>b.addEventListener('click',()=>{
-      const next=b.classList.contains('pill-dev')?'student':'dev';
+
+    $('groupsList').querySelectorAll('.grp-head').forEach(h=>h.addEventListener('click',()=>{
+      const g=h.closest('.grp'), code=g.dataset.g;
+      openGroups[code]=!g.classList.contains('open');
+      g.classList.toggle('open');
+    }));
+    $('groupsList').querySelectorAll('.role-btn').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const cur=b.dataset.role;
+      const next=ROLE_LIST[(ROLE_LIST.findIndex(r=>r[0]===cur)+1)%ROLE_LIST.length][0];
       b.style.opacity='.5';
       CollegeDB.setRole(b.dataset.login,next).then(ok=>{
         b.style.opacity='';
-        if(ok){ toast('«'+b.dataset.login+'» → '+(next==='dev'?'Разработчик':'Студент')); renderList(); renderStats(); }
+        if(ok){ toast('«'+b.dataset.login+'» → '+RN(next)); renderUsers(); renderStats(); }
         else toast('Не удалось сменить роль');
       });
     }));
   }
+  $('search').addEventListener('input',e=>{ filter=e.target.value; renderUsers(); });
 
-  $('search').addEventListener('input',e=>{ filter=e.target.value; renderList(); });
+  /* ---- ГРУППЫ ---- */
+  function renderGroups(){
+    const gl=groups(), all=users();
+    $('sGroup').innerHTML=gl.length?gl.map(g=>'<option value="'+g.code+'">'+g.code+' · '+g.name+'</option>').join('')
+      :'<option value="">Сначала создайте группу</option>';
+    $('grpManage').innerHTML=gl.length?gl.map(g=>{
+      const n=all.filter(u=>u.group===g.code).length;
+      const pref=all.find(u=>u.group===g.code&&R(u.role)==='prefect');
+      const cur=all.find(u=>u.group===g.code&&R(u.role)==='curator');
+      return '<div class="row"><span class="min-w-0 flex-1">'
+        +'<span class="block text-[13.5px] font-bold truncate">'+g.code+' <span class="text-white/35 font-normal">· '+g.course+' курс</span></span>'
+        +'<span class="block text-[11.5px] text-white/40 truncate">'+g.name+'</span>'
+        +'<span class="block text-[11px] text-white/30 mt-1">Студентов: '+n
+          +' · Староста: '+(pref?(pref.fio||pref.login):'—')
+          +' · Куратор: '+(cur?(cur.fio||cur.login):'—')+'</span></span>'
+        +'<button type="button" class="btn btn-danger px-3 py-2 text-[12px] g-del" data-code="'+g.code+'">'
+        +'<i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>';
+    }).join(''):'<div class="dbox">Групп пока нет — создайте первую выше</div>';
+    lucide.createIcons();
+    $('grpManage').querySelectorAll('.g-del').forEach(b=>b.addEventListener('click',()=>{
+      if(!confirm('Удалить группу '+b.dataset.code+'?\nПользователи останутся, но без группы.')) return;
+      CollegeDB.removeGroup(b.dataset.code).then(()=>{ toast('Группа удалена'); renderGroups(); renderUsers(); renderStats(); });
+    }));
+  }
 
-  $('bExport').addEventListener('click',()=>{ CollegeDB.exportFile(); toast('База выгружена в файл'); });
+  $('gAdd').addEventListener('click',()=>{
+    const code=$('gCode').value.trim(), name=$('gName').value.trim(), course=$('gCourse').value;
+    if(!code||!name) return toast('Укажите код и название группы');
+    CollegeDB.addGroup({code:code,name:name,course:course}).then(()=>{
+      $('gCode').value=''; $('gName').value='';
+      toast('Группа '+code.toUpperCase()+' создана'); renderGroups(); renderUsers(); renderStats();
+    }).catch(err=>toast(err.message==='GROUP_EXISTS'?'Такая группа уже существует':'Ошибка создания'));
+  });
+
+  document.querySelectorAll('.mk-role').forEach(b=>b.addEventListener('click',()=>{
+    const role=b.dataset.role;
+    const fio=$('sFio').value.trim(), login=$('sLogin').value.trim(),
+          pass=$('sPass').value, group=$('sGroup').value;
+    if(!group) return toast('Сначала создайте группу');
+    if(fio.length<5) return toast('Укажите ФИО полностью');
+    if(!/^[a-zA-Z0-9_.-]{3,}$/.test(login)) return toast('Логин: от 3 символов, латиница');
+    if(pass.length<6) return toast('Пароль — от 6 символов');
+    CollegeDB.createUser({login:login,pass:pass,fio:fio,group:group,role:role}).then(()=>{
+      $('sFio').value=''; $('sLogin').value=''; $('sPass').value='';
+      toast(RN(role)+' «'+login+'» создан для группы '+group);
+      renderUsers(); renderGroups(); renderStats();
+    }).catch(err=>toast(err.message==='LOGIN_TAKEN'?'Логин уже занят':'Ошибка создания аккаунта'));
+  }));
+
+  /* ---- ДАННЫЕ ---- */
+  function renderStats(){
+    const all=users(), gl=groups();
+    const staff=all.filter(u=>['prefect','curator'].indexOf(R(u.role))>-1).length;
+    const srv=(CollegeDB.isServer&&CollegeDB.isServer());
+    $('kUsers').textContent=all.length; $('kGroups').textContent=gl.length;
+    $('kStaff').textContent=staff;      $('kMode').textContent=srv?'Сервер':'Локально';
+    $('cUsers').textContent=all.length+' ЧЕЛОВЕК';
+    $('cGroups').textContent=gl.length+' ГРУПП';
+    $('cMode').textContent=srv?'СЕРВЕР':'ЛОКАЛЬНО';
+    $('sysInfo').innerHTML='Режим: <b>'+(srv?'серверная база (Data/database.json)':'локальная база браузера')+'</b>'
+      +'<br>Вы вошли как: <b>'+(me.fio||me.login)+'</b> ('+me.login+') · '+RN(me.role)
+      +'<br>Старост: <b>'+all.filter(u=>R(u.role)==='prefect').length+'</b>'
+      +' · Кураторов: <b>'+all.filter(u=>R(u.role)==='curator').length+'</b>'
+      +' · Разработчиков: <b>'+all.filter(u=>R(u.role)==='dev').length+'</b>';
+  }
+
+  $('bExport').addEventListener('click',()=>{ CollegeDB.exportFile(); toast('Данные выгружены в файл'); });
   $('bRefresh').addEventListener('click',()=>{
-    if(CollegeDB.refresh) CollegeDB.refresh().then(()=>{ renderList(); renderStats(); toast('Данные обновлены'); });
-    else toast('Данные актуальны');
+    const p=CollegeDB.refresh?CollegeDB.refresh():Promise.resolve();
+    p.then(()=>CollegeDB.loadGroups?CollegeDB.loadGroups():null)
+     .then(()=>{ renderUsers(); renderGroups(); renderStats(); toast('Данные обновлены'); });
   });
   $('bReset').addEventListener('click',()=>{
-    if(!confirm('Удалить ВСЕХ пользователей?\n\nБудет создана резервная копия, но текущая база обнулится.')) return;
+    if(!confirm('Удалить базу данных целиком?\n\nБудет создана резервная копия, но все пользователи будут стёрты.')) return;
     if(!confirm('Точно удалить? Второе подтверждение.')) return;
-    if(!CollegeDB.reset) return toast('Сброс доступен только при работающем сервере');
-    CollegeDB.reset().then(()=>{ toast('База сброшена — перезагружаем…'); setTimeout(()=>location.reload(),1400); })
+    if(!CollegeDB.reset) return toast('Доступно только при работающем сервере');
+    CollegeDB.reset().then(()=>{ toast('База удалена — перезагружаем…'); setTimeout(()=>location.reload(),1400); })
       .catch(err=>toast('Ошибка: '+(err.message||'нет связи')));
   });
 
-  renderStats(); renderList();
+  renderUsers(); renderGroups(); renderStats();
 })();
 </script>
 </body>
