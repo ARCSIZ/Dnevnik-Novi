@@ -552,28 +552,45 @@
   document.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>setErr(i.id,null)));
 
   /* ---------- ШАГ 3: группы ---------- */
-  const groups=[
-    ['ИС-101','Информационные системы','server'],
-    ['ПИ-202','Прикладная информатика','code-2'],
-    ['КБ-110','Компьютерная безопасность','shield'],
-    ['ДЗ-230','Цифровой дизайн','palette'],
-    ['МГ-315','Менеджмент','briefcase'],
-    ['ЮР-140','Юриспруденция','scale'],
-    ['ЭК-220','Экономика и финансы','trending-up'],
-    ['МД-105','Медицинский профиль','heart-pulse']
-  ];
+  /* Группы приходят из базы — ровно те, что созданы в панели управления */
+  const GROUP_ICONS=['server','code-2','shield','palette','briefcase','scale','trending-up','heart-pulse','atom','microscope','book-open','calculator'];
   const groupList=$('groupList'), groupHint=$('groupHint');
-  let groupVal='';
-  groupList.innerHTML=groups.map(([c,n,ic])=>
-    '<button type="button" class="gcard" role="radio" aria-checked="false" data-val="'+c+'">'
-    +'<span class="gic"><i data-lucide="'+ic+'" class="w-[17px] h-[17px]"></i></span>'
-    +'<span class="min-w-0">'
-      +'<span class="block mono text-[11px] tracking-wider text-indigo-300">'+c+'</span>'
-      +'<span class="block text-[13px] text-white/75 truncate">'+n+'</span>'
-    +'</span>'
-    +'<span class="gmark"><i data-lucide="check" class="w-3 h-3 text-white"></i></span>'
-    +'</button>').join('');
-  lucide.createIcons();
+  let groups=[], groupVal='';
+
+  function renderGroups(){
+    if(!groups.length){
+      groupList.innerHTML='<div class="dbox" style="padding:14px;border-radius:16px;'
+        +'background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:12.5px;'
+        +'color:rgba(255,255,255,.5)">Список групп пока не заполнен. Обратитесь в учебную часть.</div>';
+      return;
+    }
+    const selected=groupVal;
+    groupList.innerHTML=groups.map(([c,n],i)=>
+      '<button type="button" class="gcard'+(c===selected?' sel':'')+'" role="radio" aria-checked="'+(c===selected)+'" data-val="'+c+'">'
+      +'<span class="gic"><i data-lucide="'+GROUP_ICONS[i%GROUP_ICONS.length]+'" class="w-[17px] h-[17px]"></i></span>'
+      +'<span class="min-w-0">'
+        +'<span class="block mono text-[11px] tracking-wider text-indigo-300">'+c+'</span>'
+        +'<span class="block text-[13px] text-white/75 truncate">'+n+'</span>'
+      +'</span>'
+      +'<span class="gmark"><i data-lucide="check" class="w-3 h-3 text-white"></i></span>'
+      +'</button>').join('');
+    lucide.createIcons();
+  }
+
+  function pullGroups(){
+    CollegeDB.loadGroups().then(list=>{
+      groups=(list||[]).map(g=>[g.code,g.name]);
+      /* выбранная группа могла быть удалена — сбрасываем выбор */
+      if(groupVal && !groups.some(g=>g[0]===groupVal)){
+        groupVal=''; groupHint.textContent='НЕ ВЫБРАНА';
+        groupHint.classList.add('text-white/25'); groupHint.classList.remove('text-indigo-300');
+      }
+      renderGroups();
+    });
+  }
+  pullGroups();
+  if(CollegeDB.onSync) CollegeDB.onSync(pullGroups);
+  if(CollegeDB.startSync) CollegeDB.startSync(20000);
 
   groupList.addEventListener('click',e=>{
     const b=e.target.closest('.gcard'); if(!b)return;
@@ -581,7 +598,6 @@
     groupList.querySelectorAll('.gcard').forEach(o=>{
       const on=o===b; o.classList.toggle('sel',on); o.setAttribute('aria-checked',on);
     });
-    const name=groups.find(g=>g[0]===groupVal)[1];
     groupHint.textContent=groupVal;
     groupHint.classList.remove('text-white/25'); groupHint.classList.add('text-indigo-300');
     setErr('r_group',null); groupList.classList.remove('is-err');

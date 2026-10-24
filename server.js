@@ -352,6 +352,13 @@ async function handleAPI(req, res, pathname) {
   const method = req.method;
 
   /* --- здоровье сервера --- */
+  /* Версия данных: любое изменение базы увеличивает счётчик. Клиенты сверяют
+     его и мгновенно подтягивают изменения, сделанные из панели управления. */
+  function bumpDataVersion() {
+    db.data.dataVersion = (Number(db.data.dataVersion) || 0) + 1;
+    db.data.updatedAt = nowISO();
+  }
+
   if (route === '/api/health' && method === 'GET') {
     const envLogin = envValue('ADMIN_LOGIN', false);
     const envPass = envValue('ADMIN_PASSWORD', true);
@@ -362,6 +369,7 @@ async function handleAPI(req, res, pathname) {
       ok: true, service: 'college-id', version: '1.0.0',
       node: process.version, users: db.data.users.length,
       uptime: Math.round(process.uptime()), time: nowISO(),
+      dataVersion: Number(db.data.dataVersion) || 0,
       database: {
         persistentPath: DATA_DIR,
         resetVersion: db.data.resetVersion || null
@@ -376,7 +384,17 @@ async function handleAPI(req, res, pathname) {
 
   /* --- список групп --- */
   if (route === '/api/groups' && method === 'GET') {
-    return sendJSON(res, 200, { groups: db.data.groups || [] });
+    return sendJSON(res, 200, { groups: db.data.groups || [], dataVersion: Number(db.data.dataVersion) || 0 });
+  }
+
+  /* --- версия данных: лёгкая проверка свежести кэша --- */
+  if (route === '/api/version' && method === 'GET') {
+    return sendJSON(res, 200, {
+      dataVersion: Number(db.data.dataVersion) || 0,
+      users: db.data.users.length,
+      groups: (db.data.groups || []).length,
+      updatedAt: db.data.updatedAt || null
+    });
   }
 
   /* --- доступность логина --- */
@@ -405,9 +423,10 @@ async function handleAPI(req, res, pathname) {
       registeredAt: nowISO(), lastLoginAt: nowISO()
     };
     await db.mutate(d => d.users.push(user));
+    bumpDataVersion();
     const token = issueToken(user);
     setAuthCookie(res, token);
-    return sendJSON(res, 201, { user: publicUser(user), token });
+    return sendJSON(res, 201, { user: publicUser(user), token, dataVersion: db.data.dataVersion });
   }
 
   /* --- вход --- */
@@ -481,7 +500,8 @@ async function handleAPI(req, res, pathname) {
     rec.role = normRole(body.role);
     if (body.group !== undefined) rec.group = String(body.group || '');
     await db.save();
-    return sendJSON(res, 200, { ok: true, login: rec.login, role: rec.role });
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, login: rec.login, role: rec.role, dataVersion: db.data.dataVersion });
   }
 
   /* --- создание аккаунта старосты/куратора (только dev) --- */
@@ -501,7 +521,8 @@ async function handleAPI(req, res, pathname) {
       role: normRole(body.role), registeredAt: nowISO(), lastLoginAt: null
     };
     await db.mutate(d => d.users.push(user));
-    return sendJSON(res, 201, { user: publicUser(user) });
+    bumpDataVersion();
+    return sendJSON(res, 201, { user: publicUser(user), dataVersion: db.data.dataVersion });
   }
 
   /* --- создание группы (только dev) --- */
@@ -518,7 +539,8 @@ async function handleAPI(req, res, pathname) {
     if (db.data.groups.some(g => g.code === code)) return sendJSON(res, 409, { error: 'GROUP_EXISTS' });
     db.data.groups.push({ code, name, course });
     await db.save();
-    return sendJSON(res, 201, { ok: true, groups: db.data.groups });
+    bumpDataVersion();
+    return sendJSON(res, 201, { ok: true, groups: db.data.groups, dataVersion: db.data.dataVersion });
   }
 
   /* --- удаление группы (только dev) --- */
@@ -530,7 +552,8 @@ async function handleAPI(req, res, pathname) {
     db.data.groups = (db.data.groups || []).filter(g => g.code !== code);
     if (db.data.groups.length === before) return sendJSON(res, 404, { error: 'Группа не найдена' });
     await db.save();
-    return sendJSON(res, 200, { ok: true, groups: db.data.groups });
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, groups: db.data.groups, dataVersion: db.data.dataVersion });
   }
 
   /* --- сброс базы (только для разработчика) --- */

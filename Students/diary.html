@@ -520,6 +520,9 @@
 
   /* ---------- данные пользователя ---------- */
   await CollegeDB.init();
+  /* Данные панели управления обновляются у всех: сверяем версию */
+  if(CollegeDB.startSync) CollegeDB.startSync(20000);
+  if(CollegeDB.onSync) CollegeDB.onSync(()=>{ if(typeof refreshApps==='function') refreshApps(); });
   const s=CollegeDB.session();
   const u=(s&&CollegeDB.findByLogin(s.login))||CollegeDB.findByLogin('demo');
   if(u){

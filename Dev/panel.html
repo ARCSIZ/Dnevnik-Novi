@@ -256,6 +256,10 @@
     clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2800); }
 
   await CollegeDB.init();
+  if(CollegeDB.startSync) CollegeDB.startSync(15000);
+  if(CollegeDB.onSync) CollegeDB.onSync(()=>{
+    renderUsers(); renderGroups(); renderStats();
+  });
   const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
   const RN=r=>CollegeDB.roleName?CollegeDB.roleName(r):'Студент';
   const s=CollegeDB.session();

@@ -112,7 +112,34 @@
     return { users: [], ts: 0 };
   }
   function saveMirror() {
-    sSet(LS_MIRROR, JSON.stringify({ users: mirror.users, ts: Date.now() }));
+    sSet(LS_MIRROR, JSON.stringify({
+      users: mirror.users, groups: groupsCache, dataVersion: dataVersion, ts: Date.now()
+    }));
+  }
+  var dataVersion = 0;        // версия данных на сервере
+  var syncListeners = [];     // подписчики на обновление данных
+  var syncTimer = null;
+
+  /** Уведомить страницы: данные изменились, перерисуйте интерфейс */
+  function emitSync() {
+    syncListeners.forEach(function (cb) { try { cb(); } catch (e) { /* noop */ } });
+  }
+
+  /** Синхронизировать кэш с сервером, если версия данных изменилась */
+  function checkVersion() {
+    if (mode !== 'server') return Promise.resolve(false);
+    return request('/api/version').then(function (d) {
+      if (Number(d.dataVersion) !== Number(dataVersion)) {
+        dataVersion = Number(d.dataVersion) || 0;
+        return CollegeDB.refresh().then(function () {
+          return CollegeDB.loadGroups();
+        }).then(function () {
+          emitSync();
+          return true;
+        });
+      }
+      return false;
+    }).catch(function () { return false; });
   }
 
   /* Куда ходить за API: рассчитываем от адреса самого скрипта */
@@ -192,7 +219,9 @@
       if (mode !== 'server') return Promise.resolve(false);
       var loadFull = function () {
         return request('/api/users').then(function (d) {
-          mirror.users = d.users || []; saveMirror(); return true;
+          mirror.users = d.users || [];
+          if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          saveMirror(); return true;
         });
       };
       var loadLogins = function () {
@@ -208,6 +237,32 @@
         });
       };
       return loadFull().catch(loadLogins).catch(function () { return false; });
+    },
+
+    /** Подписка на изменения данных: cb() вызывается при обновлении кэша */
+    onSync: function (cb) {
+      if (typeof cb === 'function') syncListeners.push(cb);
+    },
+
+    /** Текущая версия данных сервера */
+    dataVersion: function () { return dataVersion; },
+
+    /** Принудительно свериться с сервером и обновить кэш */
+    sync: function () { return checkVersion(); },
+
+    /** Запустить фоновую синхронизацию (вызывается страницами один раз) */
+    startSync: function (intervalMs) {
+      if (mode !== 'server' || syncTimer) return;
+      var period = intervalMs || 30000;
+      checkVersion();
+      syncTimer = setInterval(checkVersion, period);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) checkVersion();       // обновляем при возврате на вкладку
+      });
+      window.addEventListener('focus', function () { checkVersion(); });
+      window.addEventListener('storage', function (ev) {
+        if (ev && ev.key === LS_MIRROR) emitSync();  // другая вкладка того же браузера
+      });
     },
 
     /** Все пользователи (без хэшей паролей) */
@@ -332,6 +387,8 @@
       if (mode !== 'server') return Promise.resolve(clone(localDb.groups || []));
       return request('/api/groups').then(function (d) {
         groupsCache = d.groups || [];
+        if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+        saveMirror();
         return clone(groupsCache);
       }).catch(function () { return clone(groupsCache); });
     },
@@ -346,7 +403,11 @@
       if (!item.code || !item.name) return Promise.reject(new Error('Укажите код и название'));
       if (mode === 'server') {
         return request('/api/groups', { method: 'POST', body: item })
-          .then(function (d) { groupsCache = d.groups || groupsCache; return true; });
+          .then(function (d) {
+            if (d.groups) groupsCache = d.groups;
+            if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+            saveMirror(); emitSync(); return true;
+          });
       }
       localDb.groups = localDb.groups || [];
       if (localDb.groups.some(function (x) { return x.code === item.code; }))
@@ -359,7 +420,11 @@
     removeGroup: function (code) {
       if (mode === 'server') {
         return request('/api/groups/' + encodeURIComponent(code), { method: 'DELETE' })
-          .then(function (d) { groupsCache = d.groups || groupsCache; return true; })
+          .then(function (d) {
+            if (d.groups) groupsCache = d.groups;
+            if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+            saveMirror(); emitSync(); return true;
+          })
           .catch(function () { return false; });
       }
       localDb.groups = (localDb.groups || []).filter(function (x) { return x.code !== code; });
@@ -376,7 +441,11 @@
       };
       if (mode === 'server') {
         return request('/api/users', { method: 'POST', body: p }).then(function (d) {
-          if (d.user) { mirror.users.push(d.user); saveMirror(); }
+          if (d.user) {
+            mirror.users.push(d.user);
+            if (d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+            saveMirror();
+          }
           return d.user;
         });
       }
@@ -393,12 +462,13 @@
       var r = normRole(role);
       if (mode === 'server') {
         return request('/api/users/' + encodeURIComponent(login), { method: 'PUT', body: { role: r } })
-          .then(function () {
+          .then(function (d) {
             var l = normLogin(login);
             mirror.users = mirror.users.map(function (u) {
               return normLogin(u.login) === l ? Object.assign({}, u, { role: r }) : u;
             });
-            saveMirror();
+            if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+            saveMirror(); emitSync();
             return true;
           })
           .catch(function () { return false; });
