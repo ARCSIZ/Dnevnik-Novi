@@ -102,6 +102,7 @@
     if (r === 'prefect' || r === 'starosta') return 'prefect';
     if (r === 'curator') return 'curator';
     if (r === 'teacher') return 'teacher';
+    if (r === 'support' || r === 'operator') return 'support';
     return 'student';
   }
 
@@ -365,6 +366,39 @@
         });
     },
 
+    /* ------------------------------- поддержка ------------------------------- */
+    /** Публичная статистика колледжа (без авторизации) */
+    stats: function () {
+      if (mode !== 'server') return Promise.resolve(null);
+      return request('/api/stats').catch(function () { return null; });
+    },
+
+    /** Версия чатов — для живого обновления без перезагрузки */
+    supportVersion: function () {
+      return request('/api/support/version')
+        .then(function (d) { return Number(d.version) || 0; })
+        .catch(function () { return -1; });
+    },
+
+    /** Список чатов: оператору — все, пользователю — свой */
+    supportChats: function () {
+      return request('/api/support/chats')
+        .then(function (d) { return d.chats || []; })
+        .catch(function () { return []; });
+    },
+
+    /** Сообщения чата (оператор указывает login собеседника) */
+    supportChat: function (login) {
+      return request('/api/support/chat' + (login ? ('?login=' + encodeURIComponent(login)) : ''))
+        .catch(function () { return { messages: [] }; });
+    },
+
+    /** Отправить сообщение: {to?, text, image} */
+    supportSend: function (data) {
+      return request('/api/support/message', { method: 'POST', body: data })
+        .then(function (d) { return d.message; });
+    },
+
     /* --------------------------- оповещения и техработы --------------------------- */
     /** Публичное состояние системы: {maintenance, notice} */
     state: function () { return clone(stateCache); },
@@ -539,7 +573,7 @@
 
     roleName: function (role) {
       var map = { student: 'Студент', prefect: 'Староста', curator: 'Куратор',
-        teacher: 'Преподаватель', dev: 'Разработчик' };
+        teacher: 'Преподаватель', support: 'Оператор поддержки', dev: 'Разработчик' };
       return map[normRole(role)] || 'Студент';
     },
 

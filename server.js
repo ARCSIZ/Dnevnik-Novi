@@ -61,8 +61,10 @@ function normRole(role) {
   if (r === 'prefect' || r === 'starosta') return 'prefect';
   if (r === 'curator') return 'curator';
   if (r === 'teacher') return 'teacher';
+  if (r === 'support' || r === 'operator') return 'support';
   return 'student';
 }
+const isSupport = u => ['support', 'dev'].indexOf(normRole(u && u.role)) > -1;
 
 /* Ключ ФИО: «Селецкая Екатерина Леонидовна» и «Селецкая Е.Л.» → «селецкая е л» */
 function fioKey(s) {
@@ -424,6 +426,27 @@ async function handleAPI(req, res, pathname) {
     });
   }
 
+  /* --- публичная статистика для главной страницы --- */
+  if (route === '/api/stats' && method === 'GET') {
+    const users = db.data.users || [];
+    const groups = db.data.groups || [];
+    const courses = {};
+    groups.forEach(g => { courses[g.course] = true; });
+    const sch = db.data.schedule || {};
+    let subjects = {};
+    Object.keys(sch).forEach(g => Object.keys(sch[g] || {}).forEach(d =>
+      (sch[g][d] || []).forEach(L => { if (!L.event && L.name) subjects[L.name] = true; })));
+    return sendJSON(res, 200, {
+      users: users.length,
+      students: users.filter(u => ['student', 'prefect'].indexOf(normRole(u.role)) > -1).length,
+      teachers: users.filter(u => normRole(u.role) === 'teacher').length,
+      groups: groups.length,
+      courses: Object.keys(courses).length,
+      subjects: Object.keys(subjects).length,
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
   /* --- публичное состояние: техработы и объявление (без авторизации) --- */
   if (route === '/api/state' && method === 'GET') {
     return sendJSON(res, 200, {
@@ -587,6 +610,99 @@ async function handleAPI(req, res, pathname) {
     await db.save();
     bumpDataVersion();
     return sendJSON(res, 200, { ok: true, group: g, dataVersion: db.data.dataVersion });
+  }
+
+  /* ========================= ПОДДЕРЖКА: ЧАТЫ =========================
+     GET  /api/support/chats            — список чатов (свой / все для оператора)
+     GET  /api/support/chat?login=...   — сообщения конкретного чата
+     POST /api/support/message          — отправить {to, text, image}
+     GET  /api/support/version          — версия чатов для живого обновления  */
+  function supportStore() {
+    db.data.support = db.data.support || { version: 0, chats: {} };
+    return db.data.support;
+  }
+  function chatOf(login) {
+    const st = supportStore();
+    st.chats[login] = st.chats[login] || { login, messages: [], updatedAt: null, unreadUser: 0, unreadStaff: 0 };
+    return st.chats[login];
+  }
+
+  if (route === '/api/support/version' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const st = supportStore();
+    return sendJSON(res, 200, { version: Number(st.version) || 0 });
+  }
+
+  if (route === '/api/support/chats' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const st = supportStore();
+    if (isSupport(me)) {
+      const list = Object.keys(st.chats).map(l => {
+        const c = st.chats[l];
+        const u = findByLogin(l);
+        const last = c.messages[c.messages.length - 1] || null;
+        return {
+          login: l, fio: (u && u.fio) || l, group: (u && u.group) || '',
+          role: u ? normRole(u.role) : 'student',
+          last: last ? { text: String(last.text || '').slice(0, 120), at: last.at, from: last.from, image: !!last.image } : null,
+          count: c.messages.length, unread: c.unreadStaff || 0, updatedAt: c.updatedAt
+        };
+      }).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+      return sendJSON(res, 200, { chats: list, version: Number(st.version) || 0 });
+    }
+    const c = chatOf(me.login);
+    return sendJSON(res, 200, {
+      chats: [{ login: me.login, count: c.messages.length, unread: c.unreadUser || 0 }],
+      version: Number(st.version) || 0
+    });
+  }
+
+  if (route === '/api/support/chat' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const want = new URL(req.url, 'http://x').searchParams.get('login') || me.login;
+    if (!isSupport(me) && normLogin(want) !== normLogin(me.login)) {
+      return sendJSON(res, 403, { error: 'Нет доступа к чужому чату' });
+    }
+    const st = supportStore();
+    const c = chatOf(want);
+    if (isSupport(me)) c.unreadStaff = 0; else c.unreadUser = 0;
+    await db.save();
+    const u = findByLogin(want);
+    return sendJSON(res, 200, {
+      login: want, fio: (u && u.fio) || want, group: (u && u.group) || '',
+      messages: c.messages, version: Number(st.version) || 0
+    });
+  }
+
+  if (route === '/api/support/message' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const body = await readBody(req);
+    if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Слишком большое вложение (лимит ~3 МБ)' });
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const staff = isSupport(me);
+    const target = staff ? String(body.to || '').trim() : me.login;
+    if (!target) return sendJSON(res, 400, { error: 'Не указан получатель' });
+    if (staff && !findByLogin(target)) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+
+    const text = String(body.text || '').slice(0, 8000);
+    const image = typeof body.image === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(body.image)
+      ? body.image.slice(0, 3 * 1024 * 1024) : '';
+    if (!text.trim() && !image) return sendJSON(res, 400, { error: 'Пустое сообщение' });
+
+    const st = supportStore();
+    const c = chatOf(target);
+    c.messages.push({
+      id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      from: staff ? 'staff' : 'user',
+      author: me.fio || me.login, authorLogin: me.login,
+      text, image, at: nowISO()
+    });
+    if (c.messages.length > 500) c.messages = c.messages.slice(-500);
+    c.updatedAt = nowISO();
+    if (staff) c.unreadUser = (c.unreadUser || 0) + 1; else c.unreadStaff = (c.unreadStaff || 0) + 1;
+    st.version = (Number(st.version) || 0) + 1;
+    await db.save();
+    return sendJSON(res, 201, { ok: true, version: st.version, message: c.messages[c.messages.length - 1] });
   }
 
   /* --- режим технических работ (только dev) --- */

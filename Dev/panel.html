@@ -234,8 +234,12 @@
             <button class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2 mk-role" data-role="curator">
               <i data-lucide="user-cog" class="w-4 h-4 text-amber-300"></i>Создать куратора</button>
           </div>
-          <button class="btn btn-ghost w-full h-[44px] text-sm flex items-center justify-center gap-2 mk-role mt-2.5" data-role="teacher">
-            <i data-lucide="graduation-cap" class="w-4 h-4 text-indigo-300"></i>Создать преподавателя (группа не нужна)</button>
+          <div class="grid grid-cols-2 gap-2.5 mt-2.5">
+            <button class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2 mk-role" data-role="teacher">
+              <i data-lucide="graduation-cap" class="w-4 h-4 text-indigo-300"></i>Преподаватель</button>
+            <button class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2 mk-role" data-role="support">
+              <i data-lucide="headset" class="w-4 h-4 text-cyan-300"></i>Оператор поддержки</button>
+          </div>
           <p class="text-[11.5px] text-white/30 mt-2">Для преподавателя указывайте ФИО полностью — система сама сопоставит его с сокращением в расписании (Селецкая Екатерина Леонидовна ↔ Селецкая Е.Л.).</p>
         </div>
 
@@ -387,7 +391,7 @@
   }));
 
   const ROLE_LIST=[['student','Студент'],['prefect','Староста'],['curator','Куратор'],
-    ['teacher','Преподаватель'],['dev','Разработчик']];
+    ['teacher','Преподаватель'],['support','Оператор поддержки'],['dev','Разработчик']];
   let filter='', openGroups={};
 
   function users(){ return CollegeDB.all(); }
@@ -524,8 +528,10 @@
     const fio=$('sFio').value.trim(), login=$('sLogin').value.trim(),
           pass=$('sPass').value;
     /* преподаватель не привязан к группе — он ведёт пары в разных группах */
-    const group=(role==='teacher')?'':$('sGroup').value;
-    if(role!=='teacher'&&!group) return toast('Сначала создайте группу');
+    /* преподаватель и оператор поддержки не привязаны к группе */
+    const noGroup=(role==='teacher'||role==='support');
+    const group=noGroup?'':$('sGroup').value;
+    if(!noGroup&&!group) return toast('Сначала создайте группу');
     if(fio.length<5) return toast('Укажите ФИО полностью');
     if(role==='teacher'&&fio.split(/\s+/).length<3)
       return toast('Для преподавателя укажите фамилию, имя и отчество');

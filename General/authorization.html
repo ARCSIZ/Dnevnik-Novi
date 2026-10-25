@@ -209,16 +209,16 @@
 
         <div class="mt-12 grid grid-cols-3 gap-6 max-w-md">
           <div class="border-t border-white/10 pt-4">
-            <p class="font-display text-2xl" style="font-weight:700">12 400+</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="stStudents">—</p>
             <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">студентов</p>
           </div>
           <div class="border-t border-white/10 pt-4">
-            <p class="font-display text-2xl" style="font-weight:700">380</p>
-            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">курсов</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="stGroups">—</p>
+            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">групп</p>
           </div>
           <div class="border-t border-white/10 pt-4">
-            <p class="font-display text-2xl" style="font-weight:700">24/7</p>
-            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">доступ</p>
+            <p class="font-display text-2xl" style="font-weight:700" id="stCourses">—</p>
+            <p class="mono text-[10px] tracking-[.2em] text-white/35 mt-1.5 uppercase">курсов</p>
           </div>
         </div>
       </div>
@@ -325,7 +325,7 @@
                 </button>
               </div>
 
-              <p class="it mono text-[10px] tracking-[.15em] text-white/25 text-center pt-1" style="--i:4">ДЕМО-ДОСТУП: DEMO / DEMO123</p>
+              <p class="it mono text-[10px] tracking-[.15em] text-white/25 text-center pt-1" style="--i:4">ЕДИНАЯ УЧЁТНАЯ ЗАПИСЬ КОЛЛЕДЖА</p>
             </form>
 
             <!-- ======== ФОРМА РЕГИСТРАЦИИ (3 ШАГА) ======== -->
@@ -480,6 +480,26 @@
 
   /* ---------- слой данных ---------- */
   const dbReady=CollegeDB.init();
+
+  /* ---------- реальная статистика колледжа ---------- */
+  function animateTo(el,target){
+    if(!el) return;
+    const dur=900, t0=performance.now(), from=0;
+    (function step(t){
+      const p=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-p,3);
+      el.textContent=Math.round(from+(target-from)*e).toLocaleString('ru-RU');
+      if(p<1) requestAnimationFrame(step);
+    })(t0);
+  }
+  dbReady.then(()=>{
+    if(!CollegeDB.stats) return;
+    CollegeDB.stats().then(st=>{
+      if(!st) return;
+      animateTo($('stStudents'),st.students||0);
+      animateTo($('stGroups'),st.groups||0);
+      animateTo($('stCourses'),st.courses||0);
+    });
+  });
 
   /* ---------- тост ---------- */
   let toastT;

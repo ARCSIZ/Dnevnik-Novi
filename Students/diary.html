@@ -1028,7 +1028,7 @@
      dev     → «Панель управления»
      student → «Поддержка», «Рейтинг»                                   */
   const ROLE_NAMES={ dev:'Разработчик', student:'Студент', prefect:'Староста',
-    curator:'Куратор', teacher:'Преподаватель' };
+    curator:'Куратор', teacher:'Преподаватель', support:'Оператор поддержки' };
   const myRole=CollegeDB.normRole?CollegeDB.normRole(u&&u.role):'student';
 
   /* Каждое приложение — отдельная HTML-страница со своей кнопкой «назад» */
@@ -1042,8 +1042,11 @@
     { id:'tjournal', roles:['teacher','dev'], url:'../Faculty/journal.html',
       name:'Журнал преподавателя', desc:'Оценки и отметки по вашим парам',
       icon:'graduation-cap', grad:'from-indigo-500 to-sky-500' },
+    { id:'desk', roles:['support','dev'], url:'../Faculty/support-desk.html',
+      name:'Пульт поддержки', desc:'Чаты пользователей и ответы операторов',
+      icon:'headset', grad:'from-cyan-500 to-indigo-500' },
     { id:'support', roles:['student','prefect','curator','teacher'], url:'support.html',
-      name:'Поддержка', desc:'Вопрос в учебную часть и техподдержку',
+      name:'Поддержка', desc:'Живой чат с оператором поддержки',
       icon:'life-buoy', grad:'from-cyan-500 to-sky-500' },
     { id:'rating',  roles:['student','prefect'], url:'rating.html',
       name:'Рейтинг', desc:'Ваше место в группе и на потоке',
