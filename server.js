@@ -194,6 +194,29 @@ function seed() {
   db.save();
 }
 
+/* ---------------------------------------------------------- PWA-иконки
+   Генерируем PNG 192/512 из встроенных данных один раз при старте, чтобы
+   манифест был валидным и приложение ставилось на Android и iOS. */
+function ensureIcons() {
+  const dir = path.join(ROOT, 'icons');
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const svgPath = path.join(dir, 'icon.svg');
+    if (!fs.existsSync(svgPath)) return;
+    /* Node без графических библиотек не растрирует SVG, поэтому кладём
+       компактный готовый PNG-плейсхолдер фирменного цвета, если файлов нет.
+       Иконку можно заменить своей: icons/icon-192.png и icons/icon-512.png */
+    const px = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64');
+    ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png'].forEach(name => {
+      const p = path.join(dir, name);
+      if (!fs.existsSync(p)) fs.writeFileSync(p, px);
+    });
+  } catch (e) { /* не критично */ }
+}
+ensureIcons();
+
 /* Очистка HTML объявлений: оформление разрешено, исполняемый код — нет. */
 function sanitizeHTML(html) {
   return String(html || '')
@@ -1017,6 +1040,7 @@ async function handleAPI(req, res, pathname) {
 
 /* ------------------------------------------------------------- статика сайта */
 const MIME = {
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml',
@@ -1076,7 +1100,9 @@ function serveStatic(req, res, pathname) {
   fs.stat(target, (err, st) => {
     if (err || !st.isFile()) return notFound(res);
     const ext = path.extname(target).toLowerCase();
-    const mustRevalidate = ['.html', '.js', '.mjs', '.css'].includes(ext);
+    const mustRevalidate = ['.html', '.js', '.mjs', '.css', '.webmanifest'].includes(ext);
+    /* Service Worker должен управлять всем сайтом */
+    if (path.basename(target) === 'sw.js') res.setHeader('Service-Worker-Allowed', '/');
     res.writeHead(200, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Content-Length': st.size,

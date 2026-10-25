@@ -511,7 +511,10 @@
                   <button id="swLite" class="w-11 h-6 rounded-full bg-white/10 relative transition-colors" data-on="0" aria-label="Лёгкий режим"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all"></span></button>
                 </div>
               </div>
-              <div class="grid sm:grid-cols-2 gap-3 mt-5">
+              <button class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-5" id="btnInstall">
+                <i data-lucide="smartphone" class="w-4 h-4"></i>Установить приложение на телефон
+              </button>
+              <div class="grid sm:grid-cols-2 gap-3 mt-3">
                 <button class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2" id="btnExport"><i data-lucide="download" class="w-4 h-4"></i>Выгрузить данные</button>
                 <button class="btn btn-danger h-[46px] text-sm flex items-center justify-center gap-2" id="btnLogout"><i data-lucide="log-out" class="w-4 h-4"></i>Выйти</button>
               </div>
@@ -545,6 +548,7 @@
   <script src="../Data/users.js?v=20260302-groups3"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
+  <script src="../General/pwa.js?v=1"></script>
 <script>
 (async function(){
   lucide.createIcons();
@@ -1200,6 +1204,18 @@
   }));
 
   /* ---------- кнопки аккаунта ---------- */
+  const bi=$('btnInstall');
+  if(bi) bi.addEventListener('click',()=>{
+    if(window.CollegePWA&&CollegePWA.isInstalled()) return toast('Приложение уже установлено');
+    if(window.CollegePWA) CollegePWA.install();
+    else toast('Установка доступна в Chrome на Android и Safari на iPhone');
+  });
+  if(window.CollegePWA&&CollegePWA.isInstalled()&&bi){
+    bi.innerHTML='<i data-lucide="check-circle-2" class="w-4 h-4"></i>Приложение установлено';
+    bi.classList.remove('btn-primary'); bi.classList.add('btn-ghost');
+    lucide.createIcons();
+  }
+
   $('btnExport').addEventListener('click',()=>{ CollegeDB.exportFile(); toast('Файл college-users.json выгружен'); });
   $('btnLogout').addEventListener('click',()=>{ CollegeDB.clearSession(); toast('Сессия завершена — переходим ко входу…');
     setTimeout(()=>location.href='../General/authorization.html',1100); });
