@@ -234,6 +234,9 @@
             <button class="btn btn-ghost h-[44px] text-sm flex items-center justify-center gap-2 mk-role" data-role="curator">
               <i data-lucide="user-cog" class="w-4 h-4 text-amber-300"></i>Создать куратора</button>
           </div>
+          <button class="btn btn-ghost w-full h-[44px] text-sm flex items-center justify-center gap-2 mk-role mt-2.5" data-role="teacher">
+            <i data-lucide="graduation-cap" class="w-4 h-4 text-indigo-300"></i>Создать преподавателя (группа не нужна)</button>
+          <p class="text-[11.5px] text-white/30 mt-2">Для преподавателя указывайте ФИО полностью — система сама сопоставит его с сокращением в расписании (Селецкая Екатерина Леонидовна ↔ Селецкая Е.Л.).</p>
         </div>
 
         <p class="lbl">Существующие группы</p>
@@ -383,7 +386,8 @@
     document.querySelectorAll('.sec').forEach(x=>x.classList.toggle('hidden',x.id!=='sec-'+id));
   }));
 
-  const ROLE_LIST=[['student','Студент'],['prefect','Староста'],['curator','Куратор'],['dev','Разработчик']];
+  const ROLE_LIST=[['student','Студент'],['prefect','Староста'],['curator','Куратор'],
+    ['teacher','Преподаватель'],['dev','Разработчик']];
   let filter='', openGroups={};
 
   function users(){ return CollegeDB.all(); }
@@ -518,14 +522,18 @@
   document.querySelectorAll('.mk-role').forEach(b=>b.addEventListener('click',()=>{
     const role=b.dataset.role;
     const fio=$('sFio').value.trim(), login=$('sLogin').value.trim(),
-          pass=$('sPass').value, group=$('sGroup').value;
-    if(!group) return toast('Сначала создайте группу');
+          pass=$('sPass').value;
+    /* преподаватель не привязан к группе — он ведёт пары в разных группах */
+    const group=(role==='teacher')?'':$('sGroup').value;
+    if(role!=='teacher'&&!group) return toast('Сначала создайте группу');
     if(fio.length<5) return toast('Укажите ФИО полностью');
+    if(role==='teacher'&&fio.split(/\s+/).length<3)
+      return toast('Для преподавателя укажите фамилию, имя и отчество');
     if(!/^[a-zA-Z0-9_.-]{3,}$/.test(login)) return toast('Логин: от 3 символов, латиница');
     if(pass.length<6) return toast('Пароль — от 6 символов');
     CollegeDB.createUser({login:login,pass:pass,fio:fio,group:group,role:role}).then(()=>{
       $('sFio').value=''; $('sLogin').value=''; $('sPass').value='';
-      toast(RN(role)+' «'+login+'» создан для группы '+group);
+      toast(RN(role)+' «'+login+'» создан'+(group?(' для группы '+group):''));
       renderUsers(); renderGroups(); renderStats();
     }).catch(err=>toast(err.message==='LOGIN_TAKEN'?'Логин уже занят':'Ошибка создания аккаунта'));
   }));

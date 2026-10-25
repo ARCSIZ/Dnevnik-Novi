@@ -95,13 +95,25 @@
   var mirror = loadMirror(); // локальная копия пользователей для синхронных методов
   var groupsCache = [];      // справочник групп с сервера
 
-  /* Роли системы: student | prefect (староста) | curator | dev */
+  /* Роли: student | prefect (староста) | curator | teacher | dev */
   function normRole(role) {
     var r = String(role || 'student').toLowerCase();
     if (r === 'dev' || r === 'developer' || r === 'admin') return 'dev';
     if (r === 'prefect' || r === 'starosta') return 'prefect';
     if (r === 'curator') return 'curator';
+    if (r === 'teacher') return 'teacher';
     return 'student';
+  }
+
+  /* Ключ ФИО для сравнения профиля и расписания:
+     «Селецкая Екатерина Леонидовна» и «Селецкая Е.Л.» → «селецкая е л» */
+  function fioKey(s) {
+    var p = String(s || '').replace(/\./g, ' ').trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return '';
+    var out = p[0].toLowerCase();
+    if (p[1]) out += ' ' + p[1].charAt(0).toLowerCase();
+    if (p[2]) out += ' ' + p[2].charAt(0).toLowerCase();
+    return out;
   }
 
   function loadMirror() {
@@ -526,8 +538,20 @@
     normRole: normRole,
 
     roleName: function (role) {
-      var map = { student: 'Студент', prefect: 'Староста', curator: 'Куратор', dev: 'Разработчик' };
+      var map = { student: 'Студент', prefect: 'Староста', curator: 'Куратор',
+        teacher: 'Преподаватель', dev: 'Разработчик' };
       return map[normRole(role)] || 'Студент';
+    },
+
+    /** Сравнение ФИО: профиль (полное) ↔ расписание (с инициалами) */
+    fioKey: fioKey,
+
+    /** Расписания всех групп — нужно преподавателю для поиска своих пар */
+    loadAllSchedules: function () {
+      if (mode !== 'server') return Promise.resolve({});
+      return request('/api/schedule/all')
+        .then(function (d) { return d.schedule || {}; })
+        .catch(function () { return {}; });
     },
 
     /** Список групп (синхронно) */

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Журнал преподавателя — Колледж·ID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M9 10h14v12H9z' fill='white'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  body{font-family:'Manrope',sans-serif;background:#07070d}
+  .font-display{font-family:'Unbounded',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  *{scrollbar-width:none;-ms-overflow-style:none}
+  *::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}
+  svg{flex:none;display:block}
+  html,body{overflow-x:clip}
+
+  .orb{position:absolute;border-radius:9999px;filter:blur(90px)}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;background:radial-gradient(circle,rgba(99,102,241,.26),transparent 65%);animation:f1 16s ease-in-out infinite}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;background:radial-gradient(circle,rgba(14,165,233,.2),transparent 65%);animation:f2 20s ease-in-out infinite}
+  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-30px)}}
+  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,40px)}}
+  .gridln{position:fixed;inset:0;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%);
+    mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%)}
+
+  .card{background:rgba(13,13,21,.8);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
+  .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;max-width:100%;
+    font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+  .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);
+    cursor:pointer;transition:background .22s,transform .18s}
+  .back:hover{background:rgba(255,255,255,.1);color:#fff}
+  .back:active{transform:scale(.96)}
+  .btn{border-radius:13px;font-weight:700;cursor:pointer;transition:transform .2s,filter .25s}
+  .btn:active{transform:scale(.985)}
+  .btn-primary{background:linear-gradient(120deg,#4f46e5,#0ea5e9);color:#fff;box-shadow:0 14px 30px -10px rgba(79,70,229,.5)}
+  .btn-primary:hover{filter:brightness(1.12)}
+  .dbox{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+    font-size:13px;line-height:1.6;color:rgba(255,255,255,.55)}
+  .lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px}
+  select{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+    border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;font-family:inherit}
+  select option{background:#15151f}
+
+  .day{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:13px;cursor:pointer;
+    background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);min-width:0;transition:all .2s}
+  .day:hover{background:rgba(255,255,255,.07)}
+  .day .dw{font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase}
+  .day .dn{font-size:14px;font-weight:800}
+  .day .dd{width:4px;height:4px;border-radius:99px;background:rgba(129,140,248,.7)}
+  .day .dd.off{background:transparent}
+  .day.sel{background:linear-gradient(145deg,#4f46e5,#0ea5e9);border-color:transparent}
+  .day.sel .dw,.day.sel .dn{color:#fff}
+  .day.today{border-color:rgba(129,140,248,.5)}
+
+  .les{width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;text-align:left;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:all .2s}
+  .les:hover{border-color:rgba(129,140,248,.4);background:rgba(99,102,241,.07)}
+  .les.on{border-color:rgba(129,140,248,.65);background:linear-gradient(100deg,rgba(99,102,241,.16),rgba(14,165,233,.08))}
+  .les-n{width:30px;height:30px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#a5b4fc}
+  .les.on .les-n{background:linear-gradient(135deg,#4f46e5,#0ea5e9);border-color:transparent;color:#fff}
+
+  .stu{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:15px;flex-wrap:wrap;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+  .stu.absent{border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.05)}
+  .stu.ok{border-color:rgba(52,211,153,.22)}
+  .sb{width:30px;height:30px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;cursor:pointer;transition:all .18s;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4)}
+  .sb:hover{background:rgba(255,255,255,.1);color:#fff}
+  .sb.on.sН{background:rgba(148,163,184,.25);color:#e2e8f0;border-color:rgba(148,163,184,.5)}
+  .sb.on.sУ{background:rgba(244,63,94,.22);color:#fda4af;border-color:rgba(244,63,94,.5)}
+  .sb.on.sБ{background:rgba(34,211,238,.2);color:#67e8f9;border-color:rgba(34,211,238,.5)}
+  .sb.on.sО{background:rgba(251,191,36,.2);color:#fcd34d;border-color:rgba(251,191,36,.5)}
+
+  .gwrap{position:relative;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .gch{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12.5px;cursor:pointer;transition:filter .18s}
+  .gch:hover{filter:brightness(1.3)}
+  .gadd{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:16px;line-height:1;cursor:pointer;transition:all .18s;
+    background:rgba(99,102,241,.14);border:1px dashed rgba(129,140,248,.45);color:#a5b4fc}
+  .gadd:hover{background:rgba(99,102,241,.3);color:#fff;border-style:solid}
+  .gpick{position:absolute;top:calc(100% + 6px);right:0;z-index:30;display:flex;gap:5px;padding:6px;
+    border-radius:12px;background:rgba(16,16,26,.98);border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 18px 40px -12px rgba(0,0,0,.8)}
+  .gpick.hidden{display:none}
+  .gp{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px;cursor:pointer;transition:filter .18s}
+  .gp:hover{filter:brightness(1.35)}
+  .m5{background:rgba(52,211,153,.18);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+  .m4{background:rgba(99,102,241,.18);color:#a5b4fc;border:1px solid rgba(99,102,241,.35)}
+  .m3{background:rgba(251,191,36,.16);color:#fcd34d;border:1px solid rgba(251,191,36,.35)}
+  .m2{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.35)}
+
+  .scard{padding:13px 14px;border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07)}
+  .scard .v{font-family:'Unbounded',sans-serif;font-weight:700;font-size:21px;line-height:1.1}
+  .scard .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px}
+
+  .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  html.lite .st{animation:none;opacity:1}
+  html.lite .orb{animation:none}
+
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);opacity:0;transition:.3s;z-index:99;
+    pointer-events:none;max-width:calc(100vw - 24px)}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body class="text-white antialiased min-h-screen">
+
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="orb o1"></div><div class="orb o2"></div>
+  </div>
+  <div class="gridln" aria-hidden="true"></div>
+
+  <div class="relative max-w-[1000px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+
+    <header class="flex items-center justify-between gap-3 mb-7">
+      <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i>Приложения</button>
+      <span class="pill"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-indigo-300"></i>ПРЕПОДАВАТЕЛЬ</span>
+    </header>
+
+    <div id="denied" class="hidden">
+      <div class="card rounded-[24px] p-8 text-center">
+        <span class="w-16 h-16 mx-auto mb-5 rounded-[20px] bg-rose-500/15 border border-rose-400/30 flex items-center justify-center">
+          <i data-lucide="lock" class="w-7 h-7 text-rose-300"></i></span>
+        <h1 class="font-display text-xl mb-2" style="font-weight:800">Доступ ограничен</h1>
+        <p class="text-white/45 text-[13.5px] max-w-[380px] mx-auto mb-6" id="deniedMsg">
+          Журнал доступен только преподавателям.</p>
+        <button id="btnBack3" class="btn btn-primary w-full max-w-[300px] mx-auto h-[46px] text-sm flex items-center justify-center gap-2">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться</button>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
+        <div class="flex items-start gap-4">
+          <span class="w-14 h-14 shrink-0 rounded-[18px] bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+            <i data-lucide="graduation-cap" class="w-6 h-6 text-white"></i></span>
+          <div class="min-w-0">
+            <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-1.5">ПРИЛОЖЕНИЕ · FACULTY</p>
+            <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800">Журнал преподавателя</h1>
+            <p class="text-white/45 text-[13.5px] mt-2"><b id="myFio" class="text-white/70">—</b> · только ваши пары</p>
+          </div>
+        </div>
+        <div class="mt-5 pt-5 border-t border-white/[.07]">
+          <label class="lbl">Группа</label>
+          <select id="groupSelect"></select>
+          <p class="text-[11.5px] text-white/30 mt-2" id="groupHint">—</p>
+        </div>
+      </div>
+
+      <div class="st card rounded-[24px] p-4 sm:p-5 mb-5" style="--i:1">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <button id="wPrev" class="back" style="padding:8px 12px"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+          <div class="text-center min-w-0">
+            <p id="wLabel" class="font-semibold text-[14px] truncate">—</p>
+            <p id="wRange" class="mono text-[9.5px] tracking-[.2em] text-white/30 mt-0.5 truncate">—</p>
+          </div>
+          <button id="wNext" class="back" style="padding:8px 12px"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+        </div>
+        <div id="weekDays" class="grid grid-cols-7 gap-1 sm:gap-1.5"></div>
+      </div>
+
+      <div class="st card rounded-[24px] p-5 sm:p-6 mb-5" style="--i:2">
+        <h2 class="font-semibold text-[15px] mb-3" id="dayTitle">—</h2>
+        <div id="lessons" class="space-y-2"></div>
+      </div>
+
+      <div id="marksCard" class="st card rounded-[24px] p-5 sm:p-6 hidden" style="--i:3">
+        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h2 class="font-semibold text-[15px]" id="lesTitle">—</h2>
+          <span class="pill" id="lesMeta">—</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="statCards"></div>
+        <div id="marksList" class="space-y-2"></div>
+        <button id="saveMarks" class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-4">
+          <i data-lucide="save" class="w-4 h-4"></i>Сохранить журнал
+        </button>
+      </div>
+
+      <button id="btnBack2" class="back w-full justify-center mt-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения</button>
+    </div>
+  </div>
+
+  <div id="toast">
+    <div class="flex items-center gap-2.5 bg-[#15151f]/95 border border-white/10 rounded-full px-5 py-3 shadow-2xl backdrop-blur">
+      <i data-lucide="info" class="w-4 h-4 text-indigo-300"></i><span id="toastMsg" class="text-sm text-white/80"></span>
+    </div>
+  </div>
+
+  <script src="../Data/users.js?v=20260302-groups3"></script>
+  <script src="../General/notice.js?v=1"></script>
+  <script src="../General/perf.js"></script>
+<script>
+(async function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const BACK='../Students/diary.html?view=apps';
+  const goBack=()=>{ location.href=BACK; };
+  ['btnBack','btnBack2','btnBack3'].forEach(id=>{const b=$(id); if(b) b.addEventListener('click',goBack);});
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') goBack(); });
+  let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show');
+    clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),3000); }
+
+  const DAYS_SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const STATUSES=[['Н','Не был'],['У','Неуважительная'],['Б','Больничный'],['О','Опоздал']];
+  const pad=n=>String(n).padStart(2,'0');
+  const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(0,0,0,0);return x;};
+  const startOfWeek=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;};
+  const sameDay=(a,b)=>keyOf(a)===keyOf(b);
+
+  await CollegeDB.init();
+  if(CollegeDB.startSync) CollegeDB.startSync(20000);
+  const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
+  const FK=s=>CollegeDB.fioKey?CollegeDB.fioKey(s):String(s||'').toLowerCase();
+
+  const s=CollegeDB.session();
+  let me=(s&&CollegeDB.findByLogin(s.login))||null;
+  if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
+  const role=R(me&&me.role);
+
+  if(['teacher','dev'].indexOf(role)<0){
+    $('denied').classList.remove('hidden'); lucide.createIcons(); return;
+  }
+  $('app').classList.remove('hidden');
+  $('myFio').textContent=(me&&me.fio)||'—';
+  const MY_KEY=FK(me&&me.fio);
+
+  /* ---- расписания всех групп: ищем свои пары по ФИО ---- */
+  let ALL=await (CollegeDB.loadAllSchedules?CollegeDB.loadAllSchedules():Promise.resolve({}));
+  function myGroups(){
+    const out=[];
+    Object.keys(ALL).forEach(g=>{
+      const days=ALL[g]||{};
+      const has=Object.keys(days).some(d=>(days[d]||[]).some(L=>!L.event&&FK(L.teacher)===MY_KEY));
+      if(has) out.push(g);
+    });
+    return out;
+  }
+  let groups=myGroups();
+  if(role==='dev'&&!groups.length) groups=(CollegeDB.listGroups()||[]).map(g=>g.code);
+
+  if(!groups.length){
+    $('groupSelect').innerHTML='<option>Пар не найдено</option>';
+    $('groupHint').innerHTML='В расписании нет пар с преподавателем «'+((me&&me.fio)||'')+'».<br>'
+      +'Проверьте, что староста указал вас как <span class="mono">'+shortFio(me&&me.fio)+'</span>';
+    lucide.createIcons();
+  }
+  function shortFio(f){
+    const p=String(f||'').trim().split(/\s+/);
+    return p.length>2?(p[0]+' '+p[1][0]+'.'+p[2][0]+'.'):(p[0]||'');
+  }
+
+  let GROUP=groups[0]||'';
+  $('groupSelect').innerHTML=groups.map(g=>'<option value="'+g+'">'+g+'</option>').join('')
+    ||'<option value="">—</option>';
+  if(groups.length) $('groupHint').textContent='Ваши пары найдены в группах: '+groups.join(', ');
+
+  let attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
+  let weekStart=startOfWeek(new Date());
+  let selected=new Date(); selected.setHours(0,0,0,0);
+  let picked=null;
+
+  $('groupSelect').addEventListener('change',async e=>{
+    GROUP=e.target.value; picked=null;
+    attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
+    renderWeek(); renderDay();
+  });
+
+  /* ---- мои пары конкретного дня ---- */
+  function myLessons(date){
+    const list=((ALL[GROUP]||{})[keyOf(date)]||[]);
+    return list.filter(L=>!L.event&&FK(L.teacher)===MY_KEY).sort((a,b)=>(a.slot||0)-(b.slot||0));
+  }
+  function students(){
+    return CollegeDB.all().filter(x=>x.group===GROUP&&['student','prefect'].indexOf(R(x.role))>-1)
+      .sort((a,b)=>String(a.fio||a.login).localeCompare(String(b.fio||b.login),'ru'));
+  }
+  function att(){ const k=keyOf(selected); attendance[k]=attendance[k]||{}; return attendance[k]; }
+  function rec(login,slot){
+    const a=att(); a[login]=a[login]||{};
+    a[login][slot]=a[login][slot]||{st:'',g:[]};
+    return a[login][slot];
+  }
+
+  function renderWeek(){
+    const last=addDays(weekStart,6), today=new Date();
+    const ml=weekStart.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    $('wLabel').textContent=ml.charAt(0).toUpperCase()+ml.slice(1);
+    $('wRange').textContent=weekStart.getDate()+' — '+last.getDate()+' '+
+      last.toLocaleDateString('ru-RU',{month:'short'}).replace('.','').toUpperCase();
+    let html='';
+    for(let i=0;i<7;i++){
+      const d=addDays(weekStart,i), n=myLessons(d).length;
+      html+='<button type="button" class="day'+(sameDay(d,selected)?' sel':'')+(sameDay(d,today)?' today':'')
+        +'" data-key="'+keyOf(d)+'"><span class="dw">'+DAYS_SHORT[i]+'</span>'
+        +'<span class="dn">'+d.getDate()+'</span><span class="dd'+(n?'':' off')+'"></span></button>';
+    }
+    $('weekDays').innerHTML=html;
+    $('weekDays').querySelectorAll('.day').forEach(b=>b.addEventListener('click',()=>{
+      const p=b.dataset.key.split('-');
+      selected=new Date(+p[0],+p[1]-1,+p[2]); picked=null;
+      renderWeek(); renderDay();
+    }));
+  }
+  $('wPrev').addEventListener('click',()=>{ weekStart=addDays(weekStart,-7); selected=addDays(selected,-7); picked=null; renderWeek(); renderDay(); });
+  $('wNext').addEventListener('click',()=>{ weekStart=addDays(weekStart,7); selected=addDays(selected,7); picked=null; renderWeek(); renderDay(); });
+
+  function renderDay(){
+    const t=selected.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+    $('dayTitle').textContent=t.charAt(0).toUpperCase()+t.slice(1);
+    const list=myLessons(selected);
+    if(!list.length){
+      $('lessons').innerHTML='<div class="dbox">В этот день у вас нет пар в группе '+(GROUP||'—')+'</div>';
+      $('marksCard').classList.add('hidden'); return;
+    }
+    $('lessons').innerHTML=list.map(L=>
+      '<button type="button" class="les'+(picked===L.slot?' on':'')+'" data-slot="'+L.slot+'">'
+      +'<span class="les-n">'+L.slot+'</span>'
+      +'<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-semibold truncate">'+L.name+'</span>'
+      +'<span class="block text-[11px] text-white/35 mt-0.5 truncate">'+(L.start||'')+'–'+(L.end||'')
+      +(L.room?(' · каб. '+L.room):'')+' · '+(L.type||'')+'</span></span>'
+      +'<i data-lucide="chevron-right" class="w-4 h-4 text-white/30"></i></button>').join('');
+    lucide.createIcons();
+    $('lessons').querySelectorAll('.les').forEach(b=>b.addEventListener('click',()=>{
+      picked=Number(b.dataset.slot); renderDay(); renderMarks();
+    }));
+    if(picked!==null) renderMarks(); else $('marksCard').classList.add('hidden');
+  }
+
+  function renderMarks(){
+    const L=myLessons(selected).find(x=>x.slot===picked);
+    if(!L){ $('marksCard').classList.add('hidden'); return; }
+    $('marksCard').classList.remove('hidden');
+    $('lesTitle').textContent=L.name;
+    $('lesMeta').textContent=L.slot+' пара · '+(L.start||'')+'–'+(L.end||'');
+
+    const list=students();
+    if(!list.length){
+      $('marksList').innerHTML='<div class="dbox">В группе '+GROUP+' нет студентов</div>';
+      $('statCards').innerHTML=''; return;
+    }
+    let present=0, gSum=0, gCnt=0;
+    list.forEach(u=>{
+      const r=(att()[u.login]||{})[picked]||{};
+      if(!r.st) present++;
+      (r.g||[]).forEach(g=>{ gSum+=g; gCnt++; });
+    });
+    $('statCards').innerHTML=
+       '<div class="scard"><p class="k">На паре</p><p class="v text-emerald-300">'+present+' / '+list.length+'</p></div>'
+      +'<div class="scard"><p class="k">Отсутствуют</p><p class="v text-rose-300">'+(list.length-present)+'</p></div>'
+      +'<div class="scard"><p class="k">Оценок</p><p class="v">'+gCnt+'</p></div>'
+      +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'+(gCnt?(gSum/gCnt).toFixed(2):'—')+'</p></div>';
+
+    $('marksList').innerHTML=list.map(u=>{
+      const r=(att()[u.login]||{})[picked]||{st:'',g:[]};
+      return '<div class="stu'+(r.st?' absent':' ok')+'">'
+        +'<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-semibold truncate">'+(u.fio||u.login)+'</span>'
+        +'<span class="block text-[11px] text-white/35 mono mt-0.5">'+u.login+'</span></span>'
+        +'<span class="flex gap-1.5 shrink-0">'
+          +STATUSES.map(st=>'<button type="button" class="sb s'+st[0]+(r.st===st[0]?' on':'')
+            +'" data-st="'+st[0]+'" data-login="'+u.login+'" title="'+st[1]+'">'+st[0]+'</button>').join('')
+        +'</span>'
+        +'<span class="gwrap shrink-0 border-l border-white/10 pl-2.5" data-login="'+u.login+'">'
+          +(r.g||[]).map((g,gi)=>'<button type="button" class="gch m'+g+'" data-login="'+u.login+'" data-gi="'+gi+'" title="Убрать">'+g+'</button>').join('')
+          +'<button type="button" class="gadd" data-login="'+u.login+'" title="Добавить оценку">+</button>'
+          +'<span class="gpick hidden" data-login="'+u.login+'">'
+            +[5,4,3,2].map(g=>'<button type="button" class="gp m'+g+'" data-g="'+g+'" data-login="'+u.login+'">'+g+'</button>').join('')
+          +'</span></span>'
+        +'</div>';
+    }).join('');
+
+    $('marksList').querySelectorAll('.sb').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const r=rec(b.dataset.login,picked);
+      r.st=(r.st===b.dataset.st)?'':b.dataset.st;
+      renderMarks();
+    }));
+    $('marksList').querySelectorAll('.gadd').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const p=$('marksList').querySelector('.gpick[data-login="'+b.dataset.login+'"]');
+      $('marksList').querySelectorAll('.gpick').forEach(x=>{ if(x!==p) x.classList.add('hidden'); });
+      if(p) p.classList.toggle('hidden');
+    }));
+    $('marksList').querySelectorAll('.gp').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const r=rec(b.dataset.login,picked);
+      r.g=r.g||[]; r.g.push(Number(b.dataset.g));
+      renderMarks();
+      const p=$('marksList').querySelector('.gpick[data-login="'+b.dataset.login+'"]');
+      if(p) p.classList.remove('hidden');
+    }));
+    $('marksList').querySelectorAll('.gch').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const r=rec(b.dataset.login,picked);
+      (r.g||[]).splice(Number(b.dataset.gi),1);
+      renderMarks();
+    }));
+  }
+
+  $('saveMarks').addEventListener('click',()=>{
+    if(!GROUP) return toast('Группа не выбрана');
+    const btn=$('saveMarks'); btn.disabled=true; btn.style.opacity='.6';
+    CollegeDB.saveAttendance(GROUP,attendance).then(()=>{
+      btn.disabled=false; btn.style.opacity='';
+      toast('Журнал сохранён — оценки видны студентам');
+    }).catch(err=>{
+      btn.disabled=false; btn.style.opacity='';
+      toast(err&&err.status===403?'Можно вести журнал только своих пар'
+        :'Ошибка: '+((err&&err.message)||'нет связи'));
+    });
+  });
+
+  if(CollegeDB.onSync) CollegeDB.onSync(()=>{
+    if(CollegeDB.loadAllSchedules) CollegeDB.loadAllSchedules().then(d=>{ ALL=d||{}; renderWeek(); renderDay(); });
+    if(GROUP) CollegeDB.loadAttendance(GROUP).then(d=>{ attendance=d; if(picked!==null) renderMarks(); });
+  });
+
+  renderWeek(); renderDay();
+})();
+</script>
+</body>
+</html>

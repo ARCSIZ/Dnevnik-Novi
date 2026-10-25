@@ -60,7 +60,18 @@ function normRole(role) {
   if (r === 'dev' || r === 'developer' || r === 'admin') return 'dev';
   if (r === 'prefect' || r === 'starosta') return 'prefect';
   if (r === 'curator') return 'curator';
+  if (r === 'teacher') return 'teacher';
   return 'student';
+}
+
+/* Ключ ФИО: «Селецкая Екатерина Леонидовна» и «Селецкая Е.Л.» → «селецкая е л» */
+function fioKey(s) {
+  const p = String(s || '').replace(/\./g, ' ').trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return '';
+  let out = p[0].toLowerCase();
+  if (p[1]) out += ' ' + p[1].charAt(0).toLowerCase();
+  if (p[2]) out += ' ' + p[2].charAt(0).toLowerCase();
+  return out;
 }
 const isDev = u => normRole(u && u.role) === 'dev';
 
@@ -441,6 +452,15 @@ async function handleAPI(req, res, pathname) {
     });
   }
 
+  /* Все расписания — преподаватель ищет свои пары по всем группам */
+  if (route === '/api/schedule/all' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    return sendJSON(res, 200, {
+      schedule: db.data.schedule || {},
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
   if (route === '/api/schedule' && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const myRole = normRole(me.role);
@@ -504,36 +524,50 @@ async function handleAPI(req, res, pathname) {
     const g = String(body.group || '').trim();
     if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
     const canEdit = myRole === 'dev'
+      || myRole === 'teacher'
       || ((myRole === 'prefect' || myRole === 'curator') && String(me.group || '') === g);
     if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на журнал этой группы' });
 
+    /* Преподаватель правит только свои пары — сверяем ФИО с расписанием */
+    const ownsLesson = (date, slot) => {
+      const list = ((db.data.schedule || {})[g] || {})[date] || [];
+      const L = list.find(x => String(x.slot) === String(slot));
+      return !!L && fioKey(L.teacher) === fioKey(me.fio);
+    };
+
     const STATUS_SET = ['', 'Н', 'У', 'Б', 'О'];
+    const MAX_GRADES = 8;
     db.data.attendance = db.data.attendance || {};
     db.data.attendance[g] = db.data.attendance[g] || {};
     const days = body.days && typeof body.days === 'object' ? body.days : {};
     Object.keys(days).slice(0, 400).forEach(date => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       const perUser = days[date] && typeof days[date] === 'object' ? days[date] : {};
-      const clean = {};
+      const existing = db.data.attendance[g][date] || {};
+      /* преподаватель дописывает в общий журнал, не затирая чужие пары */
+      const clean = myRole === 'teacher' ? JSON.parse(JSON.stringify(existing)) : {};
       Object.keys(perUser).slice(0, 200).forEach(login => {
         const slots = perUser[login] && typeof perUser[login] === 'object' ? perUser[login] : {};
-        const cs = {};
+        const cs = myRole === 'teacher' ? (clean[login] || {}) : {};
         Object.keys(slots).slice(0, 12).forEach(slot => {
+          if (myRole === 'teacher' && !ownsLesson(date, slot)) return;   // чужая пара
           const rec = slots[slot] || {};
           const st = STATUS_SET.indexOf(String(rec.st || '')) > -1 ? String(rec.st || '') : '';
-          /* Оценки ставят только куратор и разработчик. Для старосты
-             сохраняем ранее выставленные оценки без изменений. */
+          /* Оценки ставят куратор, преподаватель и разработчик.
+             Для старосты сохраняем ранее выставленные без изменений. */
           let g2;
           if (myRole === 'prefect') {
-            const prev = ((db.data.attendance[g][date] || {})[login] || {})[String(slot)] || {};
+            const prev = (existing[login] || {})[String(slot)] || {};
             g2 = Array.isArray(prev.g) ? prev.g : [];
           } else {
             g2 = Array.isArray(rec.g)
-              ? rec.g.map(Number).filter(n => n >= 2 && n <= 5).slice(0, 4) : [];
+              ? rec.g.map(Number).filter(n => n >= 2 && n <= 5).slice(0, MAX_GRADES) : [];
           }
           if (st || g2.length) cs[String(slot)] = { st, g: g2 };
+          else delete cs[String(slot)];
         });
         if (Object.keys(cs).length) clean[String(login)] = cs;
+        else delete clean[String(login)];
       });
       if (Object.keys(clean).length) db.data.attendance[g][date] = clean;
       else delete db.data.attendance[g][date];

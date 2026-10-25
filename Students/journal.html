@@ -109,11 +109,22 @@
   .sb.on.sУ{background:rgba(244,63,94,.22);color:#fda4af;border-color:rgba(244,63,94,.5)}
   .sb.on.sБ{background:rgba(34,211,238,.2);color:#67e8f9;border-color:rgba(34,211,238,.5)}
   .sb.on.sО{background:rgba(251,191,36,.2);color:#fcd34d;border-color:rgba(251,191,36,.5)}
-  .gb{width:30px;height:30px;flex:none;border-radius:9px;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:12.5px;cursor:pointer;transition:all .18s;
-    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4)}
-  .gb:hover{background:rgba(255,255,255,.1);color:#fff}
-  .gb.on{background:rgba(99,102,241,.22);color:#c7d2fe;border-color:rgba(129,140,248,.5)}
+  /* блок оценок с добавлением нескольких */
+  .gwrap{position:relative;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .gch{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12.5px;cursor:pointer;transition:filter .18s}
+  .gch:hover{filter:brightness(1.3)}
+  .gadd{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:16px;line-height:1;cursor:pointer;transition:all .18s;
+    background:rgba(99,102,241,.14);border:1px dashed rgba(129,140,248,.45);color:#a5b4fc}
+  .gadd:hover{background:rgba(99,102,241,.3);color:#fff;border-style:solid}
+  .gpick{position:absolute;top:calc(100% + 6px);right:0;z-index:30;display:flex;gap:5px;padding:6px;
+    border-radius:12px;background:rgba(16,16,26,.98);border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 18px 40px -12px rgba(0,0,0,.8)}
+  .gpick.hidden{display:none}
+  .gp{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px;cursor:pointer;transition:filter .18s}
+  .gp:hover{filter:brightness(1.35)}
 
   .scard{padding:13px 14px;border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07)}
   .scard .v{font-family:'Unbounded',sans-serif;font-weight:700;font-size:21px;line-height:1.1}
@@ -723,10 +734,13 @@
             +'" data-st="'+s[0]+'" data-login="'+u.login+'" title="'+s[1]+'">'+s[0]+'</button>').join('')
         +'</span>'
         +(isCurator
-          ? '<span class="flex gap-1.5 shrink-0 border-l border-white/10 pl-2.5">'
-            +[5,4,3,2].map(g=>'<button type="button" class="gb'+((r.g||[]).indexOf(g)>-1?' on':'')
-              +'" data-g="'+g+'" data-login="'+u.login+'" title="Оценка '+g+'">'+g+'</button>').join('')
-            +'</span>'
+          ? '<span class="gwrap shrink-0 border-l border-white/10 pl-2.5" data-login="'+u.login+'">'
+            +(r.g||[]).map((g,gi)=>'<button type="button" class="gch m'+g+'" data-login="'+u.login+'"'
+              +' data-gi="'+gi+'" title="Нажмите, чтобы убрать">'+g+'</button>').join('')
+            +'<button type="button" class="gadd" data-login="'+u.login+'" title="Добавить оценку">+</button>'
+            +'<span class="gpick hidden" data-login="'+u.login+'">'
+              +[5,4,3,2].map(g=>'<button type="button" class="gp m'+g+'" data-g="'+g+'" data-login="'+u.login+'">'+g+'</button>').join('')
+            +'</span></span>'
           : '')
         +'</div>';
     }).join('');
@@ -738,13 +752,31 @@
       r.st=(r.st===b.dataset.st)?'':b.dataset.st;
       renderMarks();
     }));
-    $('marksList').querySelectorAll('.gb').forEach(b=>b.addEventListener('click',e=>{
+    /* «+» открывает выбор, можно ставить несколько оценок подряд */
+    $('marksList').querySelectorAll('.gadd').forEach(b=>b.addEventListener('click',e=>{
       e.stopPropagation();
-      const r=rec(b.dataset.login,pickedSlot), g=Number(b.dataset.g);
-      const i=(r.g||[]).indexOf(g);
-      if(i>-1) r.g.splice(i,1); else r.g.push(g);
+      const pick=$('marksList').querySelector('.gpick[data-login="'+b.dataset.login+'"]');
+      $('marksList').querySelectorAll('.gpick').forEach(p=>{ if(p!==pick) p.classList.add('hidden'); });
+      if(pick) pick.classList.toggle('hidden');
+    }));
+    $('marksList').querySelectorAll('.gp').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const r=rec(b.dataset.login,pickedSlot);
+      r.g=r.g||[]; r.g.push(Number(b.dataset.g));
+      renderMarks();
+      /* оставляем выбор открытым — удобно ставить несколько оценок */
+      const pick=$('marksList').querySelector('.gpick[data-login="'+b.dataset.login+'"]');
+      if(pick) pick.classList.remove('hidden');
+    }));
+    $('marksList').querySelectorAll('.gch').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const r=rec(b.dataset.login,pickedSlot);
+      (r.g||[]).splice(Number(b.dataset.gi),1);
       renderMarks();
     }));
+    document.addEventListener('click',()=>{
+      document.querySelectorAll('.gpick').forEach(p=>p.classList.add('hidden'));
+    },{once:true});
     if(isCurator) $('marksList').querySelectorAll('.stu-name').forEach(n=>n.addEventListener('click',()=>{
       openStudent(n.closest('.stu').dataset.login);
     }));
