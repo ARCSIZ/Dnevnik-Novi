@@ -537,7 +537,12 @@
   if(CollegeDB.startSync) CollegeDB.startSync(20000);
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{ if(typeof refreshApps==='function') refreshApps(); });
   const s=CollegeDB.session();
-  const u=(s&&CollegeDB.findByLogin(s.login))||CollegeDB.findByLogin('demo');
+  /* Берём пользователя с сервера: группу могли сменить в панели управления,
+     и локальное зеркало в браузере бывает устаревшим. */
+  let u=(s&&CollegeDB.findByLogin(s.login))||CollegeDB.findByLogin('demo');
+  if(s&&CollegeDB.me){
+    try{ const fresh=await CollegeDB.me(); if(fresh) u=fresh; }catch(e){}
+  }
   if(u){
     const parts=u.fio.split(/\s+/);
     const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
@@ -672,22 +677,42 @@
      Реальные занятия хранятся по датам: { "2025-03-17": [ {...}, ... ] }.
      Пока данных нет — дни показываются пустыми. Заполнять будет
      «Панель управления» (роль «Разработчик») или серверный API. */
-  /* Расписание группы приходит с сервера — его ведёт староста или куратор */
-  let SCHEDULE={};
-  const MY_GROUP=(u&&u.group)||'';
-  if(MY_GROUP){
-    CollegeDB.loadSchedule(MY_GROUP).then(d=>{
-      SCHEDULE=d||{};
+  /* Расписание и журнал группы приходят с сервера */
+  let SCHEDULE={}, ATT={};
+  let MY_GROUP=(u&&u.group)||'';
+  const MY_LOGIN=(u&&u.login)||'';
+
+  function pullGroupData(){
+    if(!MY_GROUP){ SCHEDULE={}; ATT={}; return Promise.resolve(); }
+    return Promise.all([
+      CollegeDB.loadSchedule(MY_GROUP),
+      CollegeDB.loadAttendance?CollegeDB.loadAttendance(MY_GROUP):Promise.resolve({})
+    ]).then(([sch,att])=>{
+      SCHEDULE=sch||{}; ATT=att||{};
       if(typeof renderWeek==='function'){ renderWeek(); renderDay(); }
       if(typeof applyStats==='function') applyStats();
     });
-    if(CollegeDB.onSync) CollegeDB.onSync(()=>{
-      CollegeDB.loadSchedule(MY_GROUP).then(d=>{
-        SCHEDULE=d||{};
-        if(typeof renderWeek==='function'){ renderWeek(); renderDay(); }
-      });
-    });
   }
+  pullGroupData();
+
+  if(CollegeDB.onSync) CollegeDB.onSync(()=>{
+    /* группа могла смениться — перепроверяем профиль, затем данные */
+    const after=()=>pullGroupData();
+    if(CollegeDB.me){
+      CollegeDB.me().then(fresh=>{
+        if(fresh){
+          const changed=(fresh.group||'')!==MY_GROUP;
+          u=fresh; MY_GROUP=fresh.group||'';
+          if(changed){
+            const g1=$('accGroup'), g2=$('rowGroup');
+            if(g1) g1.textContent=MY_GROUP||'—';
+            if(g2) g2.textContent=MY_GROUP||'—';
+          }
+        }
+        after();
+      }).catch(after);
+    } else after();
+  });
 
   function scheduleFor(date){
     const key=keyOf(date);
@@ -698,14 +723,18 @@
       const isEvent=!!L.event;
       const st=toMin(L.start|| (isEvent?'00:00':bell.start));
       const en=L.end?toMin(L.end):(isEvent?st+60:st+LESSON_MIN);
-      const stat=L.status?STATUSES.find(s=>s[0]===L.status)||null:null;
+      /* отметки и оценки из журнала старосты/куратора */
+      const mine=((ATT[key]||{})[MY_LOGIN]||{})[String(L.slot)]||{};
+      const code=mine.st||L.status||'';
+      const stat=code?STATUSES.find(s=>s[0]===code)||null:null;
+      const grades=(Array.isArray(mine.g)&&mine.g.length)?mine.g
+        :(Array.isArray(L.grades)?L.grades:[]);
       return {
         id:key+'#'+i, idx:i, slot:Number(L.slot)||0, start:st, end:en,
         name:L.name||'Занятие', teacher:L.teacher||'', room:L.room||'',
         building:L.building||'', type:L.type||'Лекция', event:isEvent,
         replaced:!!L.replaced, replacedFrom:L.replacedFrom||'',
-        grades:Array.isArray(L.grades)?L.grades:[],
-        status:stat, hw:L.hw||L.note||null, comment:L.comment||null
+        grades:grades, status:stat, hw:L.hw||L.note||null, comment:L.comment||null
       };
     }).sort((a,b)=>a.start-b.start);
   }
@@ -973,9 +1002,13 @@
     let grades=[], lessons=0, absents=0;
     Object.keys(SCHEDULE).forEach(k=>{
       (SCHEDULE[k]||[]).forEach(L=>{
+        if(L.event) return;
         lessons++;
-        if(Array.isArray(L.grades)) grades=grades.concat(L.grades.map(Number).filter(n=>n>=2&&n<=5));
-        if(L.status&&['Н','У'].indexOf(L.status)>-1) absents++;
+        const mine=((ATT[k]||{})[MY_LOGIN]||{})[String(L.slot)]||{};
+        const g=(Array.isArray(mine.g)&&mine.g.length)?mine.g:(Array.isArray(L.grades)?L.grades:[]);
+        grades=grades.concat(g.map(Number).filter(n=>n>=2&&n<=5));
+        const st=mine.st||L.status||'';
+        if(['Н','У'].indexOf(st)>-1) absents++;
       });
     });
     const gpa=grades.length?grades.reduce((a,b)=>a+b,0)/grades.length:0;

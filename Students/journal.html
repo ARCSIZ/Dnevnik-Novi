@@ -690,7 +690,7 @@
       $('statCards').innerHTML=''; return;
     }
 
-    /* статистика дня */
+    /* статистика дня: староста видит только посещаемость, куратор — и оценки */
     let present=0, byStatus={'Н':0,'У':0,'Б':0,'О':0}, gradeSum=0, gradeCnt=0;
     list.forEach(u=>{
       const r=(att()[u.login]||{})[pickedSlot]||{};
@@ -698,14 +698,19 @@
       (r.g||[]).forEach(g=>{ gradeSum+=g; gradeCnt++; });
     });
     const gpa=gradeCnt?(gradeSum/gradeCnt).toFixed(2):'—';
+    const canGrades=(role==='curator'||role==='dev');
+    $('statCards').className='grid gap-3 mb-5 '+(canGrades?'grid-cols-2 sm:grid-cols-4':'grid-cols-2 sm:grid-cols-4');
     $('statCards').innerHTML=
        '<div class="scard"><p class="k">На паре</p><p class="v text-emerald-300">'+present+' / '+list.length+'</p></div>'
       +'<div class="scard"><p class="k">Отсутствуют</p><p class="v text-rose-300">'+(list.length-present)+'</p></div>'
-      +'<div class="scard"><p class="k">Оценок</p><p class="v">'+gradeCnt+'</p></div>'
-      +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'+gpa+'</p></div>';
+      +(canGrades
+        ? '<div class="scard"><p class="k">Оценок</p><p class="v">'+gradeCnt+'</p></div>'
+          +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'+gpa+'</p></div>'
+        : '<div class="scard"><p class="k">Неуважит. (У)</p><p class="v text-rose-300">'+(byStatus['У']||0)+'</p></div>'
+          +'<div class="scard"><p class="k">Опоздали (О)</p><p class="v text-amber-300">'+(byStatus['О']||0)+'</p></div>');
 
-    /* список студентов */
-    const isCurator=(role==='curator'||role==='dev');
+    /* список студентов: оценки доступны только куратору */
+    const isCurator=canGrades;
     $('marksList').innerHTML=list.map(u=>{
       const r=(att()[u.login]||{})[pickedSlot]||{st:'',g:[]};
       return '<div class="stu'+(r.st?' absent':' ok')+(isCurator?' clickable':'')+'" data-login="'+u.login+'">'
@@ -717,10 +722,13 @@
           +STATUSES.map(s=>'<button type="button" class="sb s'+s[0]+(r.st===s[0]?' on':'')
             +'" data-st="'+s[0]+'" data-login="'+u.login+'" title="'+s[1]+'">'+s[0]+'</button>').join('')
         +'</span>'
-        +'<span class="flex gap-1.5 shrink-0 border-l border-white/10 pl-2.5">'
-          +[5,4,3,2].map(g=>'<button type="button" class="gb'+((r.g||[]).indexOf(g)>-1?' on':'')
-            +'" data-g="'+g+'" data-login="'+u.login+'" title="Оценка '+g+'">'+g+'</button>').join('')
-        +'</span></div>';
+        +(isCurator
+          ? '<span class="flex gap-1.5 shrink-0 border-l border-white/10 pl-2.5">'
+            +[5,4,3,2].map(g=>'<button type="button" class="gb'+((r.g||[]).indexOf(g)>-1?' on':'')
+              +'" data-g="'+g+'" data-login="'+u.login+'" title="Оценка '+g+'">'+g+'</button>').join('')
+            +'</span>'
+          : '')
+        +'</div>';
     }).join('');
 
     $('lessonPick').onchange=e=>{ pickedSlot=Number(e.target.value); renderMarks(); };

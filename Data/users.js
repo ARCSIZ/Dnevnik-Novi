@@ -302,6 +302,33 @@
         });
     },
 
+    /**
+     * Актуальные данные текущего пользователя прямо с сервера.
+     * Важно для смены группы: зеркало в браузере может быть устаревшим.
+     */
+    me: function () {
+      if (mode !== 'server') {
+        var s = CollegeDB.session();
+        return Promise.resolve(s ? CollegeDB.findByLogin(s.login) : null);
+      }
+      return request('/api/me').then(function (d) {
+        if (d && d.user) {
+          var l = normLogin(d.user.login), found = false;
+          mirror.users = mirror.users.map(function (u) {
+            if (normLogin(u.login) === l) { found = true; return d.user; }
+            return u;
+          });
+          if (!found) mirror.users.push(d.user);
+          saveMirror();
+          return d.user;
+        }
+        return null;
+      }).catch(function () {
+        var s = CollegeDB.session();
+        return s ? CollegeDB.findByLogin(s.login) : null;
+      });
+    },
+
     /** Журнал посещаемости и оценок группы */
     loadAttendance: function (group) {
       if (mode !== 'server') {

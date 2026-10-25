@@ -521,8 +521,16 @@ async function handleAPI(req, res, pathname) {
         Object.keys(slots).slice(0, 12).forEach(slot => {
           const rec = slots[slot] || {};
           const st = STATUS_SET.indexOf(String(rec.st || '')) > -1 ? String(rec.st || '') : '';
-          const g2 = Array.isArray(rec.g)
-            ? rec.g.map(Number).filter(n => n >= 2 && n <= 5).slice(0, 4) : [];
+          /* Оценки ставят только куратор и разработчик. Для старосты
+             сохраняем ранее выставленные оценки без изменений. */
+          let g2;
+          if (myRole === 'prefect') {
+            const prev = ((db.data.attendance[g][date] || {})[login] || {})[String(slot)] || {};
+            g2 = Array.isArray(prev.g) ? prev.g : [];
+          } else {
+            g2 = Array.isArray(rec.g)
+              ? rec.g.map(Number).filter(n => n >= 2 && n <= 5).slice(0, 4) : [];
+          }
           if (st || g2.length) cs[String(slot)] = { st, g: g2 };
         });
         if (Object.keys(cs).length) clean[String(login)] = cs;
