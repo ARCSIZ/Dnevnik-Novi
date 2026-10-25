@@ -366,7 +366,8 @@ function validateRegistration(body) {
 function publicUser(u) {
   return {
     id: u.id, login: u.login, fio: u.fio, birth: u.birth, group: u.group,
-    role: u.role || 'student', registeredAt: u.registeredAt
+    role: normRole(u.role), registeredAt: u.registeredAt,
+    avatar: u.avatar || '', banner: u.banner || '', accent: u.accent || ''
   };
 }
 function findByLogin(login) {
@@ -610,6 +611,75 @@ async function handleAPI(req, res, pathname) {
     await db.save();
     bumpDataVersion();
     return sendJSON(res, 200, { ok: true, group: g, dataVersion: db.data.dataVersion });
+  }
+
+  /* --- оформление профиля: аватар, баннер, акцент --- */
+  if (route === '/api/profile' && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const body = await readBody(req);
+    if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Файл слишком большой (лимит ~3 МБ)' });
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const img = v => (typeof v === 'string' && /^data:image\/(png|jpe?g|webp|gif);base64,/.test(v))
+      ? v.slice(0, 3 * 1024 * 1024) : '';
+    if (body.avatar !== undefined) me.avatar = body.avatar === '' ? '' : img(body.avatar);
+    if (body.banner !== undefined) me.banner = body.banner === '' ? '' : img(body.banner);
+    if (body.accent !== undefined) me.accent = String(body.accent || '').slice(0, 24);
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, user: publicUser(me), dataVersion: db.data.dataVersion });
+  }
+
+  /* --- рейтинг группы: места 1..10 без ФИО --- */
+  if (route === '/api/rating' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const g = new URL(req.url, 'http://x').searchParams.get('group') || me.group || '';
+    const att = (db.data.attendance || {})[g] || {};
+    const sch = (db.data.schedule || {})[g] || {};
+    const members = (db.data.users || []).filter(u =>
+      u.group === g && ['student', 'prefect'].indexOf(normRole(u.role)) > -1);
+
+    const rows = members.map(u => {
+      let sum = 0, cnt = 0, lessons = 0, miss = 0, late = 0;
+      Object.keys(sch).forEach(date => {
+        (sch[date] || []).forEach(L => {
+          if (L.event) return;
+          lessons++;
+          const r = ((att[date] || {})[u.login] || {})[String(L.slot)] || {};
+          (r.g || []).forEach(x => { sum += Number(x) || 0; cnt++; });
+          if (r.st === 'Н' || r.st === 'У') miss++;
+          if (r.st === 'О') late++;
+        });
+      });
+      const gpa = cnt ? sum / cnt : 0;
+      const attendance = lessons ? (lessons - miss) / lessons : 0;
+      /* 70% успеваемость + 30% посещаемость, штраф за опоздания */
+      const score = cnt || lessons
+        ? (gpa / 5) * 70 + attendance * 30 - Math.min(5, late * 0.5)
+        : 0;
+      return {
+        login: u.login, avatar: u.avatar || '', accent: u.accent || '',
+        initials: String(u.fio || u.login).trim().split(/\s+/).slice(0, 2)
+          .map(w => w[0] || '').join('').toUpperCase(),
+        gpa: Number(gpa.toFixed(2)), attendance: Math.round(attendance * 100),
+        grades: cnt, score: Number(Math.max(0, score).toFixed(2))
+      };
+    }).filter(r => r.grades > 0 || r.score > 0)
+      .sort((a, b) => b.score - a.score || b.gpa - a.gpa);
+
+    const top = rows.slice(0, 10).map((r, i) => ({
+      place: i + 1, avatar: r.avatar, accent: r.accent, initials: r.initials,
+      gpa: r.gpa, attendance: r.attendance, grades: r.grades, score: r.score,
+      me: r.login === me.login
+    }));
+    const myIndex = rows.findIndex(r => r.login === me.login);
+    return sendJSON(res, 200, {
+      group: g, total: members.length, top,
+      myPlace: myIndex > -1 ? myIndex + 1 : null,
+      my: myIndex > -1 ? {
+        gpa: rows[myIndex].gpa, attendance: rows[myIndex].attendance,
+        grades: rows[myIndex].grades, score: rows[myIndex].score
+      } : null
+    });
   }
 
   /* ========================= ПОДДЕРЖКА: ЧАТЫ =========================

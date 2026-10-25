@@ -366,6 +366,29 @@
         });
     },
 
+    /** Сохранить оформление профиля: {avatar, banner, accent} */
+    saveProfile: function (data) {
+      if (mode !== 'server') return Promise.reject(new Error('Нужен сервер'));
+      return request('/api/profile', { method: 'PUT', body: data })
+        .then(function (d) {
+          if (d && d.user) {
+            var l = normLogin(d.user.login);
+            mirror.users = mirror.users.map(function (u) {
+              return normLogin(u.login) === l ? d.user : u;
+            });
+            saveMirror(); emitSync();
+          }
+          return d && d.user;
+        });
+    },
+
+    /** Рейтинг группы: топ-10 без ФИО */
+    rating: function (group) {
+      if (mode !== 'server') return Promise.resolve(null);
+      return request('/api/rating' + (group ? ('?group=' + encodeURIComponent(group)) : ''))
+        .catch(function () { return null; });
+    },
+
     /* ------------------------------- поддержка ------------------------------- */
     /** Публичная статистика колледжа (без авторизации) */
     stats: function () {

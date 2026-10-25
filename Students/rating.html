@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{color-scheme:dark}
@@ -20,104 +19,99 @@
   svg{flex:none;display:block}
   html,body{overflow-x:clip}
 
-  .orb{position:absolute;border-radius:9999px;filter:blur(90px)}
-  .o1{width:520px;height:520px;top:-170px;left:-150px;background:radial-gradient(circle,rgba(245,158,11,.2),transparent 65%);animation:f1 16s ease-in-out infinite}
-  .o2{width:460px;height:460px;bottom:-170px;right:-130px;background:radial-gradient(circle,rgba(168,85,247,.22),transparent 65%);animation:f2 20s ease-in-out infinite}
-  @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-30px)}}
-  @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,40px)}}
+  .orb{position:fixed;border-radius:9999px;filter:blur(90px);pointer-events:none}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;background:radial-gradient(circle,rgba(245,158,11,.2),transparent 65%)}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;background:radial-gradient(circle,rgba(168,85,247,.2),transparent 65%)}
   .gridln{position:fixed;inset:0;pointer-events:none;
     background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
-    background-size:56px 56px;
-    -webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%);
+    background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%);
     mask-image:radial-gradient(ellipse 90% 80% at 50% 30%,black 30%,transparent 75%)}
 
-  .card{background:rgba(13,13,21,.8);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  .card{background:rgba(13,13,21,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
     border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
-  .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:20px}
+  .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:18px}
   .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;max-width:100%;
     font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
     border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
   .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);
-    cursor:pointer;transition:background .22s,border-color .22s,color .22s,transform .18s}
-  .back:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)}
-  .back:active{transform:scale(.96)}
-  .dbox{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+    cursor:pointer;transition:background .22s}
+  .back:hover{background:rgba(255,255,255,.1);color:#fff}
+  .dbox{padding:16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
     font-size:13px;line-height:1.6;color:rgba(255,255,255,.55)}
-  .lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
-    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px}
-  .lead{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;
-    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
-  .lead.me{background:linear-gradient(100deg,rgba(245,158,11,.14),rgba(168,85,247,.08));border-color:rgba(251,191,36,.4)}
-  .pos{width:30px;height:30px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
-  .pos.p1{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1c1917;border-color:transparent}
-  .pos.p2{background:linear-gradient(135deg,#e5e7eb,#9ca3af);color:#1c1917;border-color:transparent}
-  .pos.p3{background:linear-gradient(135deg,#d97706,#b45309);color:#fff;border-color:transparent}
+
+  /* пьедестал */
+  .podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;margin-bottom:18px}
+  .pod{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px 14px;border-radius:20px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden}
+  .pod.p1{background:linear-gradient(180deg,rgba(251,191,36,.18),rgba(255,255,255,.03));
+    border-color:rgba(251,191,36,.45);box-shadow:0 0 36px -10px rgba(251,191,36,.5)}
+  .pod.p2{background:linear-gradient(180deg,rgba(226,232,240,.12),rgba(255,255,255,.03));border-color:rgba(203,213,225,.35)}
+  .pod.p3{background:linear-gradient(180deg,rgba(217,119,6,.16),rgba(255,255,255,.03));border-color:rgba(217,119,6,.4)}
+  .pod .crown{position:absolute;top:8px;right:10px;font-size:15px}
+  .av{border-radius:50%;background-size:cover;background-position:center;display:flex;align-items:center;
+    justify-content:center;font-weight:800;color:#fff;border:2px solid rgba(255,255,255,.18)}
+  .pod.p1 .av{width:76px;height:76px;font-size:24px;border-color:rgba(251,191,36,.7);
+    box-shadow:0 0 28px -6px rgba(251,191,36,.7)}
+  .pod.p2 .av,.pod.p3 .av{width:60px;height:60px;font-size:19px}
+  .plc{font-family:'Unbounded',sans-serif;font-weight:800;font-size:20px;line-height:1}
+  .pod.p1 .plc{color:#fcd34d;font-size:24px} .pod.p2 .plc{color:#e2e8f0} .pod.p3 .plc{color:#fdba74}
+
+  /* строки 4–10 */
+  .row{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:16px;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);transition:all .2s}
+  .row:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.13)}
+  .row.me{background:linear-gradient(100deg,rgba(99,102,241,.16),rgba(168,85,247,.08));
+    border-color:rgba(129,140,248,.5);box-shadow:0 0 24px -10px rgba(99,102,241,.6)}
+  .row .av{width:42px;height:42px;font-size:14px}
+  .num{width:28px;flex:none;text-align:center;font-family:'Unbounded',sans-serif;font-weight:800;
+    font-size:15px;color:rgba(255,255,255,.35)}
+  .row.me .num{color:#a5b4fc}
+  .bar{height:5px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f59e0b,#a855f7);
+    transition:width .8s cubic-bezier(.22,1,.36,1)}
+
+  .scard{padding:14px;border-radius:18px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07)}
+  .scard .v{font-family:'Unbounded',sans-serif;font-weight:700;font-size:22px;line-height:1.1}
+  .scard .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px}
 
   .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
   html.lite .st{animation:none;opacity:1}
-  html.lite .orb{animation:none}
 </style>
 </head>
 <body class="text-white antialiased min-h-screen">
 
-  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-    <div class="orb o1"></div><div class="orb o2"></div>
-  </div>
-  <div class="gridln" aria-hidden="true"></div>
+  <div class="orb o1"></div><div class="orb o2"></div><div class="gridln"></div>
 
-  <div class="relative max-w-[980px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+  <div class="relative max-w-[820px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
 
     <header class="flex items-center justify-between gap-3 mb-7">
       <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i>Приложения</button>
       <span class="pill"><i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-300"></i>РЕЙТИНГ</span>
     </header>
 
-    <div class="st card rounded-[24px] p-6 sm:p-8 mb-5" style="--i:0">
+    <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
       <div class="flex items-start gap-4">
         <span class="w-14 h-14 shrink-0 rounded-[18px] bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-600/30">
-          <i data-lucide="trophy" class="w-6 h-6 text-white"></i>
-        </span>
+          <i data-lucide="trophy" class="w-6 h-6 text-white"></i></span>
         <div class="min-w-0">
           <p class="mono text-[10px] tracking-[.3em] text-amber-300/70 mb-1.5">ПРИЛОЖЕНИЕ · STUDENTS</p>
-          <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800">Рейтинг</h1>
-          <p class="text-white/45 text-[13.5px] mt-2" id="sub">Ваше место в группе и на потоке</p>
+          <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800">Рейтинг группы</h1>
+          <p class="text-white/45 text-[13.5px] mt-2">Топ-10 по успеваемости и посещаемости · <b id="grp" class="text-white/70">—</b></p>
         </div>
       </div>
+      <p class="text-[11.5px] text-white/30 mt-4 pt-4 border-t border-white/[.07]">
+        Рейтинг анонимный: показываются только аватары и места. Формула: 70% средний балл + 30% посещаемость, минус штраф за опоздания.
+      </p>
     </div>
 
-    <div class="grid sm:grid-cols-3 gap-4 mb-5">
-      <div class="st panel p-5" style="--i:1">
-        <div class="flex items-center justify-between mb-2">
-          <span class="mono text-[9.5px] tracking-[.2em] text-white/30">МЕСТО В ГРУППЕ</span>
-          <i data-lucide="users" class="w-4 h-4 text-amber-300/70"></i>
-        </div>
-        <p class="font-display text-2xl" style="font-weight:700" id="mGroup">—</p>
-      </div>
-      <div class="st panel p-5" style="--i:2">
-        <div class="flex items-center justify-between mb-2">
-          <span class="mono text-[9.5px] tracking-[.2em] text-white/30">СРЕДНИЙ БАЛЛ</span>
-          <i data-lucide="star" class="w-4 h-4 text-amber-300/70"></i>
-        </div>
-        <p class="font-display text-2xl" style="font-weight:700" id="mGpa">—</p>
-      </div>
-      <div class="st panel p-5" style="--i:3">
-        <div class="flex items-center justify-between mb-2">
-          <span class="mono text-[9.5px] tracking-[.2em] text-white/30">ОЦЕНОК УЧТЕНО</span>
-          <i data-lucide="clipboard-check" class="w-4 h-4 text-amber-300/70"></i>
-        </div>
-        <p class="font-display text-2xl" style="font-weight:700" id="mCount">—</p>
-      </div>
-    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" id="myStats"></div>
 
-    <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:4">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <h2 class="font-semibold flex items-center gap-2"><i data-lucide="list-ordered" class="w-4 h-4 text-amber-300"></i>Таблица группы</h2>
-        <span class="pill shrink-0" id="grpPill">—</span>
-      </div>
-      <div id="board" class="space-y-2"></div>
+    <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:2">
+      <div id="podium"></div>
+      <div id="rest" class="space-y-2"></div>
     </div>
 
     <button id="btnBack2" class="back w-full justify-center mt-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения</button>
@@ -130,67 +124,89 @@
 (async function(){
   lucide.createIcons();
   const $=id=>document.getElementById(id);
-  const BACK='diary.html?view=apps';
-  const goBack=()=>{ if(document.referrer.indexOf('diary.html')>-1) history.back(); else location.href=BACK; };
+  const goBack=()=>{ location.href='diary.html?view=apps'; };
   $('btnBack').addEventListener('click',goBack);
   $('btnBack2').addEventListener('click',goBack);
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') goBack(); });
 
   await CollegeDB.init();
+  if(CollegeDB.startSync) CollegeDB.startSync(20000);
   const s=CollegeDB.session();
-  const me=(s&&CollegeDB.findByLogin(s.login))||null;
-  const myGroup=(me&&me.group)||'—';
-  $('grpPill').textContent=myGroup;
+  let me=(s&&CollegeDB.findByLogin(s.login))||null;
+  if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
 
-  /* оценки берём из реального расписания (collegeid_schedule) */
-  function myGrades(){
-    let all=[];
-    try{
-      const sch=JSON.parse(localStorage.getItem('collegeid_schedule'))||{};
-      Object.keys(sch).forEach(k=>{
-        (sch[k]||[]).forEach(L=>{ if(Array.isArray(L.grades)) all=all.concat(L.grades.map(Number).filter(n=>n>=2&&n<=5)); });
-      });
-    }catch(e){}
-    return all;
-  }
-  const g=myGrades();
-  const gpa=g.length?(g.reduce((a,b)=>a+b,0)/g.length):0;
-
-  $('mCount').textContent=g.length?g.length:'0';
-  $('mGpa').textContent=g.length?gpa.toFixed(2):'—';
-
-  /* одногруппники из базы пользователей */
-  const mates=CollegeDB.all().filter(u=>u.group&&u.group===myGroup);
-
-  if(!g.length){
-    $('mGroup').textContent='—';
-    $('board').innerHTML='<div class="dbox">Рейтинг появится, как только в системе накопятся оценки за занятия. '
-      +'Сейчас в вашей группе зарегистрировано участников: <b>'+(mates.length||1)+'</b>.</div>';
-    $('sub').textContent='Оценок пока нет — таблица заполнится автоматически';
-    lucide.createIcons();
-    return;
+  function avatarHTML(r,cls){
+    const bg=r.avatar?('background-image:url('+r.avatar+')'):'';
+    const grad=r.avatar?'':'background:linear-gradient(135deg,#6366f1,#a855f7)';
+    return '<span class="av '+(cls||'')+'" style="'+bg+';'+grad+'">'+(r.avatar?'':(r.initials||'?'))+'</span>';
   }
 
-  /* таблица: реальные одногруппники, балл считается только у текущего пользователя */
-  const rows=mates.map(u=>({
-    login:u.login, fio:u.fio||u.login,
-    gpa: (me&&u.login===me.login)?gpa:null
-  }));
-  rows.sort((a,b)=>(b.gpa||0)-(a.gpa||0));
-  const myPos=rows.findIndex(r=>me&&r.login===me.login)+1;
-  $('mGroup').textContent=myPos? '#'+myPos+' из '+rows.length : '—';
+  async function load(){
+    if(!CollegeDB.rating){ $('rest').innerHTML='<div class="dbox">Рейтинг доступен при работе с сервером.</div>'; return; }
+    const data=await CollegeDB.rating();
+    if(!data){ $('rest').innerHTML='<div class="dbox">Не удалось загрузить рейтинг.</div>'; return; }
+    $('grp').textContent=data.group||'без группы';
 
-  $('board').innerHTML=rows.map((r,i)=>{
-    const mine=me&&r.login===me.login;
-    const cls=i===0?'p1':i===1?'p2':i===2?'p3':'';
-    return '<div class="lead'+(mine?' me':'')+'">'
-      +'<span class="pos '+cls+'">'+(i+1)+'</span>'
-      +'<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-semibold truncate">'+r.fio+(mine?' · вы':'')+'</span>'
-      +'<span class="block text-[11px] text-white/35 mono mt-0.5">'+r.login+'</span></span>'
-      +'<span class="font-display text-[15px] shrink-0" style="font-weight:700">'+(r.gpa?r.gpa.toFixed(2):'—')+'</span>'
-      +'</div>';
-  }).join('');
-  lucide.createIcons();
+    /* моя статистика */
+    $('myStats').innerHTML=
+       '<div class="scard"><p class="k">Моё место</p><p class="v text-amber-300">'
+        +(data.myPlace?('#'+data.myPlace):'—')+'</p></div>'
+      +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'
+        +(data.my&&data.my.gpa?data.my.gpa.toFixed(2):'—')+'</p></div>'
+      +'<div class="scard"><p class="k">Посещаемость</p><p class="v text-emerald-300">'
+        +(data.my?data.my.attendance+'%':'—')+'</p></div>'
+      +'<div class="scard"><p class="k">В группе</p><p class="v">'+(data.total||0)+'</p></div>';
+
+    const top=data.top||[];
+    if(!top.length){
+      $('podium').innerHTML='';
+      $('rest').innerHTML='<div class="dbox">Рейтинг появится, когда преподаватели выставят первые оценки, '
+        +'а староста отметит посещаемость.</div>';
+      return;
+    }
+
+    /* пьедестал: 2 · 1 · 3 */
+    const order=[top[1],top[0],top[2]].filter(Boolean);
+    $('podium').innerHTML='<div class="podium">'+order.map(r=>
+      '<div class="pod p'+r.place+'">'
+      +(r.place===1?'<span class="crown">👑</span>':'')
+      +avatarHTML(r)
+      +'<span class="plc">'+r.place+'</span>'
+      +'<span class="mono text-[10px] text-white/40">'+(r.gpa?r.gpa.toFixed(2):'—')+' балл</span>'
+      +'<span class="mono text-[9.5px] text-white/25">'+r.attendance+'% посещ.</span>'
+      +(r.me?'<span class="pill mt-1" style="font-size:9px;padding:3px 8px">ЭТО ВЫ</span>':'')
+      +'</div>').join('')+'</div>';
+
+    /* места 4–10 */
+    const rest=top.slice(3);
+    const max=top[0].score||1;
+    $('rest').innerHTML=rest.length?rest.map(r=>
+      '<div class="row'+(r.me?' me':'')+'">'
+      +'<span class="num">'+r.place+'</span>'
+      +avatarHTML(r)
+      +'<span class="min-w-0 flex-1">'
+        +'<span class="flex items-center gap-2 flex-wrap">'
+        +'<span class="text-[13px] font-bold">'+(r.gpa?r.gpa.toFixed(2):'—')+'</span>'
+        +'<span class="mono text-[10.5px] text-white/35">средний балл · '+r.attendance+'% посещаемость</span>'
+        +(r.me?'<span class="pill" style="font-size:9px;padding:2px 8px">ВЫ</span>':'')
+        +'</span>'
+        +'<span class="bar"><i style="width:'+Math.round((r.score/max)*100)+'%"></i></span>'
+      +'</span></div>').join(''):'';
+
+    /* если я вне топ-10 — показываем отдельной строкой */
+    if(data.myPlace&&data.myPlace>10&&data.my){
+      $('rest').innerHTML+='<div class="row me mt-3">'
+        +'<span class="num">'+data.myPlace+'</span>'
+        +avatarHTML({avatar:(me&&me.avatar)||'',initials:'ВЫ'})
+        +'<span class="min-w-0 flex-1"><span class="flex items-center gap-2 flex-wrap">'
+        +'<span class="text-[13px] font-bold">'+data.my.gpa.toFixed(2)+'</span>'
+        +'<span class="mono text-[10.5px] text-white/35">ваша позиция · '+data.my.attendance+'% посещаемость</span>'
+        +'</span><span class="bar"><i style="width:'+Math.round((data.my.score/max)*100)+'%"></i></span></span></div>';
+    }
+  }
+
+  await load();
+  if(CollegeDB.onSync) CollegeDB.onSync(load);
 })();
 </script>
 </body>
