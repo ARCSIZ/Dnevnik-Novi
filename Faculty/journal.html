@@ -130,7 +130,7 @@
 
     <header class="flex items-center justify-between gap-3 mb-7">
       <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i>Приложения</button>
-      <span class="pill"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-indigo-300"></i>ПРЕПОДАВАТЕЛЬ</span>
+      <span class="pill"><i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-indigo-300"></i><span id="rolePill">ПРЕПОДАВАТЕЛЬ</span></span>
     </header>
 
     <div id="denied" class="hidden">
@@ -234,11 +234,18 @@
   if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
   const role=R(me&&me.role);
 
-  if(['teacher','dev'].indexOf(role)<0){
+  /* Доступ: преподаватель и разработчик — всегда.
+     Куратор — только если он действительно ведёт пары (его ФИО есть
+     в расписании). Куратор без своих пар журнал не получает. */
+  if(['teacher','dev','curator'].indexOf(role)<0){
     $('denied').classList.remove('hidden'); lucide.createIcons(); return;
   }
-  $('app').classList.remove('hidden');
-  $('myFio').textContent=(me&&me.fio)||'—';
+
+  function shortFio(f){
+    const p=String(f||'').trim().split(/\s+/);
+    return p.length>2?(p[0]+' '+p[1][0]+'.'+p[2][0]+'.'):(p[0]||'');
+  }
+
   const MY_KEY=FK(me&&me.fio);
 
   /* ---- расписания всех групп: ищем свои пары по ФИО ---- */
@@ -255,15 +262,25 @@
   let groups=myGroups();
   if(role==='dev'&&!groups.length) groups=(CollegeDB.listGroups()||[]).map(g=>g.code);
 
+  /* куратор без пар в расписании — журнал закрыт */
+  if(role==='curator'&&!groups.length){
+    $('denied').classList.remove('hidden');
+    $('deniedMsg').innerHTML='В расписании нет занятий с вашим ФИО, поэтому журнал преподавателя недоступен.'
+      +'<br><br>Если вы ведёте пары, попросите старосту указать преподавателя как '
+      +'<span class="mono text-white/70">'+shortFio(me&&me.fio)+'</span> — журнал откроется автоматически.'
+      +'<br><br>Журнал куратора при этом доступен как обычно.';
+    lucide.createIcons(); return;
+  }
+
+  $('app').classList.remove('hidden');
+  $('myFio').textContent=(me&&me.fio)||'—';
+  if(role==='curator') $('rolePill') && ($('rolePill').textContent='КУРАТОР · ПРЕПОДАВАТЕЛЬ');
+
   if(!groups.length){
     $('groupSelect').innerHTML='<option>Пар не найдено</option>';
     $('groupHint').innerHTML='В расписании нет пар с преподавателем «'+((me&&me.fio)||'')+'».<br>'
       +'Проверьте, что староста указал вас как <span class="mono">'+shortFio(me&&me.fio)+'</span>';
     lucide.createIcons();
-  }
-  function shortFio(f){
-    const p=String(f||'').trim().split(/\s+/);
-    return p.length>2?(p[0]+' '+p[1][0]+'.'+p[2][0]+'.'):(p[0]||'');
   }
 
   let GROUP=groups[0]||'';

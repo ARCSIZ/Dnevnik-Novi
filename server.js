@@ -523,14 +523,26 @@ async function handleAPI(req, res, pathname) {
     if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
     const g = String(body.group || '').trim();
     if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
+    /* Ведёт ли этот человек пары в данной группе (сверка ФИО с расписанием).
+       Куратор может быть и преподавателем — тогда он правит свои пары
+       в любой группе, а в своей группе остаётся полноправным куратором. */
+    const groupDays = (db.data.schedule || {})[g] || {};
+    const teachesHere = Object.keys(groupDays).some(d =>
+      (groupDays[d] || []).some(L => !L.event && fioKey(L.teacher) === fioKey(me.fio)));
+    const ownGroup = String(me.group || '') === g;
+
     const canEdit = myRole === 'dev'
       || myRole === 'teacher'
-      || ((myRole === 'prefect' || myRole === 'curator') && String(me.group || '') === g);
+      || ((myRole === 'prefect' || myRole === 'curator') && ownGroup)
+      || (myRole === 'curator' && teachesHere);
     if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на журнал этой группы' });
 
-    /* Преподаватель правит только свои пары — сверяем ФИО с расписанием */
+    /* Ограничение «только свои пары»: для преподавателя всегда,
+       для куратора — когда он выступает преподавателем в чужой группе. */
+    const lessonLimited = myRole === 'teacher' || (myRole === 'curator' && !ownGroup);
+
     const ownsLesson = (date, slot) => {
-      const list = ((db.data.schedule || {})[g] || {})[date] || [];
+      const list = (groupDays[date] || []);
       const L = list.find(x => String(x.slot) === String(slot));
       return !!L && fioKey(L.teacher) === fioKey(me.fio);
     };
@@ -544,13 +556,13 @@ async function handleAPI(req, res, pathname) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       const perUser = days[date] && typeof days[date] === 'object' ? days[date] : {};
       const existing = db.data.attendance[g][date] || {};
-      /* преподаватель дописывает в общий журнал, не затирая чужие пары */
-      const clean = myRole === 'teacher' ? JSON.parse(JSON.stringify(existing)) : {};
+      /* в режиме «только свои пары» дописываем в журнал, не затирая чужие */
+      const clean = lessonLimited ? JSON.parse(JSON.stringify(existing)) : {};
       Object.keys(perUser).slice(0, 200).forEach(login => {
         const slots = perUser[login] && typeof perUser[login] === 'object' ? perUser[login] : {};
-        const cs = myRole === 'teacher' ? (clean[login] || {}) : {};
+        const cs = lessonLimited ? (clean[login] || {}) : {};
         Object.keys(slots).slice(0, 12).forEach(slot => {
-          if (myRole === 'teacher' && !ownsLesson(date, slot)) return;   // чужая пара
+          if (lessonLimited && !ownsLesson(date, slot)) return;   // чужая пара
           const rec = slots[slot] || {};
           const st = STATUS_SET.indexOf(String(rec.st || '')) > -1 ? String(rec.st || '') : '';
           /* Оценки ставят куратор, преподаватель и разработчик.

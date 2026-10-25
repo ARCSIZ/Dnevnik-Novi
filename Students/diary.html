@@ -1064,10 +1064,42 @@
   lucide.createIcons();
 
   /* подсветка плитки за курсором; переход выполняет сама ссылка */
-  document.querySelectorAll('.app-tile').forEach(t=>{
-    t.addEventListener('mousemove',e=>{ const r=t.getBoundingClientRect();
-      t.style.setProperty('--mx',(e.clientX-r.left)+'px'); t.style.setProperty('--my',(e.clientY-r.top)+'px'); });
-  });
+  function bindTiles(){
+    document.querySelectorAll('.app-tile').forEach(t=>{
+      t.addEventListener('mousemove',e=>{ const r=t.getBoundingClientRect();
+        t.style.setProperty('--mx',(e.clientX-r.left)+'px'); t.style.setProperty('--my',(e.clientY-r.top)+'px'); });
+    });
+  }
+  bindTiles();
+
+  /* Куратор может быть и преподавателем: если его ФИО есть в расписании —
+     добавляем плитку «Журнал преподавателя». Нет пар — плитки нет. */
+  if(myRole==='curator'&&CollegeDB.loadAllSchedules&&CollegeDB.fioKey){
+    CollegeDB.loadAllSchedules().then(all=>{
+      const key=CollegeDB.fioKey(u&&u.fio);
+      const teaches=Object.keys(all||{}).some(g=>{
+        const days=all[g]||{};
+        return Object.keys(days).some(d=>(days[d]||[])
+          .some(L=>!L.event&&CollegeDB.fioKey(L.teacher)===key));
+      });
+      if(!teaches) return;
+      const a=APPS.find(x=>x.id==='tjournal');
+      myApps.push(a);
+      $('appsCount').textContent=myApps.length+' доступно';
+      const el=document.createElement('a');
+      el.href=a.url; el.className='app-tile st'; el.style.setProperty('--i',myApps.length);
+      el.dataset.app=a.id; el.dataset.name=a.name;
+      el.innerHTML='<span class="ai bg-gradient-to-br '+a.grad+'"><i data-lucide="'+a.icon+'" class="w-5 h-5"></i></span>'
+        +'<span><span class="block font-semibold text-[15px]">'+a.name+'</span>'
+        +'<span class="block text-[12.5px] text-white/40 mt-1">Вы ведёте пары — оценки по вашим предметам</span></span>'
+        +'<span class="flex items-center gap-1.5 mt-auto pt-2 text-[11px] mono tracking-wider text-indigo-300/70">ОТКРЫТЬ ПРИЛОЖЕНИЕ<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i></span>';
+      $('appsGrid').appendChild(el);
+      lucide.createIcons();
+      bindTiles();
+      const nav=document.querySelector('.nav-btn[data-view="apps"] .nv-count');
+      if(nav) nav.textContent=myApps.length;
+    }).catch(()=>{});
+  }
 
   /* счётчик в боковом меню */
   const navApps=document.querySelector('.nav-btn[data-view="apps"] .nv-count');
