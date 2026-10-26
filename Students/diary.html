@@ -489,35 +489,38 @@
             </div>
 
             <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:2">
-              <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="settings-2" class="w-4 h-4 text-indigo-300"></i>Настройки</h2>
-              <div class="space-y-2.5">
-                <div class="row">
-                  <span class="text-[13px] text-white/60">Уведомления об оценках</span>
-                  <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
-                </div>
-                <div class="row">
-                  <span class="text-[13px] text-white/60">Напоминания о парах</span>
-                  <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
-                </div>
-                <div class="row">
-                  <span class="text-[13px] text-white/60">Тёмная тема</span>
-                  <button class="sw w-11 h-6 rounded-full bg-indigo-500 relative transition-colors" data-on="1"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all" style="left:22px"></span></button>
-                </div>
-                <div class="row">
+              <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="sliders-horizontal" class="w-4 h-4 text-indigo-300"></i>Управление</h2>
+
+              <a href="settings.html" class="row" style="text-decoration:none;color:inherit">
+                <span class="flex items-center gap-3 min-w-0">
+                  <span class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <i data-lucide="settings" class="w-[18px] h-[18px] text-white"></i></span>
                   <span class="min-w-0">
-                    <span class="block text-[13px] text-white/60">Лёгкий режим</span>
-                    <span class="block text-[11px] text-white/30 mt-0.5">Меньше анимаций · <span id="liteFps">—</span></span>
+                    <span class="block text-[13.5px] font-semibold">Настройки</span>
+                    <span class="block text-[11.5px] text-white/35 mt-0.5">Оформление и уведомления</span>
                   </span>
-                  <button id="swLite" class="w-11 h-6 rounded-full bg-white/10 relative transition-colors" data-on="0" aria-label="Лёгкий режим"><span class="dotk absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all"></span></button>
-                </div>
-              </div>
-              <button class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-5" id="btnInstall">
+                </span>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-white/30 shrink-0"></i>
+              </a>
+
+              <button class="row w-full mt-2.5" id="btnLogout" style="cursor:pointer">
+                <span class="flex items-center gap-3 min-w-0">
+                  <span class="w-10 h-10 shrink-0 rounded-xl bg-rose-500/15 border border-rose-400/25 flex items-center justify-center">
+                    <i data-lucide="log-out" class="w-[18px] h-[18px] text-rose-300"></i></span>
+                  <span class="min-w-0 text-left">
+                    <span class="block text-[13.5px] font-semibold text-rose-200">Выйти из аккаунта</span>
+                    <span class="block text-[11.5px] text-white/35 mt-0.5">Завершить текущую сессию</span>
+                  </span>
+                </span>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-white/30 shrink-0"></i>
+              </button>
+
+              <button class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-4" id="btnInstall">
                 <i data-lucide="smartphone" class="w-4 h-4"></i>Установить приложение на телефон
               </button>
-              <div class="grid sm:grid-cols-2 gap-3 mt-3">
-                <button class="btn btn-ghost h-[46px] text-sm flex items-center justify-center gap-2" id="btnExport"><i data-lucide="download" class="w-4 h-4"></i>Выгрузить данные</button>
-                <button class="btn btn-danger h-[46px] text-sm flex items-center justify-center gap-2" id="btnLogout"><i data-lucide="log-out" class="w-4 h-4"></i>Выйти</button>
-              </div>
+              <button class="btn btn-ghost w-full h-[46px] text-sm flex items-center justify-center gap-2 mt-3" id="btnExport">
+                <i data-lucide="download" class="w-4 h-4"></i>Выгрузить мои данные
+              </button>
             </div>
           </div>
         </section>
@@ -545,7 +548,9 @@
     </div>
   </div>
 
+  <script src="../General/theme.js?v=1"></script>
   <script src="../Data/users.js?v=20260302-groups3"></script>
+  <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=1"></script>
@@ -1196,12 +1201,7 @@
   const navApps=document.querySelector('.nav-btn[data-view="apps"] .nv-count');
   if(navApps) navApps.textContent=myApps.length;
 
-  /* ---------- переключатели настроек ---------- */
-  document.querySelectorAll('.sw').forEach(b=>b.addEventListener('click',()=>{
-    const on=b.dataset.on==='1'; b.dataset.on=on?'0':'1';
-    b.classList.toggle('bg-indigo-500',!on); b.classList.toggle('bg-white/10',on);
-    b.querySelector('.dotk').style.left=on?'4px':'22px';
-  }));
+
 
   /* ---------- кнопки аккаунта ---------- */
   const bi=$('btnInstall');
@@ -1259,23 +1259,6 @@
   startFx();
   if(window.PerfMode) PerfMode.onChange(lite=>{ if(!lite) startFx(); });
 
-  /* ---------- ручной переключатель лёгкого режима (Аккаунт → Настройки) ---------- */
-  const liteSw=$('swLite');
-  function syncLite(){
-    if(!liteSw||!window.PerfMode) return;
-    const on=PerfMode.isLite();
-    liteSw.dataset.on=on?'1':'0';
-    liteSw.classList.toggle('bg-indigo-500',on);
-    liteSw.classList.toggle('bg-white/10',!on);
-    liteSw.querySelector('.dotk').style.left=on?'22px':'4px';
-    const fps=$('liteFps'); if(fps) fps.textContent=on?'эффекты упрощены':'~'+PerfMode.fps()+' FPS';
-  }
-  if(liteSw&&window.PerfMode){
-    liteSw.addEventListener('click',()=>{ PerfMode.toggle(); syncLite(); });
-    PerfMode.onChange(syncLite);
-    syncLite();
-    setInterval(()=>{ if(!PerfMode.isLite()) syncLite(); },3000);
-  }
 })();
 </script>
 </body>

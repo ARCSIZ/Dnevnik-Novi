@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Настройки — Колледж·ID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Ccircle cx='16' cy='16' r='5' fill='white'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark;--accent:#6366f1;--accent2:#a855f7}
+  body{font-family:'Manrope',sans-serif;background:#07070d}
+  .font-display{font-family:'Unbounded',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  *{scrollbar-width:none;-ms-overflow-style:none}
+  *::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}
+  svg{flex:none;display:block}
+  html,body{overflow-x:clip}
+
+  .orb{position:fixed;border-radius:9999px;filter:blur(90px);pointer-events:none}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;
+    background:radial-gradient(circle,color-mix(in srgb,var(--accent) 26%,transparent),transparent 65%)}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;
+    background:radial-gradient(circle,color-mix(in srgb,var(--accent2) 22%,transparent),transparent 65%)}
+
+  .card{background:rgba(13,13,21,.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;
+    font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+  .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.75);
+    cursor:pointer;transition:background .22s}
+  .back:hover{background:rgba(255,255,255,.1);color:#fff}
+
+  /* боковое меню категорий (стиль Discord) */
+  .wrap{display:grid;grid-template-columns:226px 1fr;gap:18px;align-items:start}
+  @media(max-width:820px){.wrap{grid-template-columns:1fr}}
+  .cat{width:100%;display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:13px;cursor:pointer;
+    text-align:left;color:rgba(255,255,255,.55);background:transparent;border:0;transition:all .2s;font-family:inherit}
+  .cat:hover{background:rgba(255,255,255,.055);color:#fff}
+  .cat.on{background:color-mix(in srgb,var(--accent) 18%,transparent);color:#fff;font-weight:700}
+  .cat i{opacity:.8}
+  .catsep{height:1px;background:rgba(255,255,255,.07);margin:8px 10px}
+
+  /* строки настроек */
+  .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;flex-wrap:wrap;
+    border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);transition:border-color .2s}
+  .row:hover{border-color:rgba(255,255,255,.12)}
+  .row .t{font-size:13.5px;font-weight:600}
+  .row .d{font-size:11.5px;color:rgba(255,255,255,.35);margin-top:3px;line-height:1.45}
+
+  /* переключатель в стиле Discord */
+  .sw{width:44px;height:25px;flex:none;border-radius:99px;cursor:pointer;position:relative;
+    background:rgba(255,255,255,.14);border:0;transition:background .25s cubic-bezier(.22,1,.36,1)}
+  .sw .knob{position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:99px;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    transition:left .25s cubic-bezier(.22,1,.36,1),transform .25s}
+  .sw .knob::before{content:'';width:9px;height:9px;border-radius:99px;
+    border:2.5px solid rgba(110,118,129,.9);transition:all .25s}
+  .sw.on{background:var(--accent)}
+  .sw.on .knob{left:22px}
+  .sw.on .knob::before{width:3px;height:9px;border-radius:1px;border:0;background:var(--accent)}
+  .sw:active .knob{transform:scale(.92)}
+
+  /* выбор акцента */
+  .accents{display:flex;flex-wrap:wrap;gap:10px}
+  .ac{width:40px;height:40px;border-radius:14px;cursor:pointer;border:2px solid transparent;position:relative;
+    transition:transform .2s,border-color .2s}
+  .ac:hover{transform:scale(1.08)}
+  .ac.on{border-color:#fff}
+  .ac.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:15px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+
+  /* выбор темы карточками */
+  .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(max-width:520px){.themes{grid-template-columns:1fr}}
+  .th{padding:12px;border-radius:16px;cursor:pointer;text-align:left;
+    background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.08);transition:all .2s}
+  .th:hover{border-color:rgba(255,255,255,.2)}
+  .th.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .th .prev{height:46px;border-radius:10px;margin-bottom:9px;border:1px solid rgba(255,255,255,.08)}
+  .th .nm{font-size:12.5px;font-weight:700}
+  .th .ds{font-size:10.5px;color:rgba(255,255,255,.35);margin-top:2px}
+
+  .seg{display:flex;gap:6px;background:rgba(255,255,255,.04);padding:4px;border-radius:12px;
+    border:1px solid rgba(255,255,255,.07)}
+  .seg button{flex:1;padding:8px 10px;border:0;border-radius:9px;cursor:pointer;font-family:inherit;
+    font-size:12.5px;font-weight:700;color:rgba(255,255,255,.5);background:transparent;transition:all .2s}
+  .seg button:hover{color:#fff}
+  .seg button.on{background:var(--accent);color:#fff}
+
+  .lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px}
+  .pane{display:none}.pane.on{display:block;animation:fade .3s cubic-bezier(.22,1,.36,1)}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  html.lite .pane.on{animation:none}
+
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);opacity:0;transition:.3s;z-index:99;
+    pointer-events:none;max-width:calc(100vw - 24px)}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body class="text-white antialiased min-h-screen">
+
+  <div class="orb o1"></div><div class="orb o2"></div>
+
+  <div class="relative max-w-[920px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+
+    <header class="flex items-center justify-between gap-3 mb-6">
+      <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i>Аккаунт</button>
+      <span class="pill"><i data-lucide="settings" class="w-3.5 h-3.5" style="color:var(--accent)"></i>НАСТРОЙКИ</span>
+    </header>
+
+    <div class="wrap">
+      <!-- КАТЕГОРИИ -->
+      <div class="card rounded-[20px] p-2.5">
+        <p class="lbl px-2.5 pt-2">Настройки</p>
+        <button class="cat on" data-pane="look"><i data-lucide="palette" class="w-4 h-4"></i>Оформление</button>
+        <button class="cat" data-pane="notif"><i data-lucide="bell" class="w-4 h-4"></i>Уведомления</button>
+        <div class="catsep"></div>
+        <button class="cat" id="catExit" style="color:#fda4af"><i data-lucide="log-out" class="w-4 h-4"></i>Выйти</button>
+      </div>
+
+      <!-- ПАНЕЛИ -->
+      <div>
+        <!-- ========== ОФОРМЛЕНИЕ ========== -->
+        <div class="pane on" id="pane-look">
+          <div class="card rounded-[22px] p-5 sm:p-6 mb-4">
+            <h2 class="font-display text-[18px] mb-1" style="font-weight:800">Оформление</h2>
+            <p class="text-[12.5px] text-white/40 mb-5">Настройте внешний вид под себя — изменения применяются сразу</p>
+
+            <p class="lbl">Акцентный цвет</p>
+            <div class="accents mb-6" id="accents"></div>
+
+            <p class="lbl">Фон интерфейса</p>
+            <div class="themes mb-6" id="themes"></div>
+
+            <p class="lbl">Плотность интерфейса</p>
+            <div class="seg mb-6" id="density">
+              <button data-v="compact">Компактно</button>
+              <button data-v="normal" class="on">Обычно</button>
+              <button data-v="cozy">Просторно</button>
+            </div>
+
+            <p class="lbl">Скругление углов</p>
+            <div class="seg" id="radius">
+              <button data-v="soft">Мягкое</button>
+              <button data-v="normal" class="on">Обычное</button>
+              <button data-v="sharp">Строгое</button>
+            </div>
+          </div>
+
+          <div class="card rounded-[22px] p-5 sm:p-6">
+            <p class="lbl">Эффекты</p>
+            <div class="space-y-2.5">
+              <div class="row"><span class="min-w-0"><span class="block t">Анимации интерфейса</span>
+                <span class="block d">Плавные переходы между разделами и появление карточек</span></span>
+                <button class="sw on" data-key="anim"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Фоновые частицы</span>
+                <span class="block d">Живой фон с реакцией на курсор — отключите для экономии батареи</span></span>
+                <button class="sw on" data-key="particles"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Размытие стекла</span>
+                <span class="block d">Эффект матового стекла на карточках и панелях</span></span>
+                <button class="sw on" data-key="blur"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Лёгкий режим</span>
+                <span class="block d">Отключает тяжёлую графику целиком · <span id="fps">—</span></span></span>
+                <button class="sw" data-key="lite"><span class="knob"></span></button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== УВЕДОМЛЕНИЯ ========== -->
+        <div class="pane" id="pane-notif">
+          <div class="card rounded-[22px] p-5 sm:p-6 mb-4">
+            <h2 class="font-display text-[18px] mb-1" style="font-weight:800">Уведомления</h2>
+            <p class="text-[12.5px] text-white/40 mb-5">Система уведомит вас о важных событиях даже в свёрнутой вкладке</p>
+
+            <div class="row mb-4" id="permRow">
+              <span class="min-w-0"><span class="block t">Разрешение браузера</span>
+                <span class="block d" id="permText">Проверяем…</span></span>
+              <button class="back shrink-0" id="permBtn">Разрешить</button>
+            </div>
+
+            <p class="lbl">События</p>
+            <div class="space-y-2.5">
+              <div class="row"><span class="min-w-0"><span class="block t">Новые оценки</span>
+                <span class="block d">Когда преподаватель выставил оценку</span></span>
+                <button class="sw on" data-key="nGrades"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Отметки посещаемости</span>
+                <span class="block d">Когда староста отметил Н, У, Б или О</span></span>
+                <button class="sw on" data-key="nAtt"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Изменения расписания</span>
+                <span class="block d">Замены пар и новые мероприятия</span></span>
+                <button class="sw on" data-key="nSched"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Ответы поддержки</span>
+                <span class="block d">Новое сообщение от оператора в чате</span></span>
+                <button class="sw on" data-key="nSupport"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Объявления колледжа</span>
+                <span class="block d">Массовые оповещения от администрации</span></span>
+                <button class="sw on" data-key="nNotice"><span class="knob"></span></button></div>
+            </div>
+          </div>
+
+          <div class="card rounded-[22px] p-5 sm:p-6">
+            <p class="lbl">Поведение</p>
+            <div class="space-y-2.5">
+              <div class="row"><span class="min-w-0"><span class="block t">Звук уведомления</span>
+                <span class="block d">Короткий сигнал при новом событии</span></span>
+                <button class="sw" data-key="nSound"><span class="knob"></span></button></div>
+              <div class="row"><span class="min-w-0"><span class="block t">Счётчик в заголовке</span>
+                <span class="block d">Показывать «● Новое» во вкладке браузера</span></span>
+                <button class="sw on" data-key="nTitle"><span class="knob"></span></button></div>
+            </div>
+            <button class="back w-full justify-center mt-4" id="testNotif">
+              <i data-lucide="bell-ring" class="w-4 h-4"></i>Отправить тестовое уведомление
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button id="btnBack2" class="back w-full justify-center mt-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в аккаунт</button>
+  </div>
+
+  <div id="toast">
+    <div class="flex items-center gap-2.5 bg-[#15151f]/95 border border-white/10 rounded-full px-5 py-3 shadow-2xl backdrop-blur">
+      <i data-lucide="info" class="w-4 h-4" style="color:var(--accent)"></i><span id="toastMsg" class="text-sm text-white/80"></span>
+    </div>
+  </div>
+
+  <script src="../Data/users.js?v=20260302-groups3"></script>
+  <script src="../General/theme.js?v=1"></script>
+  <script src="../General/notice.js?v=1"></script>
+  <script src="../General/perf.js"></script>
+  <script src="../General/pwa.js?v=1"></script>
+<script>
+(async function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const goBack=()=>{ location.href='diary.html?view=account'; };
+  $('btnBack').addEventListener('click',goBack);
+  $('btnBack2').addEventListener('click',goBack);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') goBack(); });
+  let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show');
+    clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2600); }
+
+  const T=window.CollegeTheme;
+
+  /* ---- категории ---- */
+  document.querySelectorAll('.cat[data-pane]').forEach(c=>c.addEventListener('click',()=>{
+    document.querySelectorAll('.cat[data-pane]').forEach(x=>x.classList.toggle('on',x===c));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+c.dataset.pane));
+  }));
+
+  /* ---- акценты ---- */
+  $('accents').innerHTML=T.ACCENTS.map(a=>
+    '<button class="ac" data-id="'+a.id+'" title="'+a.name+'" style="background:linear-gradient(135deg,'+a.c1+','+a.c2+')"></button>').join('');
+  function syncAccents(){
+    const cur=T.get('accent');
+    document.querySelectorAll('.ac').forEach(b=>b.classList.toggle('on',b.dataset.id===cur));
+  }
+  $('accents').addEventListener('click',e=>{
+    const b=e.target.closest('.ac'); if(!b)return;
+    T.set('accent',b.dataset.id); syncAccents(); toast('Акцент обновлён');
+  });
+
+  /* ---- фоны ---- */
+  $('themes').innerHTML=T.THEMES.map(t=>
+    '<button class="th" data-id="'+t.id+'">'
+    +'<span class="prev block" style="background:'+t.preview+'"></span>'
+    +'<span class="nm block">'+t.name+'</span><span class="ds block">'+t.desc+'</span></button>').join('');
+  function syncThemes(){
+    const cur=T.get('bg');
+    document.querySelectorAll('.th').forEach(b=>b.classList.toggle('on',b.dataset.id===cur));
+  }
+  $('themes').addEventListener('click',e=>{
+    const b=e.target.closest('.th'); if(!b)return;
+    T.set('bg',b.dataset.id); syncThemes(); toast('Фон обновлён');
+  });
+
+  /* ---- сегменты ---- */
+  function seg(id,key){
+    const box=$(id);
+    function sync(){ box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===T.get(key))); }
+    box.addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b)return;
+      T.set(key,b.dataset.v); sync(); toast('Настройка применена');
+    });
+    sync();
+  }
+  seg('density','density'); seg('radius','radius');
+
+  /* ---- переключатели ---- */
+  function bindSwitch(btn){
+    const key=btn.dataset.key;
+    const val=()=>key==='lite'?(window.PerfMode?PerfMode.isLite():false):T.get(key)!==false;
+    function sync(){ btn.classList.toggle('on',!!val()); }
+    btn.addEventListener('click',()=>{
+      const next=!val();
+      if(key==='lite'){ if(window.PerfMode) PerfMode.setLite(next,true); }
+      else T.set(key,next);
+      sync();
+      /* лёгкий режим влияет на эффекты — обновляем их переключатели */
+      if(key==='lite') document.querySelectorAll('.sw').forEach(b=>{
+        if(b!==btn) b.classList.toggle('on',b.dataset.key==='lite'?PerfMode.isLite():T.get(b.dataset.key)!==false);
+      });
+      toast(next?'Включено':'Выключено');
+    });
+    sync();
+  }
+  document.querySelectorAll('.sw').forEach(bindSwitch);
+  setInterval(()=>{ const f=$('fps'); if(f&&window.PerfMode) f.textContent=PerfMode.isLite()?'активен':(PerfMode.fps()+' FPS'); },2000);
+
+  /* ---- уведомления ---- */
+  const N=window.CollegeNotify;
+  function syncPerm(){
+    const p=(window.Notification&&Notification.permission)||'unsupported';
+    const map={granted:['Разрешены — уведомления работают','Разрешено'],
+      denied:['Запрещены в браузере — включите их в настройках сайта','Заблокировано'],
+      default:['Не запрошены — нажмите, чтобы разрешить','Разрешить'],
+      unsupported:['Браузер не поддерживает уведомления','Недоступно']};
+    const m=map[p]||map.default;
+    $('permText').textContent=m[0];
+    $('permBtn').textContent=m[1];
+    $('permBtn').disabled=(p!=='default');
+    $('permBtn').style.opacity=(p==='default')?'1':'.55';
+  }
+  $('permBtn').addEventListener('click',async()=>{
+    if(!window.Notification) return;
+    const r=await Notification.requestPermission();
+    syncPerm();
+    toast(r==='granted'?'Уведомления разрешены':'Разрешение не получено');
+  });
+  syncPerm();
+
+  $('testNotif').addEventListener('click',()=>{
+    if(N) N.show('Колледж·ID','Тестовое уведомление — всё работает!',{force:true});
+    toast('Уведомление отправлено');
+  });
+
+  /* ---- выход ---- */
+  $('catExit').addEventListener('click',()=>{
+    if(!confirm('Выйти из аккаунта?')) return;
+    CollegeDB.clearSession();
+    toast('Сессия завершена');
+    setTimeout(()=>location.href='../General/authorization.html',900);
+  });
+
+  syncAccents(); syncThemes();
+  await CollegeDB.init();
+})();
+</script>
+</body>
+</html>
