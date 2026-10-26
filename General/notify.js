@@ -187,7 +187,12 @@
     if (!global.CollegeDB) return;
     var ready = (global.CollegeDB.isServer && global.CollegeDB.isServer())
       ? Promise.resolve(true) : global.CollegeDB.init();
-    Promise.resolve(ready).then(watch).catch(function () { /* noop */ });
+    Promise.resolve(ready).then(function () {
+      /* Не конкурируем с первой отрисовкой страницы и API расписания. */
+      var run = function () { setTimeout(watch, 1800); };
+      if ('requestIdleCallback' in global) requestIdleCallback(run, { timeout: 4500 });
+      else setTimeout(run, 3500);
+    }).catch(function () { /* noop */ });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();

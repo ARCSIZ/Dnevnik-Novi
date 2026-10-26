@@ -150,7 +150,6 @@
     var ready = CollegeDB.isServer && CollegeDB.isServer()
       ? Promise.resolve(true) : CollegeDB.init();
     Promise.resolve(ready)
-      .then(function () { return CollegeDB.loadState ? CollegeDB.loadState() : null; })
       .then(apply)
       .catch(function () { /* сервер недоступен — работаем как обычно */ });
     if (CollegeDB.onSync) CollegeDB.onSync(apply);

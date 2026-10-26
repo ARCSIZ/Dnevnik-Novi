@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Панель управления — Колледж·ID</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M8 11h16M8 16h16M8 21h16' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -341,7 +341,7 @@
   </div>
 
   <script src="../General/theme.js?v=1"></script>
-  <script src="../Data/users.js?v=20260302-groups3"></script>
+  <script src="../Data/users.js?v=20260303-fast1"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=1"></script>
 <script>
@@ -369,9 +369,11 @@
     lucide.createIcons();
     return;
   }
+  /* Полный список пользователей нужен только административной панели. */
+  await CollegeDB.refresh();
   if(CollegeDB.startSync) CollegeDB.startSync(15000);
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{
-    renderUsers(); renderGroups(); renderStats();
+    CollegeDB.refresh().then(()=>{ renderUsers(); renderGroups(); renderStats(); });
   });
   const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
   const RN=r=>CollegeDB.roleName?CollegeDB.roleName(r):'Студент';

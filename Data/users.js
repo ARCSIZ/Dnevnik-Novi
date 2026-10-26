@@ -93,7 +93,10 @@
   var apiBase = null;        // например "" (тот же origin) — пути абсолютные
   var token = null;
   var mirror = loadMirror(); // локальная копия пользователей для синхронных методов
-  var groupsCache = [];      // справочник групп с сервера
+  var groupsCache = mirror.groups || [];
+  var currentUser = null;
+  var statsCache = null;
+  var initPromise = null;    // все модули страницы делят одну инициализацию
 
   /* Роли: student | prefect (староста) | curator | teacher | dev */
   function normRole(role) {
@@ -129,7 +132,7 @@
       users: mirror.users, groups: groupsCache, dataVersion: dataVersion, ts: Date.now()
     }));
   }
-  var dataVersion = 0;        // версия данных на сервере
+  var dataVersion = Number(mirror.dataVersion) || 0;
   var syncListeners = [];     // подписчики на обновление данных
   var syncTimer = null;
   var stateCache = { maintenance: { enabled: false }, notice: { active: false } };
@@ -145,14 +148,13 @@
       return request('/api/version').then(function (d) {
         if (Number(d.dataVersion) !== Number(dataVersion)) {
           dataVersion = Number(d.dataVersion) || 0;
-          return CollegeDB.refresh().then(function () {
-            return CollegeDB.loadGroups();
-          }).then(function () {
-            return CollegeDB.loadState();     // объявления и техработы
-          }).then(function () {
-            emitSync();
-            return true;
-          });
+          return Promise.all([
+            CollegeDB.loadGroups(),
+            CollegeDB.loadState(),
+            request('/api/me').then(function (x) {
+              if (x && x.user) hydrateUser(x.user);
+            }).catch(function () { currentUser = null; })
+          ]).then(function () { emitSync(); return true; });
         }
         return false;
       }).catch(function () { return false; });
@@ -160,10 +162,10 @@
 
   /* Куда ходить за API: рассчитываем от адреса самого скрипта */
   function apiCandidates() {
-    var out = ['/api/health'];
+    var out = ['/api/bootstrap'];
     try {
       var src = (document.currentScript && document.currentScript.src) || '';
-      if (src) out.unshift(new URL('../api/health', src).href);
+      if (src) out.unshift(new URL('../api/bootstrap', src).href);
     } catch (e) { /* noop */ }
     return out;
   }
@@ -187,6 +189,18 @@
     });
   }
 
+  function hydrateUser(user) {
+    if (!user) return;
+    currentUser = user;
+    var l = normLogin(user.login), found = false;
+    mirror.users = mirror.users.map(function (u) {
+      if (normLogin(u.login) === l) { found = true; return user; }
+      return u;
+    });
+    if (!found) mirror.users.push(user);
+    saveMirror();
+  }
+
   /* --------------------------------------------------------- публичный API */
   var CollegeDB = {
 
@@ -201,10 +215,16 @@
      * @returns {Promise<boolean>} true, если обнаружен бэкенд
      */
     init: function () {
+      if (initPromise) return initPromise;
+      token = sGet(LS_TOKEN, localStorage) || sGet(LS_TOKEN, sessionStorage) || null;
       var candidates = apiCandidates();
       var tryNext = function (i) {
         if (i >= candidates.length) { mode = 'local'; return Promise.resolve(false); }
-        return fetch(candidates[i], { method: 'GET', credentials: 'same-origin', cache: 'no-store' })
+        var headers = { 'Accept': 'application/json' };
+        if (token) headers.Authorization = 'Bearer ' + token;
+        return fetch(candidates[i], {
+          method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: headers
+        })
           .then(function (res) { return res.ok ? res.json() : null; })
           .then(function (data) {
             if (data && data.ok && data.service === 'college-id') {
@@ -212,29 +232,30 @@
               /* request() уже получает пути вида /api/login. Здесь нужен
                  только origin; старый код создавал /api/api/login. */
               apiBase = new URL(candidates[i], global.location.href).origin;
-              token = sGet(LS_TOKEN, localStorage) ||
-                sGet(LS_TOKEN, sessionStorage) || null;
               /* Сервер является единственным источником истины. Удаляем
                  прежнюю браузерную БД, чтобы старые аккаунты не участвовали
                  во входе после полного сброса серверной базы. */
               localDb = { version: 1, updatedAt: nowISO(), users: [] };
               sDel(LS_USERS, localStorage);
-              return CollegeDB.refresh()
-                .then(function () { return CollegeDB.loadGroups(); })
-                .then(function () { return CollegeDB.loadState(); })
-                .then(function () {
-                  /* init завершён: уведомляем уже подписанные страницы и
-                     только теперь запускаем фоновую синхронизацию. */
-                  emitSync();
-                  CollegeDB.startSync(20000);
-                  return true;
-                });
+              groupsCache = data.groups || [];
+              stateCache = {
+                maintenance: data.maintenance || { enabled: false },
+                notice: data.notice || { active: false }
+              };
+              statsCache = data.stats || null;
+              dataVersion = Number(data.dataVersion) || 0;
+              if (data.user) hydrateUser(data.user);
+              saveMirror();
+              emitSync();
+              CollegeDB.startSync(20000);
+              return true;
             }
             return tryNext(i + 1);
           })
           .catch(function () { return tryNext(i + 1); });
       };
-      return tryNext(0);
+      initPromise = tryNext(0);
+      return initPromise;
     },
 
     /** Обновить локальную копию пользователей с сервера */
@@ -324,15 +345,12 @@
         var s = CollegeDB.session();
         return Promise.resolve(s ? CollegeDB.findByLogin(s.login) : null);
       }
+      /* Bootstrap уже принёс актуального пользователя — не делаем второй
+         запрос /api/me на критическом пути загрузки страницы. */
+      if (currentUser) return Promise.resolve(clone(currentUser));
       return request('/api/me').then(function (d) {
         if (d && d.user) {
-          var l = normLogin(d.user.login), found = false;
-          mirror.users = mirror.users.map(function (u) {
-            if (normLogin(u.login) === l) { found = true; return d.user; }
-            return u;
-          });
-          if (!found) mirror.users.push(d.user);
-          saveMirror();
+          hydrateUser(d.user);
           return d.user;
         }
         return null;
@@ -393,7 +411,11 @@
     /** Публичная статистика колледжа (без авторизации) */
     stats: function () {
       if (mode !== 'server') return Promise.resolve(null);
-      return request('/api/stats').catch(function () { return null; });
+      if (statsCache) return Promise.resolve(clone(statsCache));
+      return request('/api/stats').then(function (s) {
+        statsCache = s;
+        return clone(s);
+      }).catch(function () { return null; });
     },
 
     /** Версия чатов — для живого обновления без перезагрузки */
@@ -476,7 +498,8 @@
     startSync: function (intervalMs) {
       if (mode !== 'server' || syncTimer) return;
       var period = intervalMs || 30000;
-      checkVersion();
+      /* Bootstrap только что принёс актуальную версию. Не дублируем запрос
+         /api/version на критическом пути — первая проверка будет по таймеру. */
       syncTimer = setInterval(checkVersion, period);
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) checkVersion();       // обновляем при возврате на вкладку
@@ -531,7 +554,7 @@
           body: { login: data.login, pass: data.pass, fio: data.fio, birth: data.birth, group: data.group }
         }).then(function (d) {
           if (d.token) { token = d.token; sSet(LS_TOKEN, token); }
-          mirror.users.push(d.user); saveMirror();
+          hydrateUser(d.user);
           return d.user;
         }).catch(function (err) {
           if (err && err.status === 409) throw new Error('LOGIN_TAKEN');
@@ -564,14 +587,7 @@
         return request('/api/login', { method: 'POST', body: { login: login, pass: password } })
           .then(function (d) {
             if (d.token) { token = d.token; sSet(LS_TOKEN, token); }
-            // обновляем запись в зеркале
-            var l = normLogin(d.user.login), found = false;
-            mirror.users = mirror.users.map(function (u) {
-              if (normLogin(u.login) === l) { found = true; return d.user; }
-              return u;
-            });
-            if (!found) mirror.users.push(d.user);
-            saveMirror();
+            hydrateUser(d.user);
             return d.user;
           })
           .catch(function (err) {
@@ -808,6 +824,7 @@
         request('/api/logout', { method: 'POST' }).catch(function () { /* noop */ });
       }
       token = null;
+      currentUser = null;
     }
   };
 

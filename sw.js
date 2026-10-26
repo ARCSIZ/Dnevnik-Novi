@@ -3,8 +3,8 @@
    --------------------------------------------------------------------------
    Делает сайт устанавливаемым приложением (PWA) и ускоряет загрузку:
 
-   • Статика (HTML/CSS/JS/иконки) — стратегия «сеть, затем кэш»:
-     всегда свежая версия, но при обрыве связи открывается из кэша.
+   • Статика — stale-while-revalidate: мгновенно из кэша, обновление в фоне.
+   • Навигация — сеть с коротким таймаутом, затем кэш/офлайн-страница.
    • API (/api/...) — только сеть: данные журнала и чата не кэшируются,
      чтобы пользователь никогда не видел устаревшие оценки.
    • Офлайн-страница — если сети нет и страницы нет в кэше.
@@ -12,23 +12,12 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v1';
+const CACHE = 'college-id-v2-fast';
 
 const PRECACHE = [
   '/',
   '/index.html',
   '/General/authorization.html',
-  '/General/work.html',
-  '/General/notice.js',
-  '/General/perf.js',
-  '/Students/diary.html',
-  '/Students/support.html',
-  '/Students/rating.html',
-  '/Students/journal.html',
-  '/Faculty/journal.html',
-  '/Faculty/support-desk.html',
-  '/Dev/panel.html',
-  '/Data/users.js',
   '/manifest.webmanifest',
   '/icons/icon.svg',
   '/icons/icon-192.png',
@@ -84,22 +73,39 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* статика: сеть → кэш → офлайн-страница */
-  event.respondWith(
-    fetch(req)
-      .then(res => {
-        if (res && res.status === 200 && res.type === 'basic') {
+  const isNavigation = req.mode === 'navigate'
+    || (req.headers.get('accept') || '').includes('text/html');
+
+  if (isNavigation) {
+    /* Не держим белый экран на медленной сети дольше 2.2 секунды. */
+    event.respondWith((async () => {
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2200));
+      try {
+        const res = await Promise.race([fetch(req), timeout]);
+        if (res && res.ok) {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
         }
         return res;
-      })
-      .catch(() => caches.match(req).then(hit => {
-        if (hit) return hit;
-        if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
-          return new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-        }
-        return new Response('', { status: 504 });
-      }))
-  );
+      } catch (e) {
+        return (await caches.match(req, { ignoreSearch: true }))
+          || new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }
+    })());
+    return;
+  }
+
+  /* JS/CSS/иконки: кэш отдаётся немедленно, сеть обновляет его в фоне. */
+  event.respondWith((async () => {
+    /* Точный URL: query ?v=... обязан обходить старый JS после деплоя. */
+    const hit = await caches.match(req);
+    const update = fetch(req).then(res => {
+      if (res && res.ok && res.type === 'basic') {
+        caches.open(CACHE).then(c => c.put(req, res.clone())).catch(() => {});
+      }
+      return res;
+    }).catch(() => null);
+    if (hit) { update.catch(() => null); return hit; }
+    return (await update) || new Response('', { status: 504 });
+  })());
 });

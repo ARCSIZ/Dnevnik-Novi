@@ -486,6 +486,31 @@ async function handleAPI(req, res, pathname) {
   const session = authPayload(req);
   const me = session ? db.data.users.find(u => u.id === session.sub) : null;
 
+  /* --- единый быстрый bootstrap вместо 5-7 запросов при открытии страницы --- */
+  if (route === '/api/bootstrap' && method === 'GET') {
+    const users = db.data.users || [];
+    const groups = db.data.groups || [];
+    const courses = {};
+    groups.forEach(g => { courses[g.course] = true; });
+    return sendJSON(res, 200, {
+      ok: true,
+      service: 'college-id',
+      version: '1.1.0',
+      dataVersion: Number(db.data.dataVersion) || 0,
+      user: me ? publicUser(me) : null,
+      groups,
+      maintenance: db.data.maintenance || { enabled: false, message: '' },
+      notice: db.data.notice || { active: false },
+      stats: {
+        users: users.length,
+        students: users.filter(u => ['student', 'prefect'].indexOf(normRole(u.role)) > -1).length,
+        teachers: users.filter(u => normRole(u.role) === 'teacher').length,
+        groups: groups.length,
+        courses: Object.keys(courses).length
+      }
+    });
+  }
+
   /* ===================== РАСПИСАНИЕ ГРУППЫ =====================
      GET  /api/schedule?group=ИС-101        — читать (любой вошедший)
      PUT  /api/schedule                     — сохранить (староста/куратор своей

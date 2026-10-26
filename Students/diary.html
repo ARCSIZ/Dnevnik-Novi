@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Колледж·ID — Дневник студента</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M16 9 6 13.5l10 4.5 8-3.6V19h2v-5.5z' fill='white'/%3E%3C/svg%3E">
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -549,7 +549,7 @@
   </div>
 
   <script src="../General/theme.js?v=1"></script>
-  <script src="../Data/users.js?v=20260302-groups3"></script>
+  <script src="../Data/users.js?v=20260303-fast1"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
@@ -566,7 +566,6 @@
   await CollegeDB.init();
   /* Данные панели управления обновляются у всех: сверяем версию */
   if(CollegeDB.startSync) CollegeDB.startSync(20000);
-  if(CollegeDB.onSync) CollegeDB.onSync(()=>{ if(typeof refreshApps==='function') refreshApps(); });
   const s=CollegeDB.session();
   /* Берём пользователя с сервера: группу могли сменить в панели управления,
      и локальное зеркало в браузере бывает устаревшим. */
@@ -1223,6 +1222,7 @@
 
   /* ---------- фон: частицы + параллакс ---------- */
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mobileFx=matchMedia('(max-width: 767px), (pointer: coarse)').matches;
   const cv=$('fx'), cx=cv.getContext('2d');
   let W,H,pts=[],mx=-9999,my=-9999; const dpr=Math.min(devicePixelRatio||1,2);
   function resize(){ W=innerWidth;H=innerHeight; cv.width=W*dpr;cv.height=H*dpr; cv.style.width=W+'px';cv.style.height=H+'px';
@@ -1252,7 +1252,7 @@
     requestAnimationFrame(tick);
   }
   function startFx(){
-    if(running||reduced) return;
+    if(running||reduced||mobileFx) return;
     if(window.PerfMode && PerfMode.isLite()) return;
     running=true; requestAnimationFrame(tick);
   }
