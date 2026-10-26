@@ -51,7 +51,9 @@ const DATABASE_FILE = process.env.DATABASE_PATH
   : path.join(DATA_DIR, 'database.json');
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
-const TOKEN_TTL = 7 * 24 * 60 * 60;            // 7 дней, секунды
+/* Длинная сессия: пользователь не должен разлогиниваться при закрытии
+   вкладки, браузера или установленного приложения. */
+const TOKEN_TTL = 180 * 24 * 60 * 60;          // 180 дней, секунды
 const BODY_LIMIT = Number(process.env.BODY_LIMIT) || 4 * 1024 * 1024;  // 4 МБ: расписание семестра
 
 /* Роли системы: студент, староста, куратор, разработчик */
@@ -390,7 +392,9 @@ function publicUser(u) {
   return {
     id: u.id, login: u.login, fio: u.fio, birth: u.birth, group: u.group,
     role: normRole(u.role), registeredAt: u.registeredAt,
-    avatar: u.avatar || '', banner: u.banner || '', accent: u.accent || ''
+    avatar: u.avatar || '', banner: u.banner || '', accent: u.accent || '',
+    badges: Array.isArray(u.badges) ? u.badges : [],
+    themes: Array.isArray(u.themes) ? u.themes : []
   };
 }
 function findByLogin(login) {
@@ -498,6 +502,9 @@ async function handleAPI(req, res, pathname) {
       version: '1.1.0',
       dataVersion: Number(db.data.dataVersion) || 0,
       user: me ? publicUser(me) : null,
+      /* полные данные только своих значков — чужие грузятся отдельно */
+      myBadges: me ? (Array.isArray(me.badges) ? me.badges : [])
+        .map(id => (db.data.badgeCatalog || {})[id]).filter(Boolean) : [],
       groups,
       maintenance: db.data.maintenance || { enabled: false, message: '' },
       notice: db.data.notice || { active: false },
@@ -508,6 +515,91 @@ async function handleAPI(req, res, pathname) {
         groups: groups.length,
         courses: Object.keys(courses).length
       }
+    });
+  }
+
+  /* ===================== НАГРАДЫ: ЗНАЧКИ И ТЕМЫ =====================
+     Каталог значков хранится отдельно, у пользователя — только их id.
+     Это держит /api/users и bootstrap лёгкими.                        */
+  const EXCLUSIVE_THEMES = ['crimson-eclipse', 'sakura-mirage', 'emerald-abyss'];
+
+  function badgeCatalog() {
+    db.data.badgeCatalog = db.data.badgeCatalog || {};
+    return db.data.badgeCatalog;
+  }
+  function badgesOf(u) {
+    var cat = badgeCatalog();
+    return (Array.isArray(u.badges) ? u.badges : [])
+      .map(id => cat[id]).filter(Boolean);
+  }
+
+  /* каталог значков — для показа чужих значков в чатах и рейтинге */
+  if (route === '/api/badges' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    return sendJSON(res, 200, {
+      badges: Object.keys(badgeCatalog()).map(k => badgeCatalog()[k]),
+      dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
+  /* создать значок в каталоге (только dev) */
+  if (route === '/api/badges' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const body = await readBody(req);
+    if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Файл значка слишком большой' });
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const image = String(body.image || '');
+    if (!/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/.test(image)) {
+      return sendJSON(res, 400, { error: 'Нужен файл изображения (PNG, JPG, WEBP, GIF, SVG)' });
+    }
+    const badge = {
+      id: 'b_' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
+      name: String(body.name || 'Значок').slice(0, 60),
+      image: image.slice(0, 2 * 1024 * 1024),
+      animated: /^data:image\/gif/.test(image),
+      createdAt: nowISO(), by: me.login
+    };
+    badgeCatalog()[badge.id] = badge;
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 201, { ok: true, badge, dataVersion: db.data.dataVersion });
+  }
+
+  /* удалить значок из каталога и у всех пользователей (только dev) */
+  if (route.startsWith('/api/badges/') && method === 'DELETE') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const id = decodeURIComponent(route.slice('/api/badges/'.length));
+    if (!badgeCatalog()[id]) return sendJSON(res, 404, { error: 'Значок не найден' });
+    delete badgeCatalog()[id];
+    db.data.users.forEach(u => {
+      if (Array.isArray(u.badges)) u.badges = u.badges.filter(x => x !== id);
+    });
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, dataVersion: db.data.dataVersion });
+  }
+
+  /* выдать или забрать значки и темы у пользователя (только dev) */
+  if (route.startsWith('/api/grants/') && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const login = decodeURIComponent(route.slice('/api/grants/'.length));
+    const rec = findByLogin(login);
+    if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    if (Array.isArray(body.badges)) {
+      rec.badges = body.badges.filter(id => !!badgeCatalog()[id]).slice(0, 12);
+    }
+    if (Array.isArray(body.themes)) {
+      rec.themes = body.themes.filter(t => EXCLUSIVE_THEMES.indexOf(t) > -1);
+    }
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, {
+      ok: true, user: publicUser(rec), dataVersion: db.data.dataVersion
     });
   }
 

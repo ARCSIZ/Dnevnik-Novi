@@ -85,6 +85,8 @@
     background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.08);transition:all .2s}
   .th:hover{border-color:rgba(255,255,255,.2)}
   .th.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .th.ex{border-color:rgba(251,191,36,.35)}
+  .th.ex.on{border-color:#fbbf24;box-shadow:0 0 22px -8px rgba(251,191,36,.7)}
   .th .prev{height:46px;border-radius:10px;margin-bottom:9px;border:1px solid rgba(255,255,255,.08)}
   .th .nm{font-size:12.5px;font-weight:700}
   .th .ds{font-size:10.5px;color:rgba(255,255,255,.35);margin-top:2px}
@@ -138,6 +140,14 @@
 
             <p class="lbl">Акцентный цвет</p>
             <div class="accents mb-6" id="accents"></div>
+
+            <div id="exWrap" class="hidden mb-6">
+              <p class="lbl flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>Эксклюзивные темы
+              </p>
+              <div class="themes" id="exThemes"></div>
+              <p class="text-[11.5px] text-white/30 mt-2">Выданы вам лично — меняют палитру интерфейса целиком.</p>
+            </div>
 
             <p class="lbl">Фон интерфейса</p>
             <div class="themes mb-6" id="themes"></div>
@@ -235,8 +245,8 @@
     </div>
   </div>
 
-  <script src="../Data/users.js?v=20260303-fast1"></script>
-  <script src="../General/theme.js?v=1"></script>
+  <script src="../General/theme.js?v=2"></script>
+  <script src="../Data/users.js?v=20260304-awards1"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=1"></script>
@@ -272,18 +282,37 @@
   });
 
   /* ---- фоны ---- */
-  $('themes').innerHTML=T.THEMES.map(t=>
-    '<button class="th" data-id="'+t.id+'">'
+  const card=t=>'<button class="th" data-id="'+t.id+'">'
     +'<span class="prev block" style="background:'+t.preview+'"></span>'
-    +'<span class="nm block">'+t.name+'</span><span class="ds block">'+t.desc+'</span></button>').join('');
+    +'<span class="nm block">'+t.name+'</span><span class="ds block">'+t.desc+'</span></button>';
+  $('themes').innerHTML=T.THEMES.map(card).join('');
+
+  /* эксклюзивы показываем, только если они выданы этому пользователю */
+  function renderExclusive(){
+    const mine=T.myExclusive?T.myExclusive():[];
+    $('exWrap').classList.toggle('hidden',!mine.length);
+    if(mine.length){
+      $('exThemes').innerHTML=mine.map(t=>
+        '<button class="th ex" data-id="'+t.id+'">'
+        +'<span class="prev block" style="background:'+t.preview+'"></span>'
+        +'<span class="nm block flex items-center gap-1.5">'+t.name
+        +'<i data-lucide="sparkles" class="w-3 h-3 text-amber-300"></i></span>'
+        +'<span class="ds block">'+t.desc+'</span></button>').join('');
+      lucide.createIcons();
+    }
+    syncThemes();
+  }
   function syncThemes(){
     const cur=T.get('bg');
     document.querySelectorAll('.th').forEach(b=>b.classList.toggle('on',b.dataset.id===cur));
   }
-  $('themes').addEventListener('click',e=>{
+  function pickTheme(e){
     const b=e.target.closest('.th'); if(!b)return;
-    T.set('bg',b.dataset.id); syncThemes(); toast('Фон обновлён');
-  });
+    T.set('bg',b.dataset.id); syncThemes(); toast('Оформление применено');
+  }
+  $('themes').addEventListener('click',pickTheme);
+  $('exThemes').addEventListener('click',pickTheme);
+  renderExclusive();
 
   /* ---- сегменты ---- */
   function seg(id,key){
@@ -355,6 +384,9 @@
 
   syncAccents(); syncThemes();
   await CollegeDB.init();
+  /* после ответа сервера список выданных тем может пополниться */
+  renderExclusive();
+  if(CollegeDB.onSync) CollegeDB.onSync(renderExclusive);
 })();
 </script>
 </body>

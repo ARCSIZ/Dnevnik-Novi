@@ -464,7 +464,10 @@
               </div>
               <div class="min-w-0">
                 <p class="mono text-[10px] tracking-[.3em] text-indigo-300/70 mb-1.5">ПРОФИЛЬ СТУДЕНТА</p>
-                <h1 class="font-display text-xl sm:text-3xl truncate" style="font-weight:800" id="accFio">Демо Студентов</h1>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h1 class="font-display text-xl sm:text-3xl truncate" style="font-weight:800" id="accFio">—</h1>
+                  <span id="accBadges"></span>
+                </div>
                 <div class="flex flex-wrap gap-2 mt-3">
                   <span class="pill"><i data-lucide="users" class="w-3.5 h-3.5 text-indigo-300"></i><span id="accGroup">—</span></span>
                   <span class="pill"><i data-lucide="at-sign" class="w-3.5 h-3.5 text-indigo-300"></i><span id="accLogin">—</span></span>
@@ -485,7 +488,9 @@
             <div class="st card rounded-[24px] p-5 sm:p-6" style="--i:1">
               <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="id-card" class="w-4 h-4 text-indigo-300"></i>Личные данные</h2>
               <div class="space-y-2.5">
-                <div class="row"><span class="text-[13px] text-white/45">ФИО</span><span class="text-sm font-semibold" id="rowFio">Демо Студентов</span></div>
+                <div class="row"><span class="text-[13px] text-white/45">ФИО</span>
+                  <span class="flex items-center gap-1.5"><span class="text-sm font-semibold" id="rowFio">—</span>
+                  <span id="rowBadges"></span></span></div>
                 <div class="row"><span class="text-[13px] text-white/45">Дата рождения</span><span class="text-sm font-semibold" id="rowBirth">14 мая 2002</span></div>
                 <div class="row"><span class="text-[13px] text-white/45">Группа</span><span class="text-sm font-semibold" id="rowGroup">ИС-101</span></div>
                 <div class="row"><span class="text-[13px] text-white/45">Логин</span><span class="text-sm font-semibold mono" id="rowLogin">demo</span></div>
@@ -552,8 +557,9 @@
     </div>
   </div>
 
-  <script src="../General/theme.js?v=1"></script>
-  <script src="../Data/users.js?v=20260303-fast1"></script>
+  <script src="../General/theme.js?v=2"></script>
+  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../General/badges.js?v=1"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
@@ -602,6 +608,13 @@
     $('accGroup').textContent=user.group||'—'; $('rowGroup').textContent=user.group||'—';
     $('accLogin').textContent=user.login; $('rowLogin').textContent=user.login;
     const rl=$('accRole'); if(rl) rl.textContent=CollegeDB.roleName?CollegeDB.roleName(user.role):'Студент';
+    /* значки, выданные из панели управления */
+    if(window.CollegeBadges&&CollegeDB.myBadges){
+      const bs=CollegeDB.myBadges();
+      const ab=$('accBadges'), rb=$('rowBadges');
+      if(ab) ab.innerHTML=CollegeBadges.html(bs,'lg');
+      if(rb) rb.innerHTML=CollegeBadges.html(bs,'sm');
+    }
     if(user.birth) $('rowBirth').textContent=new Date(user.birth+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
   }
   paintProfile(u);

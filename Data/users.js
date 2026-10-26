@@ -97,6 +97,9 @@
   var currentUser = null;
   var statsCache = null;
   var initPromise = null;    // все модули страницы делят одну инициализацию
+  var badgeCatalog = null;   // каталог значков (загружается по требованию)
+  var myBadgesCache = [];    // значки текущего пользователя
+  var LS_GRANTS = 'collegeid_grants';   // доступные темы — нужны theme.js сразу
 
   /* Роли: student | prefect (староста) | curator | teacher | dev */
   function normRole(role) {
@@ -148,11 +151,22 @@
       return request('/api/version').then(function (d) {
         if (Number(d.dataVersion) !== Number(dataVersion)) {
           dataVersion = Number(d.dataVersion) || 0;
+          badgeCatalog = null;     // каталог мог измениться — перечитаем лениво
           return Promise.all([
             CollegeDB.loadGroups(),
             CollegeDB.loadState(),
             request('/api/me').then(function (x) {
-              if (x && x.user) hydrateUser(x.user);
+              if (x && x.user) {
+                hydrateUser(x.user);
+                /* свои значки обновляем вместе с профилем */
+                return CollegeDB.loadBadgeCatalog().then(function (cat) {
+                  var ids = x.user.badges || [];
+                  myBadgesCache = ids.map(function (id) {
+                    for (var i = 0; i < cat.length; i++) if (cat[i].id === id) return cat[i];
+                    return null;
+                  }).filter(Boolean);
+                });
+              }
             }).catch(function () { currentUser = null; })
           ]).then(function () { emitSync(); return true; });
         }
@@ -192,6 +206,13 @@
   function hydrateUser(user) {
     if (!user) return;
     currentUser = user;
+    /* Список выданных тем кладём в отдельный ключ: theme.js читает его
+       синхронно при загрузке, до ответа сервера — тема не мигает. */
+    try {
+      localStorage.setItem(LS_GRANTS, JSON.stringify({
+        themes: user.themes || [], login: user.login
+      }));
+    } catch (e) { /* noop */ }
     var l = normLogin(user.login), found = false;
     mirror.users = mirror.users.map(function (u) {
       if (normLogin(u.login) === l) { found = true; return user; }
@@ -244,6 +265,7 @@
               };
               statsCache = data.stats || null;
               dataVersion = Number(data.dataVersion) || 0;
+              myBadgesCache = data.myBadges || [];
               if (data.user) hydrateUser(data.user);
               saveMirror();
               emitSync();
@@ -381,6 +403,52 @@
         .then(function (d) {
           if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
           emitSync(); return true;
+        });
+    },
+
+    /* ------------------------------- награды ------------------------------- */
+    /** Значки текущего пользователя (полные объекты) */
+    myBadges: function () { return clone(myBadgesCache); },
+
+    /** Эксклюзивные темы, выданные текущему пользователю */
+    myThemes: function () {
+      return (currentUser && Array.isArray(currentUser.themes)) ? currentUser.themes.slice() : [];
+    },
+
+    /** Каталог всех значков (для показа чужих значков) */
+    loadBadgeCatalog: function () {
+      if (mode !== 'server') return Promise.resolve([]);
+      if (badgeCatalog) return Promise.resolve(clone(badgeCatalog));
+      return request('/api/badges').then(function (d) {
+        badgeCatalog = d.badges || [];
+        return clone(badgeCatalog);
+      }).catch(function () { return []; });
+    },
+
+    /** Создать значок в каталоге (dev) */
+    createBadge: function (name, image) {
+      return request('/api/badges', { method: 'POST', body: { name: name, image: image } })
+        .then(function (d) {
+          if (d.badge) { badgeCatalog = (badgeCatalog || []).concat([d.badge]); }
+          emitSync(); return d.badge;
+        });
+    },
+
+    /** Удалить значок из каталога и у всех (dev) */
+    deleteBadge: function (id) {
+      return request('/api/badges/' + encodeURIComponent(id), { method: 'DELETE' })
+        .then(function () {
+          badgeCatalog = (badgeCatalog || []).filter(function (b) { return b.id !== id; });
+          emitSync(); return true;
+        });
+    },
+
+    /** Выдать или забрать значки и темы (dev) */
+    setGrants: function (login, grants) {
+      return request('/api/grants/' + encodeURIComponent(login), { method: 'PUT', body: grants })
+        .then(function (d) {
+          if (d.user) hydrateUser(d.user);
+          emitSync(); return d.user;
         });
     },
 
@@ -796,12 +864,18 @@
     },
 
     /* ----------------------------------------------------------- сессия */
-    /** Сохранить сессию. remember=true — переживёт закрытие браузера. */
-    saveSession: function (login, remember) {
-      var storage = remember ? localStorage : sessionStorage;
-      sSet(LS_SESSION, JSON.stringify({ login: login, ts: Date.now() }), storage);
-      if (remember) sDel(LS_SESSION, sessionStorage); else sDel(LS_SESSION, localStorage);
-      if (token) sSet(LS_TOKEN, token, storage);
+    /**
+     * Сохранить сессию.
+     * Всегда в localStorage: пользователь не должен разлогиниваться при
+     * закрытии вкладки, браузера или установленного приложения.
+     */
+    saveSession: function (login) {
+      sSet(LS_SESSION, JSON.stringify({ login: login, ts: Date.now() }), localStorage);
+      sDel(LS_SESSION, sessionStorage);
+      if (token) {
+        sSet(LS_TOKEN, token, localStorage);
+        sDel(LS_TOKEN, sessionStorage);
+      }
     },
 
     /** Текущая сессия или null */

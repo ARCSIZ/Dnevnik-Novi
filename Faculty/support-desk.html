@@ -155,8 +155,9 @@
     </div>
   </div>
 
-  <script src="../General/theme.js?v=1"></script>
-  <script src="../Data/users.js?v=20260303-fast1"></script>
+  <script src="../General/theme.js?v=2"></script>
+  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../General/badges.js?v=1"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
@@ -180,7 +181,14 @@
   }
   $('app').classList.remove('hidden');
 
-  let chats=[], cur=null, msgs=[], ver=-1, attach=[];
+  let chats=[], cur=null, msgs=[], ver=-1, attach=[], badgeCat=[];
+  /* каталог значков: показываем награды собеседников в списке чатов */
+  if(CollegeDB.loadBadgeCatalog) CollegeDB.loadBadgeCatalog().then(c=>{ badgeCat=c||[]; renderChats(); });
+  function badgesFor(login){
+    const u=CollegeDB.findByLogin?CollegeDB.findByLogin(login):null;
+    const ids=(u&&u.badges)||[];
+    return ids.map(id=>badgeCat.find(b=>b.id===id)).filter(Boolean);
+  }
   const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const tm=iso=>new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
   const dkey=iso=>new Date(iso).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
@@ -193,8 +201,9 @@
       '<button class="chat'+(cur===c.login?' on':'')+'" data-login="'+c.login+'">'
       +'<span class="ava">'+esc(ini(c.fio).toUpperCase())+'</span>'
       +'<span class="min-w-0 flex-1">'
-        +'<span class="flex items-center gap-2"><span class="text-[13.5px] font-semibold truncate flex-1">'+esc(c.fio)+'</span>'
-        +(c.unread?'<span class="badge">'+c.unread+'</span>':'')+'</span>'
+        +'<span class="flex items-center gap-1.5"><span class="text-[13.5px] font-semibold truncate">'+esc(c.fio)+'</span>'
+        +(window.CollegeBadges?CollegeBadges.html(badgesFor(c.login),'sm'):'')
+        +(c.unread?'<span class="badge ml-auto">'+c.unread+'</span>':'')+'</span>'
         +'<span class="block text-[11.5px] text-white/40 truncate mt-0.5">'
         +(c.last?((c.last.from==='staff'?'Вы: ':'')+(c.last.image&&!c.last.text?'📷 скриншот':esc(c.last.text))):'нет сообщений')+'</span>'
         +'<span class="block text-[10px] mono text-white/25 mt-1">'+esc(c.login)+(c.group?(' · '+esc(c.group)):'')+'</span>'
@@ -228,7 +237,8 @@
   async function open(login){
     cur=login;
     const c=chats.find(x=>x.login===login);
-    $('curName').textContent=(c&&c.fio)||login;
+    $('curName').innerHTML=esc((c&&c.fio)||login)
+      +(window.CollegeBadges?(' '+CollegeBadges.html(badgesFor(login),'sm')):'');
     $('curMeta').textContent=login+((c&&c.group)?(' · '+c.group):'');
     $('curAva').textContent=ini((c&&c.fio)||login).toUpperCase();
     $('input').disabled=false; $('send').disabled=false;

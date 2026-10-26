@@ -118,6 +118,17 @@
   .mv{padding:4px 8px;border-radius:8px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6)}
   .mv:hover{border-color:rgba(129,140,248,.5);color:#c7d2fe}
+  /* награды */
+  .row.sel{border-color:rgba(129,140,248,.6);background:linear-gradient(100deg,rgba(99,102,241,.16),rgba(168,85,247,.08))}
+  .bd-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:12px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);font-size:12px;color:rgba(255,255,255,.75)}
+  .bd-chip img{width:22px;height:22px;object-fit:contain;border-radius:5px}
+  .bd-chip button{display:inline-flex;align-items:center;gap:6px;background:none;border:0;cursor:pointer;
+    color:inherit;font:inherit;padding:0}
+  .bd-chip .bd-del{color:rgba(251,113,133,.7);padding-left:4px;border-left:1px solid rgba(255,255,255,.1)}
+  .bd-chip .bd-del:hover{color:#fda4af}
+  .bd-chip:hover{border-color:rgba(129,140,248,.45)}
+  input[type=range]{accent-color:#818cf8}
 
   .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -182,7 +193,13 @@
           <span class="block text-[12px] text-white/40 mt-1">Создание, курс, староста и куратор</span></span>
           <span class="mono text-[10px] tracking-[.2em] text-emerald-300/70 mt-auto pt-2" id="cGroups">—</span>
         </button>
-        <button class="sec-tile st" style="--i:3" data-sec="notify">
+        <button class="sec-tile st" style="--i:3" data-sec="awards">
+          <span class="ai bg-gradient-to-br from-amber-500 to-rose-500"><i data-lucide="award" class="w-5 h-5"></i></span>
+          <span><span class="block font-semibold text-[15px]">Награды</span>
+          <span class="block text-[12px] text-white/40 mt-1">Значки и эксклюзивные темы</span></span>
+          <span class="mono text-[10px] tracking-[.2em] text-amber-300/70 mt-auto pt-2" id="cAwards">—</span>
+        </button>
+        <button class="sec-tile st" style="--i:4" data-sec="notify">
           <span class="ai bg-gradient-to-br from-fuchsia-500 to-purple-600"><i data-lucide="megaphone" class="w-5 h-5"></i></span>
           <span><span class="block font-semibold text-[15px]">Оповещения</span>
           <span class="block text-[12px] text-white/40 mt-1">Техработы и рассылка всем</span></span>
@@ -249,6 +266,95 @@
 
         <p class="lbl">Существующие группы</p>
         <div id="grpManage" class="space-y-2"></div>
+      </section>
+
+      <!-- ===== НАГРАДЫ ===== -->
+      <section id="sec-awards" class="sec card rounded-[24px] p-5 sm:p-6 hidden">
+        <h2 class="font-semibold mb-4 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-amber-300"></i>Награды пользователей</h2>
+
+        <div class="panel p-4 mb-5">
+          <p class="lbl">1 · Выберите пользователя</p>
+          <input id="awSearch" placeholder="Поиск по ФИО, логину или группе…" class="mb-2.5">
+          <div id="awUsers" class="space-y-2" style="max-height:230px;overflow-y:auto"></div>
+        </div>
+
+        <div id="awPanel" class="hidden">
+          <div class="panel p-4 mb-5">
+            <div class="flex items-center gap-3 mb-4 flex-wrap">
+              <span class="w-11 h-11 rounded-xl bg-cover bg-center flex items-center justify-center font-bold"
+                    id="awAva" style="background:linear-gradient(135deg,#6366f1,#a855f7)">—</span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-2"><b class="text-[14px] truncate" id="awName">—</b>
+                  <span id="awBadgePrev"></span></span>
+                <span class="block text-[11.5px] text-white/35 mono" id="awLogin">—</span>
+              </span>
+            </div>
+
+            <p class="lbl">2 · Эксклюзивные темы</p>
+            <div class="grid sm:grid-cols-3 gap-2.5 mb-5" id="awThemes"></div>
+
+            <p class="lbl">3 · Выданные значки — нажмите, чтобы забрать</p>
+            <div id="awOwned" class="flex flex-wrap gap-2 mb-2"></div>
+            <p class="text-[11.5px] text-white/30">Каталог ниже: нажмите на значок, чтобы выдать его этому пользователю.</p>
+          </div>
+
+          <div class="panel p-4 mb-5">
+            <p class="lbl">Каталог значков</p>
+            <div id="awCatalog" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+
+        <div class="panel p-4">
+          <p class="lbl">Создать новый значок</p>
+          <div class="grid sm:grid-cols-2 gap-2.5 mb-3">
+            <input id="bdName" placeholder="Название значка">
+            <label class="btn btn-ghost h-[42px] text-[13px] flex items-center justify-center gap-2" style="cursor:pointer">
+              <i data-lucide="upload" class="w-4 h-4"></i><span id="bdFileName">Выбрать файл</span>
+              <input type="file" id="bdFile" accept="image/*,.gif,.svg" style="display:none">
+            </label>
+          </div>
+
+          <div id="bdEditor" class="hidden">
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <p class="lbl">Удаление фона — кликните пипеткой по фону</p>
+                <div class="relative inline-block rounded-xl overflow-hidden border border-white/10"
+                     style="background:repeating-conic-gradient(#2a2a35 0 25%,#1d1d26 0 50%) 0 0/16px 16px">
+                  <canvas id="bdCanvas" style="display:block;max-width:100%;cursor:crosshair"></canvas>
+                </div>
+                <div id="bdGifNote" class="dbox mt-2 hidden" style="font-size:12px">
+                  GIF сохраняется как есть — анимация не теряется. Удаление фона для GIF недоступно.
+                </div>
+                <div id="bdTools" class="mt-3">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="pill" id="bdPicked">Фон не выбран</span>
+                    <button class="btn btn-ghost px-3 py-1.5 text-[12px]" id="bdReset">Сбросить</button>
+                  </div>
+                  <p class="lbl mt-3">Чувствительность: <span id="bdTolVal" class="text-white/60">40</span></p>
+                  <input type="range" id="bdTol" min="5" max="140" value="40" style="width:100%">
+                </div>
+              </div>
+              <div>
+                <p class="lbl">Предпросмотр рядом с именем</p>
+                <div class="row" style="align-items:center">
+                  <span class="flex items-center gap-2 min-w-0">
+                    <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[12px] font-bold">ИИ</span>
+                    <span class="min-w-0"><span class="flex items-center gap-1.5">
+                      <b class="text-[13.5px]">Иванов Иван</b><span id="bdPrev1"></span></span>
+                      <span class="block text-[11px] text-white/35 mono">student</span></span>
+                  </span>
+                </div>
+                <div class="flex items-center gap-3 mt-3 p-3 rounded-xl" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+                  <span class="text-[11.5px] text-white/40">Размеры:</span>
+                  <span id="bdPrev2"></span><span id="bdPrev3"></span><span id="bdPrev4"></span>
+                </div>
+                <button id="bdSave" class="btn btn-primary w-full h-[44px] text-sm flex items-center justify-center gap-2 mt-4">
+                  <i data-lucide="check" class="w-4 h-4"></i>Создать значок
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ===== ОПОВЕЩЕНИЯ ===== -->
@@ -344,8 +450,9 @@
     </div>
   </div>
 
-  <script src="../General/theme.js?v=1"></script>
-  <script src="../Data/users.js?v=20260303-fast1"></script>
+  <script src="../General/theme.js?v=2"></script>
+  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../General/badges.js?v=1"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=1"></script>
 <script>
@@ -682,6 +789,208 @@
       : 'Активных объявлений нет';
     $('cNotify').textContent=(m.enabled?'ТЕХРАБОТЫ':(n.active?'ЕСТЬ ОБЪЯВЛЕНИЕ':'ВЫКЛЮЧЕНО'));
   }
+
+  /* ================== НАГРАДЫ ================== */
+  const EX_THEMES=(window.CollegeTheme&&CollegeTheme.EXCLUSIVE)||[];
+  let awLogin=null, awFilter='', catalog=[], bdImage='', bdOriginal=null, bdPick=null, bdIsGif=false;
+
+  CollegeDB.loadBadgeCatalog().then(c=>{ catalog=c||[]; renderCatalog(); renderAwUsers(); });
+
+  function renderAwUsers(){
+    const q=awFilter.trim().toLowerCase();
+    const list=users().filter(u=>!q
+      || String(u.login||'').toLowerCase().indexOf(q)>-1
+      || String(u.fio||'').toLowerCase().indexOf(q)>-1
+      || String(u.group||'').toLowerCase().indexOf(q)>-1).slice(0,40);
+    $('awUsers').innerHTML=list.length?list.map(u=>{
+      const bg=(u.badges||[]).length;
+      const th=(u.themes||[]).length;
+      return '<button type="button" class="row w-full aw-pick'+(awLogin===u.login?' sel':'')+'" data-login="'+u.login+'" style="cursor:pointer">'
+        +'<span class="min-w-0 flex-1 text-left"><span class="block text-[13px] font-semibold truncate">'+(u.fio||u.login)+'</span>'
+        +'<span class="block text-[11px] text-white/35 mono mt-0.5 truncate">'+u.login+(u.group?(' · '+u.group):'')+'</span></span>'
+        +(bg||th?'<span class="pill shrink-0">'+(bg?('🏅'+bg):'')+(th?(' 🎨'+th):'')+'</span>':'')
+        +'</button>';
+    }).join(''):'<div class="dbox">Никого не найдено</div>';
+    $('awUsers').querySelectorAll('.aw-pick').forEach(b=>b.addEventListener('click',()=>{
+      awLogin=b.dataset.login; renderAwPanel(); renderAwUsers();
+    }));
+  }
+  $('awSearch').addEventListener('input',e=>{ awFilter=e.target.value; renderAwUsers(); });
+
+  function badgesOf(u){
+    return (u.badges||[]).map(id=>catalog.find(b=>b.id===id)).filter(Boolean);
+  }
+
+  function renderAwPanel(){
+    const u=users().find(x=>x.login===awLogin);
+    if(!u){ $('awPanel').classList.add('hidden'); return; }
+    $('awPanel').classList.remove('hidden');
+    const ini=String(u.fio||u.login).trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    const av=$('awAva');
+    if(u.avatar){ av.style.backgroundImage='url('+u.avatar+')'; av.textContent=''; }
+    else { av.style.backgroundImage=''; av.textContent=ini; }
+    $('awName').textContent=u.fio||u.login;
+    $('awLogin').textContent=u.login;
+    $('awBadgePrev').innerHTML=window.CollegeBadges?CollegeBadges.html(badgesOf(u),'sm'):'';
+
+    $('awThemes').innerHTML=EX_THEMES.map(t=>{
+      const on=(u.themes||[]).indexOf(t.id)>-1;
+      return '<button type="button" class="th'+(on?' on':'')+'" data-th="'+t.id+'">'
+        +'<span class="prev block" style="background:'+t.preview+'"></span>'
+        +'<span class="nm block">'+t.name+'</span>'
+        +'<span class="ds block">'+(on?'✓ выдана':t.desc)+'</span></button>';
+    }).join('');
+    $('awThemes').querySelectorAll('.th').forEach(b=>b.addEventListener('click',()=>{
+      const cur=(u.themes||[]).slice(), id=b.dataset.th;
+      const i=cur.indexOf(id);
+      if(i>-1) cur.splice(i,1); else cur.push(id);
+      CollegeDB.setGrants(u.login,{themes:cur}).then(()=>{
+        toast(i>-1?'Тема забрана':'Тема выдана');
+        renderAwPanel(); renderAwUsers();
+      }).catch(err=>toast('Ошибка: '+((err&&err.message)||'нет связи')));
+    }));
+
+    const owned=badgesOf(u);
+    $('awOwned').innerHTML=owned.length?owned.map(b=>
+      '<button type="button" class="bd-chip aw-off" data-id="'+b.id+'" title="Забрать значок">'
+      +'<img src="'+b.image+'" alt=""><span>'+b.name+'</span><i data-lucide="x" class="w-3 h-3"></i></button>').join('')
+      :'<span class="text-[12px] text-white/30">Значков пока нет</span>';
+    lucide.createIcons();
+    $('awOwned').querySelectorAll('.aw-off').forEach(b=>b.addEventListener('click',()=>{
+      const cur=(u.badges||[]).filter(x=>x!==b.dataset.id);
+      CollegeDB.setGrants(u.login,{badges:cur}).then(()=>{
+        toast('Значок забран'); renderAwPanel(); renderAwUsers();
+      });
+    }));
+  }
+
+  function renderCatalog(){
+    $('cAwards').textContent=catalog.length+' ЗНАЧКОВ';
+    $('awCatalog').innerHTML=catalog.length?catalog.map(b=>
+      '<span class="bd-chip"><button type="button" class="bd-give" data-id="'+b.id+'" title="Выдать">'
+      +'<img src="'+b.image+'" alt=""><span>'+b.name+'</span></button>'
+      +'<button type="button" class="bd-del" data-id="'+b.id+'" title="Удалить из каталога">'
+      +'<i data-lucide="trash-2" class="w-3 h-3"></i></button></span>').join('')
+      :'<div class="dbox">Каталог пуст — создайте первый значок ниже</div>';
+    lucide.createIcons();
+    $('awCatalog').querySelectorAll('.bd-give').forEach(b=>b.addEventListener('click',()=>{
+      if(!awLogin) return toast('Сначала выберите пользователя');
+      const u=users().find(x=>x.login===awLogin);
+      const cur=(u.badges||[]).slice();
+      if(cur.indexOf(b.dataset.id)>-1) return toast('Значок уже выдан');
+      cur.push(b.dataset.id);
+      CollegeDB.setGrants(awLogin,{badges:cur}).then(()=>{
+        toast('Значок выдан'); renderAwPanel(); renderAwUsers();
+      }).catch(err=>toast('Ошибка: '+((err&&err.message)||'нет связи')));
+    }));
+    $('awCatalog').querySelectorAll('.bd-del').forEach(b=>b.addEventListener('click',()=>{
+      if(!confirm('Удалить значок из каталога и у всех пользователей?')) return;
+      CollegeDB.deleteBadge(b.dataset.id).then(()=>{
+        catalog=catalog.filter(x=>x.id!==b.dataset.id);
+        toast('Значок удалён'); renderCatalog(); renderAwPanel(); renderAwUsers();
+      });
+    }));
+  }
+
+  /* ---- создание значка: загрузка, пипетка, предпросмотр ---- */
+  const cv=$('bdCanvas'), cx=cv.getContext('2d',{willReadFrequently:true});
+
+  $('bdFile').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    $('bdFileName').textContent=f.name.slice(0,22);
+    bdIsGif=/gif$/i.test(f.type)||/\.gif$/i.test(f.name);
+    const fr=new FileReader();
+    fr.onload=()=>{
+      $('bdEditor').classList.remove('hidden');
+      $('bdGifNote').classList.toggle('hidden',!bdIsGif);
+      $('bdTools').classList.toggle('hidden',bdIsGif);
+      if(bdIsGif){
+        /* GIF не трогаем: любая перерисовка убьёт анимацию */
+        bdImage=String(fr.result); bdOriginal=null; bdPick=null;
+        cv.style.display='none'; preview();
+        return;
+      }
+      cv.style.display='block';
+      const img=new Image();
+      img.onload=()=>{
+        const max=128, k=Math.min(1,max/Math.max(img.width,img.height));
+        cv.width=Math.max(1,Math.round(img.width*k));
+        cv.height=Math.max(1,Math.round(img.height*k));
+        cx.clearRect(0,0,cv.width,cv.height);
+        cx.drawImage(img,0,0,cv.width,cv.height);
+        bdOriginal=cx.getImageData(0,0,cv.width,cv.height);
+        bdPick=null; $('bdPicked').textContent='Фон не выбран';
+        bdImage=cv.toDataURL('image/png');
+        preview();
+      };
+      img.src=String(fr.result);
+    };
+    fr.readAsDataURL(f);
+  });
+
+  function applyChroma(){
+    if(!bdOriginal) return;
+    const src=bdOriginal.data;
+    const out=cx.createImageData(bdOriginal.width,bdOriginal.height);
+    const tol=Number($('bdTol').value)||40;
+    for(let i=0;i<src.length;i+=4){
+      out.data[i]=src[i]; out.data[i+1]=src[i+1]; out.data[i+2]=src[i+2]; out.data[i+3]=src[i+3];
+      if(bdPick){
+        const d=Math.sqrt(Math.pow(src[i]-bdPick[0],2)+Math.pow(src[i+1]-bdPick[1],2)+Math.pow(src[i+2]-bdPick[2],2));
+        if(d<=tol) out.data[i+3]=0;
+        else if(d<=tol*1.5) out.data[i+3]=Math.round(src[i+3]*((d-tol)/(tol*0.5)));
+      }
+    }
+    cx.putImageData(out,0,0);
+    bdImage=cv.toDataURL('image/png');
+    preview();
+  }
+  cv.addEventListener('click',e=>{
+    if(bdIsGif||!bdOriginal) return;
+    const r=cv.getBoundingClientRect();
+    const x=Math.floor((e.clientX-r.left)*(cv.width/r.width));
+    const y=Math.floor((e.clientY-r.top)*(cv.height/r.height));
+    const i=(y*bdOriginal.width+x)*4;
+    bdPick=[bdOriginal.data[i],bdOriginal.data[i+1],bdOriginal.data[i+2]];
+    $('bdPicked').innerHTML='Фон: <span style="display:inline-block;width:12px;height:12px;border-radius:3px;'
+      +'background:rgb('+bdPick.join(',')+');border:1px solid rgba(255,255,255,.3);vertical-align:-2px"></span> '
+      +'rgb('+bdPick.join(',')+')';
+    applyChroma();
+  });
+  $('bdTol').addEventListener('input',e=>{ $('bdTolVal').textContent=e.target.value; applyChroma(); });
+  $('bdReset').addEventListener('click',()=>{
+    if(!bdOriginal) return;
+    bdPick=null; $('bdPicked').textContent='Фон не выбран';
+    cx.putImageData(bdOriginal,0,0); bdImage=cv.toDataURL('image/png'); preview();
+  });
+
+  function preview(){
+    const b=[{name:$('bdName').value||'Значок',image:bdImage,animated:bdIsGif}];
+    if(!window.CollegeBadges||!bdImage) return;
+    $('bdPrev1').innerHTML=CollegeBadges.html(b,'sm');
+    $('bdPrev2').innerHTML=CollegeBadges.html(b,'sm');
+    $('bdPrev3').innerHTML=CollegeBadges.html(b,'');
+    $('bdPrev4').innerHTML=CollegeBadges.html(b,'lg');
+  }
+  $('bdName').addEventListener('input',preview);
+
+  $('bdSave').addEventListener('click',()=>{
+    const name=$('bdName').value.trim();
+    if(!name) return toast('Укажите название значка');
+    if(!bdImage) return toast('Загрузите изображение');
+    const btn=$('bdSave'); btn.disabled=true; btn.style.opacity='.6';
+    CollegeDB.createBadge(name,bdImage).then(b=>{
+      btn.disabled=false; btn.style.opacity='';
+      catalog.push(b);
+      $('bdName').value=''; $('bdFileName').textContent='Выбрать файл';
+      $('bdEditor').classList.add('hidden'); bdImage=''; bdOriginal=null; bdPick=null;
+      toast('Значок «'+b.name+'» создан');
+      renderCatalog();
+    }).catch(err=>{
+      btn.disabled=false; btn.style.opacity='';
+      toast(err&&err.status===413?'Файл слишком большой':'Ошибка: '+((err&&err.message)||'нет связи'));
+    });
+  });
 
   renderUsers(); renderGroups(); renderStats();
   CollegeDB.loadState().then(renderNotify);

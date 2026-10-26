@@ -41,6 +41,41 @@
       preview: 'linear-gradient(135deg,#0f0f11,#1b1b20)', bg: '#0c0c0f', soft: '22,22,27' }
   ];
 
+  /* Эксклюзивные темы — выдаются поимённо из панели управления.
+     Меняют и фон, и акцент: это цельные образы, а не просто подложка. */
+  var EXCLUSIVE = [
+    {
+      id: 'crimson-eclipse', name: 'Багровое Затмение',
+      desc: 'Чёрный обсидиан и алое свечение',
+      preview: 'linear-gradient(135deg,#000 35%,#7f1d1d 75%,#ef4444)',
+      bg: '#050003', soft: '20,5,8', c1: '#ef4444', c2: '#991b1b', glow: '239,68,68'
+    },
+    {
+      id: 'sakura-mirage', name: 'Сакура Мираж',
+      desc: 'Полностью розовый рассвет',
+      preview: 'linear-gradient(135deg,#4a1033,#be185d 60%,#f9a8d4)',
+      bg: '#1a0613', soft: '48,12,36', c1: '#f472b6', c2: '#ec4899', glow: '244,114,182'
+    },
+    {
+      id: 'emerald-abyss', name: 'Изумрудная Бездна',
+      desc: 'Глубокая зелень в чёрной толще',
+      preview: 'linear-gradient(135deg,#000 35%,#064e3b 75%,#10b981)',
+      bg: '#000805', soft: '6,26,20', c1: '#10b981', c2: '#047857', glow: '16,185,129'
+    }
+  ];
+
+  /* Какие эксклюзивы выданы этому пользователю (пишет Data/users.js) */
+  function granted() {
+    try {
+      var g = JSON.parse(localStorage.getItem('collegeid_grants')) || {};
+      return Array.isArray(g.themes) ? g.themes : [];
+    } catch (e) { return []; }
+  }
+  function exclusiveById(id) {
+    for (var i = 0; i < EXCLUSIVE.length; i++) if (EXCLUSIVE[i].id === id) return EXCLUSIVE[i];
+    return null;
+  }
+
   var DEFAULTS = {
     accent: 'indigo', bg: 'midnight', density: 'normal', radius: 'normal',
     anim: true, particles: true, blur: true,
@@ -94,7 +129,14 @@
       'html.no-anim *{animation:none!important;transition-duration:.08s!important}',
       'html.no-blur *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}',
       'html.no-blur .card{background:rgba(var(--soft),.97)!important}',
-      'html.no-particles canvas#fx{display:none!important}'
+      'html.no-particles canvas#fx{display:none!important}',
+      /* эксклюзивные темы: цветное свечение вместо нейтрального фона */
+      'html.exclusive-theme .orb{background:radial-gradient(circle,rgba(var(--glow),.30),transparent 65%)!important}',
+      'html.exclusive-theme .card{box-shadow:0 0 0 1px rgba(var(--glow),.16),',
+      ' 0 40px 90px -30px rgba(0,0,0,.85)!important;border-color:rgba(var(--glow),.22)!important}',
+      'html.exclusive-theme .pill{border-color:rgba(var(--glow),.25)}',
+      'html.exclusive-theme .grad-text{background:linear-gradient(100deg,var(--accent),var(--accent2))!important;',
+      ' -webkit-background-clip:text;background-clip:text;color:transparent}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(st);
   }
@@ -104,6 +146,20 @@
     var a = ACCENTS.filter(function (x) { return x.id === cfg.accent; })[0] || ACCENTS[0];
     var t = THEMES.filter(function (x) { return x.id === cfg.bg; })[0] || THEMES[0];
     var r = document.documentElement;
+
+    /* Эксклюзив задаёт палитру целиком и работает только если выдан */
+    var ex = exclusiveById(cfg.bg);
+    if (ex) {
+      if (granted().indexOf(ex.id) > -1) {
+        t = ex;
+        a = { c1: ex.c1, c2: ex.c2 };
+      } else {
+        cfg.bg = DEFAULTS.bg; save();
+        t = THEMES[0]; ex = null;
+      }
+    }
+    r.classList.toggle('exclusive-theme', !!ex);
+    r.style.setProperty('--glow', ex ? ex.glow : '99,102,241');
 
     r.style.setProperty('--accent', a.c1);
     r.style.setProperty('--accent2', a.c2);
@@ -125,7 +181,13 @@
   }
 
   global.CollegeTheme = {
-    ACCENTS: ACCENTS, THEMES: THEMES,
+    ACCENTS: ACCENTS, THEMES: THEMES, EXCLUSIVE: EXCLUSIVE,
+    /** Эксклюзивные темы, доступные этому пользователю */
+    myExclusive: function () {
+      var g = granted();
+      return EXCLUSIVE.filter(function (t) { return g.indexOf(t.id) > -1; });
+    },
+    isExclusive: function (id) { return !!exclusiveById(id); },
     all: function () { return JSON.parse(JSON.stringify(cfg)); },
     get: function (k) { return cfg[k]; },
     set: function (k, v) { cfg[k] = v; save(); apply(); },

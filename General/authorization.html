@@ -471,8 +471,8 @@
   </div>
 
   <!-- СЛОЙ ДАННЫХ + АДАПТИВНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ -->
-  <script src="theme.js?v=1"></script>
-  <script src="../Data/users.js?v=20260303-fast1"></script>
+  <script src="theme.js?v=2"></script>
+  <script src="../Data/users.js?v=20260304-awards1"></script>
   <script src="notice.js?v=1"></script>
   <script src="perf.js"></script>
   <script src="pwa.js?v=1"></script>
@@ -821,7 +821,8 @@
     }
     // сессия всегда — diary должен узнать пользователя;
     // галочка «Запомнить меня» определяет её длительность
-    CollegeDB.saveSession(user.login, $('remember').checked);
+    /* Сессия всегда долгая: вход не должен слетать после закрытия приложения */
+    CollegeDB.saveSession(user.login);
     showSuccess(user,'login');
   });
 
@@ -840,8 +841,8 @@
         fio:$('r_fio').value, birth:birth.value, group:groupVal
       });
       loading(btn,false);
-      // регистрация = подтверждённая личность → сразу создаём сессию
-      CollegeDB.saveSession(user.login, true);
+      // регистрация = подтверждённая личность → сразу создаём долгую сессию
+      CollegeDB.saveSession(user.login);
       showSuccess(user,'register');
     }catch(err){
       loading(btn,false);
