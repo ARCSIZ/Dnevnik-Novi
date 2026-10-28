@@ -577,7 +577,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../Data/users.js?v=20260305-fastdata2"></script>
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=2"></script>
@@ -607,6 +607,13 @@
     const p=String(fio||login||'?').trim().split(/\s+/);
     return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase()||'?';
   }
+  function paintBadges(){
+    if(!window.CollegeBadges||!CollegeDB.myBadges) return;
+    const bs=CollegeDB.myBadges();
+    const ab=$('accBadges'), rb=$('rowBadges');
+    if(ab) ab.innerHTML=CollegeBadges.html(bs,'lg');
+    if(rb) rb.innerHTML=CollegeBadges.html(bs,'sm');
+  }
   function paintProfile(user){
     if(!user) return;
     const ini=initialsOf(user.fio,user.login);
@@ -633,15 +640,12 @@
     $('accLogin').textContent=user.login; $('rowLogin').textContent=user.login;
     const rl=$('accRole'); if(rl) rl.textContent=CollegeDB.roleName?CollegeDB.roleName(user.role):'Студент';
     /* значки, выданные из панели управления */
-    if(window.CollegeBadges&&CollegeDB.myBadges){
-      const bs=CollegeDB.myBadges();
-      const ab=$('accBadges'), rb=$('rowBadges');
-      if(ab) ab.innerHTML=CollegeBadges.html(bs,'lg');
-      if(rb) rb.innerHTML=CollegeBadges.html(bs,'sm');
-    }
+    paintBadges();
     if(user.birth) $('rowBirth').textContent=new Date(user.birth+'T00:00:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
   }
   paintProfile(u);
+  /* Значки не задерживают дневник: подтягиваются после основной информации. */
+  if(CollegeDB.loadMyBadges) CollegeDB.loadMyBadges().then(paintBadges);
 
   /* загрузка и сжатие изображений профиля */
   function pickImage(input,maxW,quality,ratio){
@@ -1241,17 +1245,11 @@
   }
   bindTiles();
 
-  /* Куратор может быть и преподавателем: если его ФИО есть в расписании —
-     добавляем плитку «Журнал преподавателя». Нет пар — плитки нет. */
-  if(myRole==='curator'&&CollegeDB.loadAllSchedules&&CollegeDB.fioKey){
-    CollegeDB.loadAllSchedules().then(all=>{
-      const key=CollegeDB.fioKey(u&&u.fio);
-      const teaches=Object.keys(all||{}).some(g=>{
-        const days=all[g]||{};
-        return Object.keys(days).some(d=>(days[d]||[])
-          .some(L=>!L.event&&CollegeDB.fioKey(L.teacher)===key));
-      });
-      if(!teaches) return;
+  /* Bootstrap уже сообщает, ведёт ли куратор пары — не загружаем ради
+     одной плитки расписания всех групп колледжа. */
+  if(myRole==='curator'&&CollegeDB.teachingGroups){
+    const teachingGroups=CollegeDB.teachingGroups();
+    if(teachingGroups.length){
       const a=APPS.find(x=>x.id==='tjournal');
       myApps.push(a);
       $('appsCount').textContent=myApps.length+' доступно';
@@ -1267,7 +1265,7 @@
       bindTiles();
       const nav=document.querySelector('.nav-btn[data-view="apps"] .nv-count');
       if(nav) nav.textContent=myApps.length;
-    }).catch(()=>{});
+    }
   }
 
   /* счётчик в боковом меню */

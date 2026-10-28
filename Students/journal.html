@@ -326,7 +326,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../Data/users.js?v=20260305-fastdata2"></script>
   <script src="../General/notice.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
@@ -357,8 +357,6 @@
   const sameDay=(a,b)=>keyOf(a)===keyOf(b);
 
   await CollegeDB.init();
-  /* Список студентов группы загружается только на странице журнала. */
-  if(CollegeDB.isServer&&CollegeDB.isServer()) await CollegeDB.refresh();
   if(CollegeDB.startSync) CollegeDB.startSync(20000);
   const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
   const s=CollegeDB.session();
@@ -405,6 +403,9 @@
     $('myGroup').textContent='не выбрана';
     toast('Создайте группу в панели управления');
   }
+
+  /* Загружаем только участников выбранной группы, не всех пользователей. */
+  if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
 
   let schedule=GROUP?await CollegeDB.loadSchedule(GROUP):{};
   let weekStart=startOfWeek(new Date());
@@ -879,7 +880,8 @@
 
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{
     if(!GROUP) return;
-    CollegeDB.refresh().then(()=>{ if(!$('pane-marks').classList.contains('hidden')) renderMarks(); });
+    if(CollegeDB.loadGroupUsers) CollegeDB.loadGroupUsers(GROUP)
+      .then(()=>{ if(!$('pane-marks').classList.contains('hidden')) renderMarks(); });
     CollegeDB.loadSchedule(GROUP).then(d=>{ schedule=d; renderWeek(); renderDay(); });
     CollegeDB.loadAttendance(GROUP).then(d=>{ attendance=d; if(!$('pane-marks').classList.contains('hidden')) renderMarks(); });
   });

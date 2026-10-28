@@ -33,6 +33,7 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { createStore } = require('./Data/store.js');
 
 /* ------------------------------------------------------------------ настройки */
@@ -414,13 +415,21 @@ function clientIP(req) {
 }
 
 function sendJSON(res, code, obj) {
-  const body = JSON.stringify(obj);
-  res.writeHead(code, {
+  const body = Buffer.from(JSON.stringify(obj));
+  const accepts = String((res.req && res.req.headers['accept-encoding']) || '');
+  /* Не сжимаем многомегабайтные base64-скриншоты: это почти не уменьшает
+     размер, но нагружает CPU. Расписания и журналы обычно < 1.5 МБ. */
+  const useGzip = body.length > 1024 && body.length < 1536 * 1024 && /\bgzip\b/.test(accepts);
+  const payload = useGzip ? zlib.gzipSync(body, { level: 5 }) : body;
+  const headers = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body),
-    'Cache-Control': 'no-store'
-  });
-  res.end(body);
+    'Content-Length': payload.length,
+    'Cache-Control': 'no-store',
+    'Vary': 'Accept-Encoding'
+  };
+  if (useGzip) headers['Content-Encoding'] = 'gzip';
+  res.writeHead(code, headers);
+  res.end(payload);
 }
 
 /* Чтение тела запроса.
@@ -494,10 +503,14 @@ function validateRegistration(body) {
 
 /* Запись без хэша пароля — никогда не отдаём хэш наружу */
 function publicUser(u) {
+  const mediaVersion = Number(u.mediaVersion) || 1;
   return {
     id: u.id, login: u.login, fio: u.fio, birth: u.birth, group: u.group,
     role: normRole(u.role), registeredAt: u.registeredAt,
-    avatar: u.avatar || '', banner: u.banner || '', accent: u.accent || '',
+    /* Вместо многомегабайтного base64 отдаём короткие URL. */
+    avatar: u.avatar ? ('/api/media/' + encodeURIComponent(u.id) + '/avatar?v=' + mediaVersion) : '',
+    banner: u.banner ? ('/api/media/' + encodeURIComponent(u.id) + '/banner?v=' + mediaVersion) : '',
+    accent: u.accent || '',
     badges: Array.isArray(u.badges) ? u.badges : [],
     themes: Array.isArray(u.themes) ? u.themes : []
   };
@@ -595,21 +608,51 @@ async function handleAPI(req, res, pathname) {
   const session = authPayload(req);
   const me = session ? db.data.users.find(u => u.id === session.sub) : null;
 
+  /* Изображения профиля отдаются отдельно от JSON. */
+  if (route.startsWith('/api/media/') && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const parts = route.split('/');
+    const id = decodeURIComponent(parts[3] || '');
+    const kind = parts[4];
+    const owner = db.data.users.find(u => u.id === id);
+    if (!owner || (kind !== 'avatar' && kind !== 'banner') || !owner[kind]) {
+      return sendJSON(res, 404, { error: 'Изображение не найдено' });
+    }
+    const match = String(owner[kind]).match(/^data:(image\/(?:png|jpe?g|webp|gif));base64,(.+)$/s);
+    if (!match) return sendJSON(res, 404, { error: 'Некорректное изображение' });
+    const bin = Buffer.from(match[2], 'base64');
+    res.writeHead(200, {
+      'Content-Type': match[1],
+      'Content-Length': bin.length,
+      'Cache-Control': 'private, max-age=86400, immutable',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    return res.end(bin);
+  }
+
   /* --- единый быстрый bootstrap вместо 5-7 запросов при открытии страницы --- */
   if (route === '/api/bootstrap' && method === 'GET') {
     const users = db.data.users || [];
     const groups = db.data.groups || [];
     const courses = {};
     groups.forEach(g => { courses[g.course] = true; });
+    const teachingGroups = [];
+    if (me && fioKey(me.fio)) {
+      const all = db.data.schedule || {};
+      Object.keys(all).forEach(group => {
+        const days = all[group] || {};
+        const teaches = Object.keys(days).some(date =>
+          (days[date] || []).some(L => !L.event && fioKey(L.teacher) === fioKey(me.fio)));
+        if (teaches) teachingGroups.push(group);
+      });
+    }
     return sendJSON(res, 200, {
       ok: true,
       service: 'college-id',
       version: '1.1.0',
       dataVersion: Number(db.data.dataVersion) || 0,
       user: me ? publicUser(me) : null,
-      /* полные данные только своих значков — чужие грузятся отдельно */
-      myBadges: me ? (Array.isArray(me.badges) ? me.badges : [])
-        .map(id => (db.data.badgeCatalog || {})[id]).filter(Boolean) : [],
+      teachingGroups,
       groups,
       maintenance: db.data.maintenance || { enabled: false, message: '' },
       notice: db.data.notice || { active: false },
@@ -636,6 +679,14 @@ async function handleAPI(req, res, pathname) {
     var cat = badgeCatalog();
     return (Array.isArray(u.badges) ? u.badges : [])
       .map(id => cat[id]).filter(Boolean);
+  }
+
+  /* Значки текущего пользователя загружаются после основной разметки. */
+  if (route === '/api/badges/mine' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    return sendJSON(res, 200, {
+      badges: badgesOf(me), dataVersion: Number(db.data.dataVersion) || 0
+    });
   }
 
   /* каталог значков — для показа чужих значков в чатах и рейтинге */
@@ -727,6 +778,39 @@ async function handleAPI(req, res, pathname) {
     return sendJSON(res, 200, {
       schedule: db.data.schedule || {},
       dataVersion: Number(db.data.dataVersion) || 0
+    });
+  }
+
+  /* Только пары текущего преподавателя/куратора — вместо всей базы. */
+  if (route === '/api/schedule/mine' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const all = db.data.schedule || {};
+    if (isDev(me)) {
+      return sendJSON(res, 200, { schedule: all, dataVersion: Number(db.data.dataVersion) || 0 });
+    }
+    const key = fioKey(me.fio), out = {};
+    Object.keys(all).forEach(group => {
+      const days = all[group] || {}, picked = {};
+      Object.keys(days).forEach(date => {
+        const list = (days[date] || []).filter(L => !L.event && fioKey(L.teacher) === key);
+        if (list.length) picked[date] = list;
+      });
+      if (Object.keys(picked).length) out[group] = picked;
+    });
+    return sendJSON(res, 200, { schedule: out, dataVersion: Number(db.data.dataVersion) || 0 });
+  }
+
+  /* Участники одной группы — журналы не загружают всю базу пользователей. */
+  if (route === '/api/group-users' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const group = new URL(req.url, 'http://x').searchParams.get('group') || '';
+    const role = normRole(me.role);
+    const allowed = role === 'dev' || role === 'teacher'
+      || ((role === 'prefect' || role === 'curator') && me.group === group);
+    if (!allowed) return sendJSON(res, 403, { error: 'Нет доступа к группе' });
+    const users = (db.data.users || []).filter(u => u.group === group).map(publicUser);
+    return sendJSON(res, 200, {
+      users, group, dataVersion: Number(db.data.dataVersion) || 0
     });
   }
 
@@ -869,6 +953,7 @@ async function handleAPI(req, res, pathname) {
     if (body.avatar !== undefined) me.avatar = body.avatar === '' ? '' : img(body.avatar);
     if (body.banner !== undefined) me.banner = body.banner === '' ? '' : img(body.banner);
     if (body.accent !== undefined) me.accent = String(body.accent || '').slice(0, 24);
+    me.mediaVersion = Date.now();
     await db.save();
     bumpDataVersion();
     return sendJSON(res, 200, { ok: true, user: publicUser(me), dataVersion: db.data.dataVersion });
@@ -902,7 +987,11 @@ async function handleAPI(req, res, pathname) {
         ? (gpa / 5) * 70 + attendance * 30 - Math.min(5, late * 0.5)
         : 0;
       return {
-        login: u.login, avatar: u.avatar || '', accent: u.accent || '',
+        login: u.login,
+        avatar: u.avatar
+          ? ('/api/media/' + encodeURIComponent(u.id) + '/avatar?v=' + (Number(u.mediaVersion) || 1))
+          : '',
+        accent: u.accent || '',
         initials: String(u.fio || u.login).trim().split(/\s+/).slice(0, 2)
           .map(w => w[0] || '').join('').toUpperCase(),
         gpa: Number(gpa.toFixed(2)), attendance: Math.round(attendance * 100),

@@ -207,7 +207,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../Data/users.js?v=20260305-fastdata2"></script>
   <script src="../General/notice.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
@@ -231,8 +231,6 @@
   const sameDay=(a,b)=>keyOf(a)===keyOf(b);
 
   await CollegeDB.init();
-  /* Полный список студентов нужен только журналу преподавателя. */
-  if(CollegeDB.isServer&&CollegeDB.isServer()) await CollegeDB.refresh();
   if(CollegeDB.startSync) CollegeDB.startSync(20000);
   const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
   const FK=s=>CollegeDB.fioKey?CollegeDB.fioKey(s):String(s||'').toLowerCase();
@@ -256,8 +254,8 @@
 
   const MY_KEY=FK(me&&me.fio);
 
-  /* ---- расписания всех групп: ищем свои пары по ФИО ---- */
-  let ALL=await (CollegeDB.loadAllSchedules?CollegeDB.loadAllSchedules():Promise.resolve({}));
+  /* Сервер отдаёт только пары текущего преподавателя, а не всю базу. */
+  let ALL=await (CollegeDB.loadTeachingSchedules?CollegeDB.loadTeachingSchedules():Promise.resolve({}));
   function myGroups(){
     const out=[];
     Object.keys(ALL).forEach(g=>{
@@ -292,6 +290,7 @@
   }
 
   let GROUP=groups[0]||'';
+  if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
   $('groupSelect').innerHTML=groups.map(g=>'<option value="'+g+'">'+g+'</option>').join('')
     ||'<option value="">—</option>';
   if(groups.length) $('groupHint').textContent='Ваши пары найдены в группах: '+groups.join(', ');
@@ -303,6 +302,7 @@
 
   $('groupSelect').addEventListener('change',async e=>{
     GROUP=e.target.value; picked=null;
+    if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
     attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
     renderWeek(); renderDay();
   });
@@ -452,8 +452,9 @@
   });
 
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{
-    CollegeDB.refresh().then(()=>{ if(picked!==null) renderMarks(); });
-    if(CollegeDB.loadAllSchedules) CollegeDB.loadAllSchedules().then(d=>{ ALL=d||{}; renderWeek(); renderDay(); });
+    if(GROUP&&CollegeDB.loadGroupUsers) CollegeDB.loadGroupUsers(GROUP)
+      .then(()=>{ if(picked!==null) renderMarks(); });
+    if(CollegeDB.loadTeachingSchedules) CollegeDB.loadTeachingSchedules().then(d=>{ ALL=d||{}; renderWeek(); renderDay(); });
     if(GROUP) CollegeDB.loadAttendance(GROUP).then(d=>{ attendance=d; if(picked!==null) renderMarks(); });
   });
 

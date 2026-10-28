@@ -12,7 +12,7 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v4-icons';
+const CACHE = 'college-id-v6-fastmedia';
 
 const PRECACHE = [
   '/',

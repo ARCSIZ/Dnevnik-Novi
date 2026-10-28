@@ -100,6 +100,70 @@
   var badgeCatalog = null;   // каталог значков (загружается по требованию)
   var myBadgesCache = [];    // значки текущего пользователя
   var LS_GRANTS = 'collegeid_grants';   // доступные темы — нужны theme.js сразу
+  var teachingGroupsCache = [];
+
+  /* Быстрый кэш крупных данных. Страница сразу рисует последний снимок,
+     а сервер обновляет его в фоне (stale-while-revalidate). */
+  var LS_FAST = 'collegeid_fast_data_v1';
+  var fastCache = loadFastCache();
+  var fastInflight = {};
+
+  function loadFastCache() {
+    try {
+      var c = JSON.parse(localStorage.getItem(LS_FAST));
+      if (c && typeof c === 'object') return c;
+    } catch (e) { /* noop */ }
+    return { schedule: {}, attendance: {}, rating: {}, groupUsers: {}, teaching: {}, support: {} };
+  }
+  function saveFastCache() {
+    try {
+      /* Не даём кэшу бесконечно расти: максимум 8 групп на раздел. */
+      ['schedule', 'attendance', 'rating', 'groupUsers', 'support'].forEach(function (bucket) {
+        var obj = fastCache[bucket] || {}, keys = Object.keys(obj)
+          .sort(function (a, b) { return (obj[b].ts || 0) - (obj[a].ts || 0); });
+        keys.slice(8).forEach(function (k) { delete obj[k]; });
+      });
+      localStorage.setItem(LS_FAST, JSON.stringify(fastCache));
+    } catch (e) { /* quota: приложение продолжит работать без постоянного кэша */ }
+  }
+  function cacheGet(bucket, key) {
+    var e = fastCache[bucket] && fastCache[bucket][key];
+    return e && e.data !== undefined ? e : null;
+  }
+  function cacheSet(bucket, key, value, version) {
+    fastCache[bucket] = fastCache[bucket] || {};
+    fastCache[bucket][key] = {
+      data: value, v: Number(version === undefined ? dataVersion : version) || 0, ts: Date.now()
+    };
+    saveFastCache();
+  }
+  function cachedRequest(bucket, key, path, pick, maxAge) {
+    var cached = cacheGet(bucket, key);
+    var stale = !cached || cached.v !== Number(dataVersion) || Date.now() - cached.ts > (maxAge || 60000);
+    var jobKey = bucket + ':' + key;
+
+    function fetchFresh(background) {
+      if (fastInflight[jobKey]) return fastInflight[jobKey];
+      fastInflight[jobKey] = request(path).then(function (d) {
+        var value = pick(d);
+        cacheSet(bucket, key, value, d && d.dataVersion);
+        delete fastInflight[jobKey];
+        if (background) setTimeout(emitSync, 0);
+        return clone(value);
+      }).catch(function (err) {
+        delete fastInflight[jobKey];
+        if (cached) return clone(cached.data);
+        throw err;
+      });
+      return fastInflight[jobKey];
+    }
+
+    if (cached) {
+      if (stale) fetchFresh(true);             // не блокирует отрисовку
+      return Promise.resolve(clone(cached.data));
+    }
+    return fetchFresh(false);                  // первый вход: ждём сеть один раз
+  }
 
   /* Роли: student | prefect (староста) | curator | teacher | dev */
   function normRole(role) {
@@ -139,6 +203,7 @@
   var syncListeners = [];     // подписчики на обновление данных
   var syncTimer = null;
   var stateCache = { maintenance: { enabled: false }, notice: { active: false } };
+  var supportVersionCache = -1;
 
   /** Уведомить страницы: данные изменились, перерисуйте интерфейс */
   function emitSync() {
@@ -266,7 +331,7 @@
               };
               statsCache = data.stats || null;
               dataVersion = Number(data.dataVersion) || 0;
-              myBadgesCache = data.myBadges || [];
+              teachingGroupsCache = data.teachingGroups || [];
               if (data.user) hydrateUser(data.user);
               saveMirror();
               emitSync();
@@ -341,8 +406,9 @@
         try { return Promise.resolve((JSON.parse(localStorage.getItem('collegeid_schedule')) || {})); }
         catch (e) { return Promise.resolve({}); }
       }
-      return request('/api/schedule?group=' + encodeURIComponent(group || ''))
-        .then(function (d) { return d.days || {}; })
+      return cachedRequest('schedule', String(group || ''),
+        '/api/schedule?group=' + encodeURIComponent(group || ''),
+        function (d) { return d.days || {}; }, 60000)
         .catch(function () { return {}; });
     },
 
@@ -355,6 +421,7 @@
       return request('/api/schedule', { method: 'PUT', body: { group: group, days: days || {} } })
         .then(function (d) {
           if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          cacheSet('schedule', String(group || ''), days || {}, dataVersion);
           emitSync(); return true;
         });
     },
@@ -389,8 +456,9 @@
         try { return Promise.resolve(JSON.parse(localStorage.getItem('collegeid_att_' + group)) || {}); }
         catch (e) { return Promise.resolve({}); }
       }
-      return request('/api/attendance?group=' + encodeURIComponent(group || ''))
-        .then(function (d) { return d.days || {}; })
+      return cachedRequest('attendance', String(group || ''),
+        '/api/attendance?group=' + encodeURIComponent(group || ''),
+        function (d) { return d.days || {}; }, 45000)
         .catch(function () { return {}; });
     },
 
@@ -403,6 +471,7 @@
       return request('/api/attendance', { method: 'PUT', body: { group: group, days: days || {} } })
         .then(function (d) {
           if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          cacheSet('attendance', String(group || ''), days || {}, dataVersion);
           emitSync(); return true;
         });
     },
@@ -410,6 +479,16 @@
     /* ------------------------------- награды ------------------------------- */
     /** Значки текущего пользователя (полные объекты) */
     myBadges: function () { return clone(myBadgesCache); },
+
+    /** Свои значки загружаются лениво, после основной разметки. */
+    loadMyBadges: function () {
+      if (mode !== 'server') return Promise.resolve([]);
+      if (myBadgesCache.length) return Promise.resolve(clone(myBadgesCache));
+      return request('/api/badges/mine').then(function (d) {
+        myBadgesCache = d.badges || [];
+        return clone(myBadgesCache);
+      }).catch(function () { return []; });
+    },
 
     /** Эксклюзивные темы, выданные текущему пользователю */
     myThemes: function () {
@@ -458,13 +537,7 @@
       if (mode !== 'server') return Promise.reject(new Error('Нужен сервер'));
       return request('/api/profile', { method: 'PUT', body: data })
         .then(function (d) {
-          if (d && d.user) {
-            var l = normLogin(d.user.login);
-            mirror.users = mirror.users.map(function (u) {
-              return normLogin(u.login) === l ? d.user : u;
-            });
-            saveMirror(); emitSync();
-          }
+          if (d && d.user) { hydrateUser(d.user); emitSync(); }
           return d && d.user;
         });
     },
@@ -472,7 +545,10 @@
     /** Рейтинг группы: топ-10 без ФИО */
     rating: function (group) {
       if (mode !== 'server') return Promise.resolve(null);
-      return request('/api/rating' + (group ? ('?group=' + encodeURIComponent(group)) : ''))
+      var key = String(group || (currentUser && currentUser.group) || 'mine');
+      return cachedRequest('rating', key,
+        '/api/rating' + (group ? ('?group=' + encodeURIComponent(group)) : ''),
+        function (d) { return d; }, 60000)
         .catch(function () { return null; });
     },
 
@@ -490,7 +566,12 @@
     /** Версия чатов — для живого обновления без перезагрузки */
     supportVersion: function () {
       return request('/api/support/version')
-        .then(function (d) { return Number(d.version) || 0; })
+        .then(function (d) {
+          var v = Number(d.version) || 0;
+          if (supportVersionCache > -1 && v !== supportVersionCache) fastCache.support = {};
+          supportVersionCache = v;
+          return v;
+        })
         .catch(function () { return -1; });
     },
 
@@ -503,14 +584,21 @@
 
     /** Сообщения чата (оператор указывает login собеседника) */
     supportChat: function (login) {
-      return request('/api/support/chat' + (login ? ('?login=' + encodeURIComponent(login)) : ''))
+      var key = String(login || 'mine');
+      return cachedRequest('support', key,
+        '/api/support/chat' + (login ? ('?login=' + encodeURIComponent(login)) : ''),
+        function (d) { return d; }, 10000)
         .catch(function () { return { messages: [] }; });
     },
 
     /** Отправить сообщение: {to?, text, image} */
     supportSend: function (data) {
       return request('/api/support/message', { method: 'POST', body: data })
-        .then(function (d) { return d.message; });
+        .then(function (d) {
+          /* Следующее чтение чата обязательно идёт в сеть. */
+          fastCache.support = {};
+          return d.message;
+        });
     },
 
     /* --------------------------- оповещения и техработы --------------------------- */
@@ -694,6 +782,34 @@
       return request('/api/schedule/all')
         .then(function (d) { return d.schedule || {}; })
         .catch(function () { return {}; });
+    },
+
+    /** Группы, где текущий пользователь указан преподавателем (из bootstrap) */
+    teachingGroups: function () { return teachingGroupsCache.slice(); },
+
+    /** Только свои пары преподавателя/куратора, без расписаний всего колледжа */
+    loadTeachingSchedules: function () {
+      if (mode !== 'server') return Promise.resolve({});
+      return cachedRequest('teaching', 'mine', '/api/schedule/mine',
+        function (d) { return d.schedule || {}; }, 60000)
+        .catch(function () { return {}; });
+    },
+
+    /** Участники конкретной группы; значительно легче полного /api/users */
+    loadGroupUsers: function (group) {
+      if (mode !== 'server') {
+        return Promise.resolve(localDb.users.map(pubLocal).filter(function (u) { return u.group === group; }));
+      }
+      return cachedRequest('groupUsers', String(group || ''),
+        '/api/group-users?group=' + encodeURIComponent(group || ''),
+        function (d) { return d.users || []; }, 45000)
+        .then(function (list) {
+          /* Сливаем группу в зеркало, не удаляя пользователей других групп. */
+          var keep = mirror.users.filter(function (u) { return u.group !== group; });
+          mirror.users = keep.concat(list);
+          saveMirror();
+          return clone(list);
+        }).catch(function () { return []; });
     },
 
     /** Список групп (синхронно) */

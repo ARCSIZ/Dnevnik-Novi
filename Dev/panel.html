@@ -451,7 +451,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260304-awards1"></script>
+  <script src="../Data/users.js?v=20260305-fastdata2"></script>
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
@@ -480,8 +480,11 @@
     lucide.createIcons();
     return;
   }
-  /* Полный список пользователей нужен только административной панели. */
-  await CollegeDB.refresh();
+  /* Показываем локальное зеркало сразу. Если это первый вход в панель и
+     списка ещё нет — ждём один лёгкий запрос; дальше обновляем в фоне. */
+  const refreshUsers=CollegeDB.refresh();
+  if(CollegeDB.all().length<=1) await refreshUsers;
+  else refreshUsers.then(()=>{ renderUsers(); renderGroups(); renderStats(); });
   if(CollegeDB.startSync) CollegeDB.startSync(15000);
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{
     CollegeDB.refresh().then(()=>{ renderUsers(); renderGroups(); renderStats(); });
