@@ -130,13 +130,72 @@
       'html.no-blur *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}',
       'html.no-blur .card{background:rgba(var(--soft),.97)!important}',
       'html.no-particles canvas#fx{display:none!important}',
-      /* эксклюзивные темы: цветное свечение вместо нейтрального фона */
-      'html.exclusive-theme .orb{background:radial-gradient(circle,rgba(var(--glow),.30),transparent 65%)!important}',
-      'html.exclusive-theme .card{box-shadow:0 0 0 1px rgba(var(--glow),.16),',
-      ' 0 40px 90px -30px rgba(0,0,0,.85)!important;border-color:rgba(var(--glow),.22)!important}',
-      'html.exclusive-theme .pill{border-color:rgba(var(--glow),.25)}',
-      'html.exclusive-theme .grad-text{background:linear-gradient(100deg,var(--accent),var(--accent2))!important;',
-      ' -webkit-background-clip:text;background-clip:text;color:transparent}'
+
+      /* ===== сквозная перекраска интерфейса под акцент ===== */
+      'html[data-accent] .grad-text{background:linear-gradient(100deg,var(--accent),var(--accent2))!important;',
+      ' -webkit-background-clip:text!important;background-clip:text!important;color:transparent!important}',
+      /* градиентные плашки и индикаторы */
+      'html[data-accent] .btn-primary,html[data-accent] .tab-ind,html[data-accent] .seg-ind,',
+      'html[data-accent] .day.sel,html[data-accent] .nav-btn.on .nv-ic,html[data-accent] .dock-btn.on,',
+      'html[data-accent] .gcard.sel .gic,html[data-accent] .les.on .les-n,html[data-accent] .ava,',
+      'html[data-accent] .gear,html[data-accent] .logo{',
+      ' background-image:linear-gradient(120deg,var(--accent),var(--accent2))!important}',
+      'html[data-accent] .btn-primary,html[data-accent] .seg button.on,html[data-accent] .sw.on{',
+      ' box-shadow:0 12px 30px -10px rgba(var(--glow),.55)!important}',
+      'html[data-accent] .sw.on{background:var(--accent)!important}',
+      'html[data-accent] .sw.on .knob::before{background:var(--accent)!important}',
+      'html[data-accent] .nv-bar,html[data-accent] .prog,html[data-accent] .bar i,',
+      'html[data-accent] .rebar{background-image:linear-gradient(120deg,var(--accent),var(--accent2))!important}',
+      /* акцентные тексты и иконки */
+      'html[data-accent] .text-indigo-300,html[data-accent] .text-indigo-200,',
+      'html[data-accent] [class*="text-indigo-300/"],html[data-accent] [class*="text-indigo-400/"],',
+      'html[data-accent] .text-purple-300,html[data-accent] [class*="text-purple-300/"]{',
+      ' color:var(--accent-l)!important}',
+      'html[data-accent] .mono.text-indigo-300\\/70{color:var(--accent-l)!important;opacity:.85}',
+      /* рамки, фоны и состояния */
+      'html[data-accent] .bg-indigo-500,html[data-accent] .bg-indigo-500\\/10,',
+      'html[data-accent] .bg-indigo-500\\/15{background-color:var(--accent)!important}',
+      'html[data-accent] .border-indigo-400\\/25,html[data-accent] .border-indigo-400\\/30{',
+      ' border-color:rgba(var(--glow),.35)!important}',
+      'html[data-accent] .from-indigo-500,html[data-accent] .from-indigo-600{',
+      ' --tw-gradient-from:var(--accent)!important}',
+      'html[data-accent] .to-purple-600,html[data-accent] .to-purple-500,',
+      'html[data-accent] .to-indigo-500{--tw-gradient-to:var(--accent2)!important}',
+      'html[data-accent] input:focus,html[data-accent] textarea:focus,html[data-accent] select:focus,',
+      'html[data-accent] .fld input:focus{border-color:rgba(var(--glow),.65)!important;',
+      ' box-shadow:0 0 0 4px rgba(var(--glow),.14)!important}',
+      'html[data-accent] .sec-tile.on,html[data-accent] .row.me,html[data-accent] .lcard.open,',
+      'html[data-accent] .cat.on,html[data-accent] .th.on{',
+      ' border-color:rgba(var(--glow),.55)!important;',
+      ' background:linear-gradient(100deg,rgba(var(--glow),.18),rgba(var(--glow),.07))!important}',
+      'html[data-accent] .app-tile:hover{border-color:rgba(var(--glow),.45)!important;',
+      ' background:rgba(var(--glow),.08)!important}',
+      'html[data-accent] .app-tile::after{background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),',
+      ' rgba(var(--glow),.16),transparent 45%)!important}',
+
+      /* ===== эксклюзивные темы: цельный образ ===== */
+      'html.exclusive-theme .orb{background:radial-gradient(circle,rgba(var(--glow),.34),transparent 65%)!important}',
+      'html.exclusive-theme .card{box-shadow:0 0 0 1px rgba(var(--glow),.18),',
+      ' 0 40px 90px -30px rgba(0,0,0,.9)!important;border-color:rgba(var(--glow),.24)!important}',
+      'html.exclusive-theme .panel,html.exclusive-theme .row,html.exclusive-theme .lcard,',
+      'html.exclusive-theme .scard,html.exclusive-theme .slot{border-color:rgba(var(--glow),.16)!important}',
+      'html.exclusive-theme .pill{border-color:rgba(var(--glow),.28)!important;',
+      ' background:rgba(var(--glow),.08)!important}',
+      'html.exclusive-theme .back,html.exclusive-theme .btn-ghost{',
+      ' border-color:rgba(var(--glow),.3)!important}',
+      'html.exclusive-theme .gridln,html.exclusive-theme .grid-overlay{opacity:.75}',
+      'html.exclusive-theme .ai{box-shadow:0 10px 26px -10px rgba(var(--glow),.6)}',
+      /* контрастность текста на цветных фонах */
+      'html.exclusive-theme .text-white\\/40,html.exclusive-theme .text-white\\/45{',
+      ' color:rgba(255,255,255,.62)!important}',
+      'html.exclusive-theme .text-white\\/35,html.exclusive-theme .text-white\\/30{',
+      ' color:rgba(255,255,255,.55)!important}',
+
+      /* ===== плитки приложений: текст не должен ломаться ===== */
+      '.app-tile{min-width:0}',
+      '.app-tile>span{min-width:0;max-width:100%}',
+      '.app-tile .block{overflow-wrap:anywhere;word-break:normal}',
+      '.app-tile span[class*="mono"]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}'
     ].join('\n');
     (document.head || document.documentElement).appendChild(st);
   }

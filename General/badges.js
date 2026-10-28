@@ -22,14 +22,13 @@
     st.id = 'badges-css';
     st.textContent = [
       '.cb-row{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;flex-wrap:wrap}',
+      /* Значок без рамки и подложки — только само изображение. */
       '.cb{display:inline-flex;align-items:center;justify-content:center;flex:none;',
-      ' width:var(--cb-size,20px);height:var(--cb-size,20px);border-radius:6px;overflow:hidden;',
-      ' background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);',
+      ' width:var(--cb-size,20px);height:var(--cb-size,20px);',
+      ' background:none;border:0;border-radius:0;overflow:visible;',
       ' transition:transform .18s;position:relative}',
       '.cb:hover{transform:scale(1.18);z-index:2}',
       '.cb img{width:100%;height:100%;object-fit:contain;display:block;image-rendering:auto}',
-      '.cb.anim{border-color:rgba(var(--glow,99,102,241),.45);',
-      ' box-shadow:0 0 10px -2px rgba(var(--glow,99,102,241),.55)}',
       '.cb-lg{--cb-size:28px}',
       '.cb-sm{--cb-size:16px}'
     ].join('\n');
@@ -49,8 +48,7 @@
     var cls = size === 'lg' ? ' cb-lg' : (size === 'sm' ? ' cb-sm' : '');
     return '<span class="cb-row">' + list.map(function (b) {
       if (!b || !b.image) return '';
-      var anim = b.animated || /^data:image\/gif/.test(b.image);
-      return '<span class="cb' + cls + (anim ? ' anim' : '') + '" title="' + esc(b.name) + '">'
+      return '<span class="cb' + cls + '" title="' + esc(b.name) + '">'
         + '<img src="' + esc(b.image) + '" alt="' + esc(b.name) + '" loading="lazy">'
         + '</span>';
     }).join('') + '</span>';

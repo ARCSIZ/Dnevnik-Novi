@@ -199,23 +199,128 @@ function seed() {
 /* ---------------------------------------------------------- PWA-иконки
    Генерируем PNG 192/512 из встроенных данных один раз при старте, чтобы
    манифест был валидным и приложение ставилось на Android и iOS. */
+/* ---- минимальный PNG-энкодер: Node умеет zlib, значит умеет и PNG ---- */
+const CRC_TABLE = (() => {
+  const t = new Int32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c;
+  }
+  return t;
+})();
+function crc32(buf) {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+function pngChunk(type, data) {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length, 0);
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body), 0);
+  return Buffer.concat([len, body, crc]);
+}
+function encodePNG(size, rgba) {
+  const zlib = require('zlib');
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8;    // бит на канал
+  ihdr[9] = 6;    // RGBA
+  const raw = Buffer.alloc(size * (size * 4 + 1));
+  for (let y = 0; y < size; y++) {
+    raw[y * (size * 4 + 1)] = 0;                       // фильтр строки
+    rgba.copy(raw, y * (size * 4 + 1) + 1, y * size * 4, (y + 1) * size * 4);
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
+    pngChunk('IEND', Buffer.alloc(0))
+  ]);
+}
+
+/* Рисуем логотип: градиентный квадрат + белая шапочка выпускника.
+   square=true — без скруглений и прозрачности (требование iOS). */
+function drawIcon(size, opts) {
+  opts = opts || {};
+  const pad = opts.pad || 0;                 // безопасная зона для maskable
+  const square = !!opts.square;
+  const buf = Buffer.alloc(size * size * 4);
+  const R = size * 0.22;                     // радиус скругления
+  const inner = size - pad * 2;
+  const cx = size / 2, cy = size * 0.52;
+  const S = inner;
+
+  const inRounded = (x, y) => {
+    if (square) return true;
+    const dx = Math.min(x, size - 1 - x), dy = Math.min(y, size - 1 - y);
+    if (dx >= R || dy >= R) return true;
+    return (R - dx) * (R - dx) + (R - dy) * (R - dy) <= R * R;
+  };
+  /* шапочка: ромб сверху, тулья снизу, кисточка справа */
+  const inCap = (x, y) => {
+    const nx = x - cx, ny = y - cy;
+    const dW = S * 0.33, dH = S * 0.165, dCy = -S * 0.06;
+    if (Math.abs(nx) / dW + Math.abs(ny - dCy) / dH <= 1) return true;
+    const bodyTop = dCy + S * 0.02, bodyBot = dCy + S * 0.20;
+    if (ny >= bodyTop && ny <= bodyBot) {
+      const k = (ny - bodyTop) / (bodyBot - bodyTop);
+      if (Math.abs(nx) <= S * (0.205 - 0.03 * k * k)) return true;
+    }
+    const tx = S * 0.285;
+    if (Math.abs(nx - tx) <= S * 0.016 && ny >= dCy && ny <= dCy + S * 0.235) return true;
+    if (Math.hypot(nx - tx, ny - (dCy + S * 0.255)) <= S * 0.032) return true;
+    return false;
+  };
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      if (!inRounded(x, y)) { buf[i + 3] = 0; continue; }
+      const t = (x / size + y / size) / 2;                 // диагональный градиент
+      let r = Math.round(99 + (168 - 99) * t);
+      let g = Math.round(102 + (85 - 102) * t);
+      let b = Math.round(241 + (247 - 241) * t);
+      if (y < size * 0.5) {                                 // лёгкий блик сверху
+        const s = (1 - y / (size * 0.5)) * 0.10;
+        r += Math.round((255 - r) * s); g += Math.round((255 - g) * s); b += Math.round((255 - b) * s);
+      }
+      if (x >= pad && x < size - pad && y >= pad && y < size - pad && inCap(x, y)) {
+        r = 255; g = 255; b = 255;
+      }
+      buf[i] = r; buf[i + 1] = g; buf[i + 2] = b; buf[i + 3] = 255;
+    }
+  }
+  return buf;
+}
+
+/* ---------------------------------------------------------- PWA-иконки
+   Генерируем настоящие PNG при старте: без них iOS не показывает иконку
+   на домашнем экране, а Android отказывается ставить приложение. */
 function ensureIcons() {
   const dir = path.join(ROOT, 'icons');
+  const SPECS = [
+    { file: 'icon-192.png', size: 192 },
+    { file: 'icon-512.png', size: 512 },
+    { file: 'icon-maskable-512.png', size: 512, pad: 64 },
+    { file: 'icon-180.png', size: 180, square: true },   // apple-touch-icon
+    { file: 'icon-167.png', size: 167, square: true },   // iPad Pro
+    { file: 'icon-152.png', size: 152, square: true }    // iPad
+  ];
   try {
     fs.mkdirSync(dir, { recursive: true });
-    const svgPath = path.join(dir, 'icon.svg');
-    if (!fs.existsSync(svgPath)) return;
-    /* Node без графических библиотек не растрирует SVG, поэтому кладём
-       компактный готовый PNG-плейсхолдер фирменного цвета, если файлов нет.
-       Иконку можно заменить своей: icons/icon-192.png и icons/icon-512.png */
-    const px = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64');
-    ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png'].forEach(name => {
-      const p = path.join(dir, name);
-      if (!fs.existsSync(p)) fs.writeFileSync(p, px);
+    SPECS.forEach(s => {
+      const p = path.join(dir, s.file);
+      /* перезаписываем старые 1×1 заглушки (они весили < 2 КБ) */
+      let need = true;
+      try { need = !fs.existsSync(p) || fs.statSync(p).size < 2000; } catch (e) { /* noop */ }
+      if (!need) return;
+      fs.writeFileSync(p, encodePNG(s.size, drawIcon(s.size, s)));
     });
-  } catch (e) { /* не критично */ }
+    console.log('[server] PWA-иконки готовы: ' + SPECS.map(s => s.file).join(', '));
+  } catch (e) {
+    console.warn('[server] Не удалось создать иконки:', e.message);
+  }
 }
 ensureIcons();
 

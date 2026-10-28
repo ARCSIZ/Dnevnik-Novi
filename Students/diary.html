@@ -557,13 +557,13 @@
     </div>
   </div>
 
-  <script src="../General/theme.js?v=2"></script>
+  <script src="../General/theme.js?v=3"></script>
   <script src="../Data/users.js?v=20260304-awards1"></script>
-  <script src="../General/badges.js?v=1"></script>
+  <script src="../General/badges.js?v=2"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=1"></script>
   <script src="../General/perf.js"></script>
-  <script src="../General/pwa.js?v=1"></script>
+  <script src="../General/pwa.js?v=2"></script>
 <script>
 (async function(){
   lucide.createIcons();
@@ -918,6 +918,15 @@
     if(typeof scheduleLive==='function') scheduleLive();   // перезапуск живого таймера
   }
 
+  /* Прошло ли занятие: прошедший день либо сегодня после окончания пары */
+  function lessonHappened(L){
+    const t=new Date(); t.setHours(0,0,0,0);
+    if(selected<t) return true;
+    if(selected>t) return false;
+    const n=new Date();
+    return (n.getHours()*60+n.getMinutes())>=L.end;
+  }
+
   function lessonCard(L){
     const badges=L.grades.map(g=>'<span class="mk m'+g+'">'+g+'</span>').join('')
       +(L.status?'<span class="st-b '+L.status[2]+'" title="'+L.status[1]+'">'+L.status[0]+'</span>':'');
@@ -963,12 +972,16 @@
           : '<div class="dbox">Оценок за это занятие пока нет</div>')
         +'</div>'
 
+        /* Посещение показываем только для состоявшихся занятий:
+           на будущий день статуса ещё нет и «Присутствовал» было ошибкой. */
         +'<div class="dsec"><p class="dlbl">Посещение</p>'
         +(L.status
           ? '<div class="flex items-center gap-2 flex-wrap"><span class="st-b '+L.status[2]+'">'+L.status[0]+'</span>'
             +'<span class="text-[12.5px] text-white/60">'+L.status[1]+'</span></div>'
-          : '<div class="flex items-center gap-2"><span class="st-b" style="background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)">✓</span>'
-            +'<span class="text-[12.5px] text-white/60">Присутствовал</span></div>')
+          : (lessonHappened(L)
+            ? '<div class="flex items-center gap-2"><span class="st-b" style="background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)">✓</span>'
+              +'<span class="text-[12.5px] text-white/60">Присутствовал</span></div>'
+            : '<div class="dbox">Занятие ещё не прошло — отметка появится после пары</div>'))
         +'</div>'
 
         +'<div class="dsec"><p class="dlbl">Домашнее задание</p>'

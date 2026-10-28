@@ -12,7 +12,7 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v3-awards';
+const CACHE = 'college-id-v4-icons';
 
 const PRECACHE = [
   '/',
@@ -21,7 +21,8 @@ const PRECACHE = [
   '/manifest.webmanifest',
   '/icons/icon.svg',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/icons/icon-180.png'
 ];
 
 /* страница-заглушка при отсутствии сети */

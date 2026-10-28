@@ -62,13 +62,18 @@
     if (!document.querySelector('meta[name="theme-color"]')) {
       add('meta', { name: 'theme-color', content: '#07070d' });
     }
-    /* iOS: полноэкранный режим и иконка на домашнем экране */
+    /* iOS: полноэкранный режим и иконка на домашнем экране.
+       Важно: apple-touch-icon должен быть непрозрачным квадратом —
+       iOS сам скругляет углы, а прозрачность заливает чёрным. */
     add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
     add('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' });
     add('meta', { name: 'apple-mobile-web-app-title', content: 'Колледж·ID' });
     add('meta', { name: 'mobile-web-app-capable', content: 'yes' });
     if (!document.querySelector('link[rel="apple-touch-icon"]')) {
-      add('link', { rel: 'apple-touch-icon', href: ROOT + '/icons/icon-192.png' });
+      add('link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/icons/icon-180.png' });
+      add('link', { rel: 'apple-touch-icon', sizes: '167x167', href: '/icons/icon-167.png' });
+      add('link', { rel: 'apple-touch-icon', sizes: '152x152', href: '/icons/icon-152.png' });
+      add('link', { rel: 'apple-touch-icon-precomposed', href: '/icons/icon-180.png' });
     }
   }
 
