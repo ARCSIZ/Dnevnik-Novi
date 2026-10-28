@@ -250,6 +250,7 @@
     all: function () { return JSON.parse(JSON.stringify(cfg)); },
     get: function (k) { return cfg[k]; },
     set: function (k, v) { cfg[k] = v; save(); apply(); },
+    apply: apply,
     reset: function () { cfg = JSON.parse(JSON.stringify(DEFAULTS)); save(); apply(); },
     onChange: function (cb) { if (typeof cb === 'function') listeners.push(cb); }
   };

@@ -213,6 +213,7 @@
         themes: user.themes || [], login: user.login
       }));
     } catch (e) { /* noop */ }
+    if (global.CollegeTheme && CollegeTheme.apply) CollegeTheme.apply();
     var l = normLogin(user.login), found = false;
     mirror.users = mirror.users.map(function (u) {
       if (normLogin(u.login) === l) { found = true; return user; }
