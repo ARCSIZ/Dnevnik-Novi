@@ -65,9 +65,34 @@ function normRole(role) {
   if (r === 'curator') return 'curator';
   if (r === 'teacher') return 'teacher';
   if (r === 'support' || r === 'operator') return 'support';
+  if (r === 'patron' || r === 'sutener') return 'patron';
   return 'student';
 }
-const isSupport = u => ['support', 'dev'].indexOf(normRole(u && u.role)) > -1;
+
+/* Мультироли: основная роль + дополнительные через поле roles. */
+function rolesOf(u) {
+  if (!u) return ['student'];
+  const out = [normRole(u.role)];
+  (Array.isArray(u.roles) ? u.roles : []).forEach(r => {
+    const n = normRole(r);
+    if (out.indexOf(n) === -1) out.push(n);
+  });
+  return out;
+}
+const hasRole = (u, r) => rolesOf(u).indexOf(r) > -1;
+const isSupport = u => hasRole(u, 'support') || hasRole(u, 'dev');
+/* Значки и эксклюзивные темы выдают разработчик и патрон. */
+const canAward = u => hasRole(u, 'dev') || hasRole(u, 'patron');
+
+/* Короткое ФИО для поддержки: «Иванова Мария Петровна» → «Иванова М. П.» */
+function shortFio(fio) {
+  const p = String(fio || '').trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return '';
+  let s = p[0];
+  if (p[1]) s += ' ' + p[1][0].toUpperCase() + '.';
+  if (p[2]) s += ' ' + p[2][0].toUpperCase() + '.';
+  return s;
+}
 
 /* Ключ ФИО: «Селецкая Екатерина Леонидовна» и «Селецкая Е.Л.» → «селецкая е л» */
 function fioKey(s) {
@@ -78,7 +103,7 @@ function fioKey(s) {
   if (p[2]) out += ' ' + p[2].charAt(0).toLowerCase();
   return out;
 }
-const isDev = u => normRole(u && u.role) === 'dev';
+const isDev = u => rolesOf(u).indexOf('dev') > -1;
 
 const DEFAULT_GROUPS = [
   ['ИС-101', 'Информационные системы'],
@@ -511,9 +536,21 @@ function publicUser(u) {
     avatar: u.avatar ? ('/api/media/' + encodeURIComponent(u.id) + '/avatar?v=' + mediaVersion) : '',
     banner: u.banner ? ('/api/media/' + encodeURIComponent(u.id) + '/banner?v=' + mediaVersion) : '',
     accent: u.accent || '',
+    roles: rolesOf(u),
     badges: Array.isArray(u.badges) ? u.badges : [],
     themes: Array.isArray(u.themes) ? u.themes : []
   };
+}
+
+/* Запись для списков: роль «Патрон» видят только её обладатель и dev. */
+function listUser(u, viewer) {
+  const data = publicUser(u);
+  const privileged = viewer && (isDev(viewer) || viewer.id === u.id);
+  if (!privileged) {
+    data.roles = data.roles.filter(r => r !== 'patron');
+    data.role = data.roles[0] || 'student';
+  }
+  return data;
 }
 function findByLogin(login) {
   const l = normLogin(login);
@@ -698,10 +735,10 @@ async function handleAPI(req, res, pathname) {
     });
   }
 
-  /* создать значок в каталоге (только dev) */
+  /* создать значок в каталоге (dev и патрон) */
   if (route === '/api/badges' && method === 'POST') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
-    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    if (!canAward(me)) return sendJSON(res, 403, { error: 'Нет прав на создание значков' });
     const body = await readBody(req);
     if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Файл значка слишком большой' });
     if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
@@ -725,7 +762,7 @@ async function handleAPI(req, res, pathname) {
   /* удалить значок из каталога и у всех пользователей (только dev) */
   if (route.startsWith('/api/badges/') && method === 'DELETE') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
-    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    if (!canAward(me)) return sendJSON(res, 403, { error: 'Нет прав на удаление значков' });
     const id = decodeURIComponent(route.slice('/api/badges/'.length));
     if (!badgeCatalog()[id]) return sendJSON(res, 404, { error: 'Значок не найден' });
     delete badgeCatalog()[id];
@@ -740,7 +777,7 @@ async function handleAPI(req, res, pathname) {
   /* выдать или забрать значки и темы у пользователя (только dev) */
   if (route.startsWith('/api/grants/') && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
-    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    if (!canAward(me)) return sendJSON(res, 403, { error: 'Нет прав на выдачу наград' });
     const login = decodeURIComponent(route.slice('/api/grants/'.length));
     const rec = findByLogin(login);
     if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
@@ -808,7 +845,7 @@ async function handleAPI(req, res, pathname) {
     const allowed = role === 'dev' || role === 'teacher'
       || ((role === 'prefect' || role === 'curator') && me.group === group);
     if (!allowed) return sendJSON(res, 403, { error: 'Нет доступа к группе' });
-    const users = (db.data.users || []).filter(u => u.group === group).map(publicUser);
+    const users = (db.data.users || []).filter(u => u.group === group).map(u => listUser(u, me));
     return sendJSON(res, 200, {
       users, group, dataVersion: Number(db.data.dataVersion) || 0
     });
@@ -900,7 +937,8 @@ async function handleAPI(req, res, pathname) {
       return !!L && fioKey(L.teacher) === fioKey(me.fio);
     };
 
-    const STATUS_SET = ['', 'Н', 'У', 'Б', 'О'];
+    /* Статус «О» (опоздал) выведен из системы. */
+    const STATUS_SET = ['', 'Н', 'У', 'Б'];
     const MAX_GRADES = 8;
     db.data.attendance = db.data.attendance || {};
     db.data.attendance[g] = db.data.attendance[g] || {};
@@ -1041,7 +1079,7 @@ async function handleAPI(req, res, pathname) {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const st = supportStore();
     if (isSupport(me)) {
-      const list = Object.keys(st.chats).map(l => {
+      const list = Object.keys(st.chats).filter(l => !st.chats[l].closed).map(l => {
         const c = st.chats[l];
         const u = findByLogin(l);
         const last = c.messages[c.messages.length - 1] || null;
@@ -1098,15 +1136,125 @@ async function handleAPI(req, res, pathname) {
     c.messages.push({
       id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       from: staff ? 'staff' : 'user',
-      author: me.fio || me.login, authorLogin: me.login,
+      /* В чате показываем сокращённое ФИО оператора, а не слово «Поддержка». */
+      author: staff ? (shortFio(me.fio) || me.login) : (me.fio || me.login),
+      authorLogin: me.login,
       text, image, at: nowISO()
     });
     if (c.messages.length > 500) c.messages = c.messages.slice(-500);
     c.updatedAt = nowISO();
+    /* Новое сообщение пользователя возвращает закрытое обращение в работу. */
+    if (!staff && c.closed) { c.closed = false; c.reopenedAt = nowISO(); }
     if (staff) c.unreadUser = (c.unreadUser || 0) + 1; else c.unreadStaff = (c.unreadStaff || 0) + 1;
     st.version = (Number(st.version) || 0) + 1;
     await db.save();
     return sendJSON(res, 201, { ok: true, version: st.version, message: c.messages[c.messages.length - 1] });
+  }
+
+  /* --- оператор подключился к диалогу: уведомляем пользователя --- */
+  if (route === '/api/support/join' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isSupport(me)) return sendJSON(res, 403, { error: 'Только для операторов' });
+    const body = await readBody(req);
+    const target = String((body && body.to) || '').trim();
+    if (!target || !findByLogin(target)) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const st = supportStore();
+    const c = chatOf(target);
+    const name = shortFio(me.fio) || me.login;
+    const recent = [...c.messages].reverse()
+      .find(m => m.from === 'system' && m.kind === 'join' && m.authorLogin === me.login);
+    /* Не спамим: повторное уведомление не чаще раза в 15 минут. */
+    if (!recent || Date.now() - new Date(recent.at).getTime() > 15 * 60 * 1000) {
+      c.messages.push({
+        id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        from: 'system', kind: 'join', author: name, authorLogin: me.login,
+        text: name + ' подключился к диалогу и видит вашу переписку',
+        image: '', at: nowISO()
+      });
+      c.updatedAt = nowISO();
+      c.unreadUser = (c.unreadUser || 0) + 1;
+      st.version = (Number(st.version) || 0) + 1;
+      await db.save();
+    }
+    c.unreadStaff = 0;
+    return sendJSON(res, 200, { ok: true, version: st.version });
+  }
+
+  /* --- закрыть или вернуть обращение --- */
+  if (route === '/api/support/close' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isSupport(me)) return sendJSON(res, 403, { error: 'Только для операторов' });
+    const body = await readBody(req);
+    const target = String((body && body.to) || '').trim();
+    const reopen = !!(body && body.reopen);
+    if (!target || !findByLogin(target)) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const st = supportStore();
+    const c = chatOf(target);
+    const name = shortFio(me.fio) || me.login;
+    c.closed = !reopen;
+    c.closedAt = reopen ? null : nowISO();
+    c.closedBy = reopen ? null : me.login;
+    c.messages.push({
+      id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      from: 'system', kind: reopen ? 'reopen' : 'close', author: name, authorLogin: me.login,
+      text: reopen
+        ? ('Обращение снова открыто оператором ' + name)
+        : ('Обращение закрыто оператором ' + name + '. Напишите сюда снова, если вопрос вернётся.'),
+      image: '', at: nowISO()
+    });
+    c.updatedAt = nowISO();
+    c.unreadUser = (c.unreadUser || 0) + 1;
+    st.version = (Number(st.version) || 0) + 1;
+    await db.save();
+    return sendJSON(res, 200, { ok: true, closed: c.closed, version: st.version });
+  }
+
+  /* --- действия оператора: помощь пользователю прямо из чата --- */
+  if (route === '/api/support/action' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isSupport(me)) return sendJSON(res, 403, { error: 'Только для операторов' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const target = String(body.to || '').trim();
+    const rec = findByLogin(target);
+    if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const st = supportStore();
+    const c = chatOf(target);
+    const name = shortFio(me.fio) || me.login;
+    let text = '', extra = {};
+
+    if (body.type === 'temp-password') {
+      /* Временный пароль выдаётся прямо в защищённый чат пользователя. */
+      const tmp = 'cid-' + crypto.randomBytes(3).toString('hex');
+      rec.passHash = hashPassword(tmp);
+      rec.mustChangePassword = true;
+      text = 'Оператор ' + name + ' выдал временный пароль: ' + tmp
+        + '\nВойдите с ним и сразу смените пароль в настройках.';
+      extra = { kind: 'temp-password' };
+    } else if (body.type === 'profile-check') {
+      text = 'Оператор ' + name + ' просит проверить данные профиля: ФИО, группу и дату рождения.';
+      extra = { kind: 'profile-check' };
+    } else if (body.type === 'group-check') {
+      text = 'Оператор ' + name + ' уточняет вашу группу. Текущая: '
+        + (rec.group || 'не назначена') + '. Ответьте, если она указана неверно.';
+      extra = { kind: 'group-check' };
+    } else if (body.type === 'escalate') {
+      text = 'Оператор ' + name + ' передал обращение в учебную часть. Ответ придёт сюда же.';
+      extra = { kind: 'escalate' };
+    } else {
+      return sendJSON(res, 400, { error: 'Неизвестное действие' });
+    }
+
+    c.messages.push(Object.assign({
+      id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      from: 'system', author: name, authorLogin: me.login,
+      text, image: '', at: nowISO()
+    }, extra));
+    c.updatedAt = nowISO();
+    c.unreadUser = (c.unreadUser || 0) + 1;
+    st.version = (Number(st.version) || 0) + 1;
+    await db.save();
+    return sendJSON(res, 200, { ok: true, version: st.version });
   }
 
   /* --- режим технических работ (только dev) --- */
@@ -1225,7 +1373,7 @@ async function handleAPI(req, res, pathname) {
   if (route === '/api/users' && method === 'GET') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     return sendJSON(res, 200, {
-      users: db.data.users.map(publicUser),
+      users: db.data.users.map(u => listUser(u, me)),
       total: db.data.users.length,
       dataVersion: Number(db.data.dataVersion) || 0
     });
@@ -1249,6 +1397,27 @@ async function handleAPI(req, res, pathname) {
     const token = issueToken(me);
     setAuthCookie(res, token);
     return sendJSON(res, 200, { ok: true, token });
+  }
+
+  /* --- дополнительные роли: студент + оператор и т.п. (только dev) --- */
+  if (/^\/api\/users\/[^/]+\/roles$/.test(route) && method === 'PUT') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    if (!isDev(me)) return sendJSON(res, 403, { error: 'Требуется роль «Разработчик»' });
+    const login = decodeURIComponent(route.split('/')[3]);
+    const rec = findByLogin(login);
+    if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const allowed = ['student', 'prefect', 'curator', 'teacher', 'support', 'patron', 'dev'];
+    const primary = normRole(rec.role);
+    rec.roles = (Array.isArray(body.roles) ? body.roles : [])
+      .map(normRole)
+      .filter(r => allowed.indexOf(r) > -1 && r !== primary)
+      .filter((r, i, a) => a.indexOf(r) === i)
+      .slice(0, 5);
+    await db.save();
+    bumpDataVersion();
+    return sendJSON(res, 200, { ok: true, user: publicUser(rec), dataVersion: db.data.dataVersion });
   }
 
   /* --- смена роли пользователя (только разработчику/админу) --- */

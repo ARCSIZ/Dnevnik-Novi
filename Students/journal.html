@@ -326,7 +326,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260305-fastdata2"></script>
+  <script src="../Data/users.js?v=20260306-roles1"></script>
   <script src="../General/notice.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
@@ -649,7 +649,8 @@
   moveInd(); setTimeout(moveInd,350); addEventListener('resize',moveInd);
 
   /* ================== УСПЕВАЕМОСТЬ ================== */
-  const STATUSES=[['Н','Не был'],['У','Неуважительная'],['Б','Больничный'],['О','Опоздал']];
+  /* Статус «О» выведен из системы. */
+  const STATUSES=[['Н','Не был'],['У','Неуважительная'],['Б','Больничный']];
   let attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
   let pickedSlot=null;
 
@@ -727,7 +728,7 @@
         ? '<div class="scard"><p class="k">Оценок</p><p class="v">'+gradeCnt+'</p></div>'
           +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'+gpa+'</p></div>'
         : '<div class="scard"><p class="k">Неуважит. (У)</p><p class="v text-rose-300">'+(byStatus['У']||0)+'</p></div>'
-          +'<div class="scard"><p class="k">Опоздали (О)</p><p class="v text-amber-300">'+(byStatus['О']||0)+'</p></div>');
+          +'<div class="scard"><p class="k">Больничный (Б)</p><p class="v text-cyan-300">'+(byStatus['Б']||0)+'</p></div>');
 
     /* список студентов: оценки доступны только куратору */
     const isCurator=canGrades;

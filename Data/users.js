@@ -173,7 +173,17 @@
     if (r === 'curator') return 'curator';
     if (r === 'teacher') return 'teacher';
     if (r === 'support' || r === 'operator') return 'support';
+    if (r === 'patron' || r === 'sutener') return 'patron';
     return 'student';
+  }
+
+  /* Мультироли: основная + дополнительные. */
+  function rolesOf(user) {
+    if (!user) return ['student'];
+    if (Array.isArray(user.roles) && user.roles.length) {
+      return user.roles.map(normRole).filter(function (r, i, a) { return a.indexOf(r) === i; });
+    }
+    return [normRole(user.role)];
   }
 
   /* Ключ ФИО для сравнения профиля и расписания:
@@ -769,8 +779,42 @@
 
     roleName: function (role) {
       var map = { student: 'Студент', prefect: 'Староста', curator: 'Куратор',
-        teacher: 'Преподаватель', support: 'Оператор поддержки', dev: 'Разработчик' };
+        teacher: 'Преподаватель', support: 'Оператор поддержки',
+        patron: 'Патрон', dev: 'Разработчик' };
       return map[normRole(role)] || 'Студент';
+    },
+
+    /** Все роли пользователя */
+    rolesOf: rolesOf,
+
+    /** Роли текущего пользователя */
+    myRoles: function () { return rolesOf(currentUser); },
+
+    /** Есть ли у текущего пользователя роль */
+    hasRole: function (r) { return rolesOf(currentUser).indexOf(normRole(r)) > -1; },
+
+    /** Назначить дополнительные роли (dev) */
+    setRoles: function (login, roles) {
+      return request('/api/users/' + encodeURIComponent(login) + '/roles',
+        { method: 'PUT', body: { roles: roles || [] } })
+        .then(function (d) {
+          if (d.user) hydrateUser(d.user);
+          emitSync(); return d.user;
+        });
+    },
+
+    /* --- расширенные действия оператора поддержки --- */
+    supportJoin: function (to) {
+      return request('/api/support/join', { method: 'POST', body: { to: to } })
+        .catch(function () { return null; });
+    },
+    supportClose: function (to, reopen) {
+      return request('/api/support/close', { method: 'POST', body: { to: to, reopen: !!reopen } })
+        .then(function (d) { fastCache.support = {}; return d; });
+    },
+    supportAction: function (to, type) {
+      return request('/api/support/action', { method: 'POST', body: { to: to, type: type } })
+        .then(function (d) { fastCache.support = {}; return d; });
     },
 
     /** Сравнение ФИО: профиль (полное) ↔ расписание (с инициалами) */

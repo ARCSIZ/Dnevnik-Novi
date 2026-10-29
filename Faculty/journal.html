@@ -207,7 +207,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260305-fastdata2"></script>
+  <script src="../Data/users.js?v=20260306-roles1"></script>
   <script src="../General/notice.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
@@ -223,7 +223,8 @@
     clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),3000); }
 
   const DAYS_SHORT=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-  const STATUSES=[['Н','Не был'],['У','Неуважительная'],['Б','Больничный'],['О','Опоздал']];
+  /* Статус «О» выведен из системы. */
+  const STATUSES=[['Н','Не был'],['У','Неуважительная'],['Б','Больничный']];
   const pad=n=>String(n).padStart(2,'0');
   const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(0,0,0,0);return x;};
