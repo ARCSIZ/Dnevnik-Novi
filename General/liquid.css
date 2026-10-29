@@ -1,0 +1,142 @@
+/* ==========================================================================
+   General/liquid.css — ЖИДКОЕ СТЕКЛО «Колледж·ID»
+   --------------------------------------------------------------------------
+   Единый материал навигации для всех страниц: сильное размытие с подъёмом
+   насыщенности, световая кромка, преломление краёв SVG-фильтром и
+   перетекающая капсула активного пункта.
+   ========================================================================== */
+
+/* ---------------------------- нижний док ---------------------------- */
+.dock {
+  position: fixed; left: 12px; right: 12px; bottom: 14px; z-index: 60;
+  display: flex; gap: 0; padding: 7px 7px calc(7px + env(safe-area-inset-bottom));
+  border-radius: 30px; overflow: hidden; isolation: isolate;
+  background:
+    linear-gradient(168deg, rgba(255,255,255,.18), rgba(255,255,255,.05) 32%,
+                            rgba(255,255,255,.02) 65%, rgba(255,255,255,.1)),
+    rgba(8,8,13,.22);
+  backdrop-filter: blur(44px) saturate(260%) brightness(1.28) contrast(1.1);
+  -webkit-backdrop-filter: blur(44px) saturate(260%) brightness(1.28) contrast(1.1);
+  border: 1px solid rgba(255,255,255,.38);
+  box-shadow:
+    0 28px 70px -20px rgba(0,0,0,.95),
+    0 6px 22px -8px rgba(0,0,0,.5),
+    inset 0 1.5px 0 rgba(255,255,255,.6),
+    inset 0 -1px 1px rgba(255,255,255,.18),
+    inset 0 0 34px rgba(255,255,255,.08);
+}
+
+/* поверхность линзы: отражение сверху и цветной отсвет снизу */
+.dock::before {
+  content: ''; position: absolute; inset: -4px; z-index: 0;
+  pointer-events: none; border-radius: inherit; mix-blend-mode: screen;
+  background:
+    radial-gradient(150% 90% at 50% -28%, rgba(255,255,255,.55), transparent 58%),
+    radial-gradient(90% 130% at 50% 128%, rgba(var(--glow,99,102,241),.2), transparent 60%);
+  filter: url(#liquidGlassFilter);
+}
+
+/* жидкая капсула активного пункта */
+.dock-capsule {
+  position: absolute; left: 0; width: 0;
+  top: 7px; bottom: calc(7px + env(safe-area-inset-bottom));
+  border-radius: 22px; z-index: 1; pointer-events: none; opacity: 0;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.58), rgba(255,255,255,.18) 35%, rgba(255,255,255,.1) 60%),
+    linear-gradient(120deg, rgba(var(--glow,99,102,241),.28), rgba(var(--glow,99,102,241),.14));
+  backdrop-filter: blur(20px) saturate(280%) brightness(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(280%) brightness(1.4);
+  border: 1px solid rgba(255,255,255,.65);
+  box-shadow:
+    0 12px 30px -8px rgba(var(--glow,99,102,241),.95),
+    0 0 26px rgba(var(--glow,99,102,241),.3),
+    inset 0 1.5px 0 rgba(255,255,255,.85),
+    inset 0 -3px 10px rgba(0,0,0,.12);
+  transition: left .6s cubic-bezier(.28,1.5,.35,1),
+              width .6s cubic-bezier(.28,1.5,.35,1), opacity .35s;
+}
+.dock-capsule::before {
+  content: ''; position: absolute; inset: 1px; border-radius: 21px;
+  background: linear-gradient(110deg, transparent 18%, rgba(255,255,255,.9) 38%,
+                              rgba(255,255,255,.25) 50%, transparent 62%);
+  transform: translateX(-130%);
+  animation: capsuleSheen 4s ease-in-out infinite;
+}
+@keyframes capsuleSheen {
+  0%, 65% { transform: translateX(-130%); }
+  85%, 100% { transform: translateX(130%); }
+}
+
+/* искривление стекла под капсулой */
+.dock-bend {
+  position: absolute; z-index: 1; pointer-events: none; opacity: 0;
+  background: radial-gradient(closest-side, rgba(var(--glow,99,102,241),.2), transparent);
+  filter: url(#liquidGlassFilter) blur(8px) saturate(220%);
+  transition: left .6s cubic-bezier(.28,1.5,.35,1), top .6s cubic-bezier(.28,1.5,.35,1), opacity .35s;
+}
+
+.dock-btn {
+  position: relative; z-index: 2; flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; padding: 10px 4px; border-radius: 19px; border: 1px solid transparent;
+  background: transparent; color: rgba(255,255,255,.5);
+  font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer;
+  transition: transform .35s cubic-bezier(.34,1.55,.64,1), color .3s;
+}
+.dock-btn span { display: block; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; transition: color .3s; }
+.dock-btn:active { transform: scale(.9); }
+.dock-btn.on { color: #fff; background: transparent; box-shadow: none; }
+.dock-btn.on:active { transform: scale(.96); }
+.dock-btn.on i {
+  color: #fff;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)) drop-shadow(0 0 8px rgba(255,255,255,.4));
+}
+.dock-btn.on span {
+  color: #fff; font-weight: 800;
+  text-shadow: 0 1px 6px rgba(0,0,0,.5), 0 0 14px rgba(var(--glow,99,102,241),.55);
+}
+@media (max-width: 360px) { .dock-btn { font-size: 10px; } }
+
+/* -------------------------- боковое меню (ПК) -------------------------- */
+#sideNav .card {
+  background: linear-gradient(165deg, rgba(255,255,255,.1), rgba(13,13,21,.72) 45%);
+  backdrop-filter: blur(34px) saturate(200%) brightness(1.12);
+  -webkit-backdrop-filter: blur(34px) saturate(200%) brightness(1.12);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 30px 70px -28px rgba(0,0,0,.85),
+    inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(255,255,255,.06);
+}
+.nav-btn.on {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,.22), rgba(255,255,255,.05) 60%),
+    linear-gradient(110deg, rgba(var(--glow,99,102,241),.3), rgba(var(--glow,99,102,241),.14));
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5),
+    inset 0 -2px 6px rgba(0,0,0,.16), 0 10px 26px -12px rgba(var(--glow,99,102,241),.85);
+}
+.nav-btn.on .nv-ic {
+  box-shadow: 0 6px 18px -6px rgba(var(--glow,99,102,241),.9),
+    inset 0 1px 0 rgba(255,255,255,.5);
+}
+
+/* ------------------------ стеклянная кнопка «назад» ------------------------ */
+.back {
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+/* --------------------------- экономия ресурсов --------------------------- */
+html.lite .dock, html.no-blur .dock {
+  background: rgba(16,16,26,.97) !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+html.lite .dock::before, html.lite .dock-capsule::before, html.lite .dock-bend { display: none; }
+html.lite .dock-capsule { transition: left .2s linear, width .2s linear; }
+@media (prefers-reduced-motion: reduce) {
+  .dock-capsule, .dock-bend { transition-duration: .01ms; }
+  .dock-capsule::before { animation: none; }
+}

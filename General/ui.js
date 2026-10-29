@@ -1,0 +1,246 @@
+/* ==========================================================================
+   General/ui.js — ЖИДКОЕ СТЕКЛО, ЖЕСТЫ И ЦЕНТР УВЕДОМЛЕНИЙ
+   --------------------------------------------------------------------------
+   Подключается на страницах с навигацией:
+
+     <link rel="stylesheet" href="../General/liquid.css">
+     <script src="../General/ui.js"></script>
+
+   Делает три вещи:
+   1) регистрирует SVG-фильтр преломления и ведёт жидкую капсулу дока;
+   2) включает жесты: свайп между разделами и свайп вправо — «назад»;
+   3) заменяет колокольчик полноценным центром уведомлений.
+   ========================================================================== */
+
+(function (global) {
+  'use strict';
+
+  /* ------------------------------------------------ SVG-фильтр стекла */
+  function filterDefs() {
+    if (document.getElementById('liquidGlassDefs')) return;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'liquidGlassDefs';
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
+    svg.innerHTML = '<defs><filter id="liquidGlassFilter" x="-8%" y="-8%" width="116%" height="116%">'
+      + '<feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="4" result="n"/>'
+      + '<feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>'
+      + '</filter></defs>';
+    (document.body || document.documentElement).prepend(svg);
+  }
+
+  /* --------------------------------------------- капсула активного пункта */
+  function initCapsule() {
+    var dock = document.querySelector('.dock');
+    if (!dock) return;
+    if (!dock.querySelector('.dock-capsule')) {
+      var bend = document.createElement('span');
+      bend.className = 'dock-bend'; bend.setAttribute('aria-hidden', 'true');
+      var cap = document.createElement('span');
+      cap.className = 'dock-capsule'; cap.setAttribute('aria-hidden', 'true');
+      dock.prepend(cap); dock.prepend(bend);
+    }
+    var cap = dock.querySelector('.dock-capsule');
+    var bend = dock.querySelector('.dock-bend');
+
+    function move() {
+      var btn = dock.querySelector('.dock-btn.on');
+      if (!btn) { cap.style.opacity = '0'; bend.style.opacity = '0'; return; }
+      cap.style.left = btn.offsetLeft + 'px';
+      cap.style.width = btn.offsetWidth + 'px';
+      cap.style.opacity = '1';
+      bend.style.left = (btn.offsetLeft + btn.offsetWidth / 2 - 55) + 'px';
+      bend.style.top = (btn.offsetTop - 6) + 'px';
+      bend.style.width = '110px';
+      bend.style.height = (btn.offsetHeight + 12) + 'px';
+      bend.style.opacity = '.85';
+    }
+    dock.addEventListener('click', function () { setTimeout(move, 10); });
+    new MutationObserver(move).observe(dock, {
+      subtree: true, attributes: true, attributeFilter: ['class']
+    });
+    setTimeout(move, 60); setTimeout(move, 500);
+    global.addEventListener('resize', move);
+    global.addEventListener('orientationchange', function () { setTimeout(move, 180); });
+    global.CollegeDock = { sync: move };
+  }
+
+  /* ------------------------------------------------------------- жесты */
+  function initGestures() {
+    var startX = 0, startY = 0, startT = 0, tracking = false;
+
+    function noSwipe(el) {
+      /* не мешаем прокручиваемым и интерактивным элементам */
+      return !!(el.closest && el.closest(
+        'input,textarea,select,button,a,#feed,.glist,#chats,.menu,canvas,[data-noswipe]'));
+    }
+    document.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1 || noSwipe(e.target)) { tracking = false; return; }
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      startT = Date.now(); tracking = true;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function (e) {
+      if (!tracking) return;
+      tracking = false;
+      var t = e.changedTouches[0];
+      var dx = t.clientX - startX, dy = t.clientY - startY, dt = Date.now() - startT;
+      if (dt > 700 || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
+
+      var views = [].slice.call(document.querySelectorAll('.dock-btn'));
+      if (views.length) {
+        var i = views.findIndex(function (b) { return b.classList.contains('on'); });
+        var next = dx < 0 ? i + 1 : i - 1;
+        if (i > -1 && next >= 0 && next < views.length) {
+          views[next].click();
+          if (navigator.vibrate) navigator.vibrate(8);
+          return;
+        }
+      }
+      /* свайп вправо от левого края — «назад» на внутренних страницах */
+      if (dx > 90 && startX < 56) {
+        var back = document.getElementById('btnBack');
+        if (back) { back.click(); if (navigator.vibrate) navigator.vibrate(8); }
+      }
+    }, { passive: true });
+  }
+
+  /* ------------------------------------------- центр уведомлений */
+  var KEY = 'collegeid_notif_log';
+  function log() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; }
+  }
+  function saveLog(list) {
+    try { localStorage.setItem(KEY, JSON.stringify(list.slice(-50))); } catch (e) { /* noop */ }
+  }
+  function push(item) {
+    var list = log();
+    list.push(Object.assign({ id: 'n' + Date.now(), at: new Date().toISOString(), read: false }, item));
+    saveLog(list);
+    paintBadge();
+  }
+  function unread() { return log().filter(function (n) { return !n.read; }).length; }
+
+  function css() {
+    if (document.getElementById('notif-css')) return;
+    var s = document.createElement('style');
+    s.id = 'notif-css';
+    s.textContent = [
+      '#notifBtn{position:relative}',
+      '#notifDot{position:absolute;top:5px;right:6px;min-width:16px;height:16px;padding:0 4px;',
+      ' border-radius:99px;background:#f43f5e;color:#fff;font-size:9.5px;font-weight:800;',
+      ' display:none;align-items:center;justify-content:center;box-shadow:0 0 0 2px rgba(7,7,13,.9)}',
+      '#notifDot.on{display:flex}',
+      '#notifPanel{position:fixed;inset:0;z-index:240;display:none;align-items:flex-start;justify-content:flex-end;padding:14px}',
+      '#notifPanel.on{display:flex}',
+      '#notifPanel .bg{position:absolute;inset:0;background:rgba(5,5,10,.6);backdrop-filter:blur(6px)}',
+      '#notifPanel .box{position:relative;width:100%;max-width:400px;max-height:78vh;overflow:auto;',
+      ' margin-top:58px;border-radius:24px;padding:16px;color:#fff;',
+      ' background:linear-gradient(165deg,rgba(255,255,255,.12),rgba(14,14,22,.95) 40%);',
+      ' backdrop-filter:blur(34px) saturate(200%);-webkit-backdrop-filter:blur(34px) saturate(200%);',
+      ' border:1px solid rgba(255,255,255,.2);box-shadow:0 30px 70px -22px rgba(0,0,0,.9),',
+      ' inset 0 1px 0 rgba(255,255,255,.4);font-family:Manrope,system-ui,sans-serif}',
+      '#notifPanel h4{margin:0;font-size:15px;font-weight:800}',
+      '#notifPanel .it{display:flex;gap:10px;padding:11px 12px;border-radius:14px;margin-top:8px;',
+      ' background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}',
+      '#notifPanel .it.new{border-color:rgba(var(--glow,99,102,241),.5);background:rgba(var(--glow,99,102,241),.1)}',
+      '#notifPanel .it .ic{width:32px;height:32px;flex:none;border-radius:10px;display:flex;',
+      ' align-items:center;justify-content:center;background:rgba(255,255,255,.07);font-size:15px}',
+      '#notifPanel .it b{display:block;font-size:13px}',
+      '#notifPanel .it p{margin:2px 0 0;font-size:11.5px;line-height:1.45;color:rgba(255,255,255,.55)}',
+      '#notifPanel .it time{display:block;margin-top:4px;font-family:"JetBrains Mono",monospace;',
+      ' font-size:9.5px;color:rgba(255,255,255,.3)}',
+      '#notifPanel .empty{padding:34px 10px;text-align:center;color:rgba(255,255,255,.4);font-size:13px}',
+      '#notifPanel .act{display:flex;gap:8px;margin-top:12px}',
+      '#notifPanel .act button{flex:1;height:38px;border:0;border-radius:12px;cursor:pointer;',
+      ' font-family:inherit;font-weight:700;font-size:12.5px;color:#fff;background:rgba(255,255,255,.08)}',
+      '#notifPanel .act button:hover{background:rgba(255,255,255,.15)}'
+    ].join('\n');
+    document.head.appendChild(s);
+  }
+
+  function paintBadge() {
+    var dot = document.getElementById('notifDot');
+    if (!dot) return;
+    var n = unread();
+    dot.textContent = n > 9 ? '9+' : String(n);
+    dot.classList.toggle('on', n > 0);
+  }
+
+  var ICONS = { grade: '📊', att: '📋', sched: '🗓', support: '💬', chat: '✉️', notice: '📢', system: '⚙️' };
+
+  function openPanel() {
+    css();
+    var p = document.getElementById('notifPanel');
+    if (!p) {
+      p = document.createElement('div');
+      p.id = 'notifPanel';
+      p.innerHTML = '<div class="bg"></div><div class="box"></div>';
+      document.body.appendChild(p);
+      p.querySelector('.bg').addEventListener('click', function () { p.classList.remove('on'); });
+    }
+    var list = log().slice().reverse();
+    var when = function (iso) {
+      var d = new Date(iso), diff = (Date.now() - d) / 60000;
+      if (diff < 1) return 'только что';
+      if (diff < 60) return Math.round(diff) + ' мин назад';
+      if (diff < 1440) return Math.round(diff / 60) + ' ч назад';
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    };
+    p.querySelector('.box').innerHTML =
+      '<h4>Уведомления</h4>'
+      + (list.length
+        ? list.map(function (n) {
+          return '<div class="it' + (n.read ? '' : ' new') + '">'
+            + '<span class="ic">' + (ICONS[n.type] || '🔔') + '</span>'
+            + '<span style="min-width:0"><b>' + (n.title || 'Уведомление') + '</b>'
+            + '<p>' + (n.body || '') + '</p>'
+            + '<time>' + when(n.at) + '</time></span></div>';
+        }).join('')
+        : '<div class="empty">Пока ничего нового.<br>Здесь появятся оценки, замены и ответы поддержки.</div>')
+      + '<div class="act"><button id="nfRead">Отметить прочитанными</button>'
+      + '<button id="nfClear">Очистить</button></div>';
+    p.classList.add('on');
+
+    var r = document.getElementById('nfRead');
+    if (r) r.addEventListener('click', function () {
+      saveLog(log().map(function (n) { n.read = true; return n; }));
+      paintBadge(); openPanel();
+    });
+    var c = document.getElementById('nfClear');
+    if (c) c.addEventListener('click', function () {
+      saveLog([]); paintBadge(); openPanel();
+    });
+  }
+
+  function initNotifications() {
+    css();
+    var btn = document.getElementById('notifBtn') || document.getElementById('bell');
+    if (!btn) return;
+    btn.id = 'notifBtn';
+    if (!document.getElementById('notifDot')) {
+      var dot = document.createElement('span');
+      dot.id = 'notifDot';
+      btn.appendChild(dot);
+    }
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      openPanel();
+      /* открытие панели гасит счётчик, но оставляет историю */
+      setTimeout(function () {
+        saveLog(log().map(function (n) { n.read = true; return n; }));
+        paintBadge();
+      }, 1200);
+    });
+    paintBadge();
+  }
+
+  global.CollegeNotifications = { push: push, open: openPanel, unread: unread };
+
+  function boot() {
+    filterDefs(); initCapsule(); initGestures(); initNotifications();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+
+})(window);

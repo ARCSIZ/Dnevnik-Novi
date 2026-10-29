@@ -190,6 +190,25 @@
           <span class="pill" id="lesMeta">—</span>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="statCards"></div>
+
+        <!-- домашнее задание на эту пару -->
+        <div class="panel p-4 mb-4">
+          <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <p class="lbl mb-0">Домашнее задание</p>
+            <span class="pill" id="hwMeta">не задано</span>
+          </div>
+          <textarea id="hwText" rows="2" placeholder="Что задать группе на эту пару…"
+            style="width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+                   border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;
+                   font-family:inherit;resize:vertical"></textarea>
+          <div class="grid sm:grid-cols-2 gap-2.5 mt-2.5">
+            <button id="hwSave" class="btn btn-primary h-[42px] text-[13px] flex items-center justify-center gap-2">
+              <i data-lucide="send" class="w-4 h-4"></i>Выдать задание группе</button>
+            <button id="hwClear" class="btn btn-ghost h-[42px] text-[13px] flex items-center justify-center gap-2">
+              <i data-lucide="eraser" class="w-4 h-4"></i>Убрать задание</button>
+          </div>
+        </div>
+
         <div id="marksList" class="space-y-2"></div>
         <button id="saveMarks" class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-4">
           <i data-lucide="save" class="w-4 h-4"></i>Сохранить журнал
@@ -207,8 +226,9 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260306-roles1"></script>
+  <script src="../Data/users.js?v=20260307-apps1"></script>
   <script src="../General/notice.js?v=2"></script>
+  <script src="../General/ui.js?v=1"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
 <script>
@@ -375,6 +395,12 @@
     $('marksCard').classList.remove('hidden');
     $('lesTitle').textContent=L.name;
     $('lesMeta').textContent=L.slot+' пара · '+(L.start||'')+'–'+(L.end||'');
+    /* домашнее задание выбранной пары */
+    $('hwText').value=L.hw||'';
+    $('hwMeta').textContent=L.hw
+      ? ('задано'+(L.hwBy?(' · '+L.hwBy):'')+(L.hwAt?(' · '+new Date(L.hwAt)
+          .toLocaleDateString('ru-RU',{day:'numeric',month:'short'})):''))
+      : 'не задано';
 
     const list=students();
     if(!list.length){
@@ -438,6 +464,34 @@
       renderMarks();
     }));
   }
+
+  /* ---- выдача домашнего задания на свою пару ---- */
+  async function saveHomework(text){
+    if(picked===null) return toast('Сначала выберите пару');
+    const btn=$('hwSave'); btn.disabled=true; btn.style.opacity='.6';
+    try{
+      await CollegeDB.setHomework(GROUP,keyOf(selected),String(picked),text);
+      /* обновляем локальную копию, чтобы сразу увидеть результат */
+      const day=((ALL[GROUP]||{})[keyOf(selected)]||[]);
+      const L=day.find(x=>String(x.slot)===String(picked));
+      if(L){ L.hw=text; L.hwBy='вы'; L.hwAt=new Date().toISOString(); }
+      renderMarks();
+      toast(text?'Задание выдано группе '+GROUP:'Задание убрано');
+    }catch(err){
+      toast(err&&err.status===403?'Можно выдавать задание только на свои пары'
+        :'Ошибка: '+((err&&err.message)||'нет связи'));
+    }
+    btn.disabled=false; btn.style.opacity='';
+  }
+  $('hwSave').addEventListener('click',()=>{
+    const t=$('hwText').value.trim();
+    if(!t) return toast('Введите текст задания');
+    saveHomework(t);
+  });
+  $('hwClear').addEventListener('click',()=>{
+    if(!confirm('Убрать домашнее задание с этой пары?')) return;
+    $('hwText').value=''; saveHomework('');
+  });
 
   $('saveMarks').addEventListener('click',()=>{
     if(!GROUP) return toast('Группа не выбрана');

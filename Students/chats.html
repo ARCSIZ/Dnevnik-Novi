@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Чаты — Колледж·ID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230ea5e9'/%3E%3Ccircle cx='16' cy='15' r='7' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/General/boot.css?v=1">
+<link rel="stylesheet" href="/General/liquid.css?v=1">
+<script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+  onload="setTimeout(function(){document.documentElement.classList.add('tw-ready')},150)"
+  onerror="document.documentElement.classList.add('tw-ready')"></script>
+<script>setTimeout(function(){document.documentElement.classList.add('tw-ready')},3000)</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  body{font-family:'Manrope',sans-serif;background:var(--bg,#07070d)}
+  .font-display{font-family:'Unbounded',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  *{scrollbar-width:none;-ms-overflow-style:none}
+  *::-webkit-scrollbar{display:none!important}
+  svg{flex:none;display:block}
+  html,body{overflow-x:clip}
+
+  .orb{position:fixed;border-radius:9999px;filter:blur(90px);pointer-events:none}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;background:radial-gradient(circle,rgba(14,165,233,.2),transparent 65%)}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;background:radial-gradient(circle,rgba(var(--glow,99,102,241),.2),transparent 65%)}
+
+  .card{background:rgba(var(--soft,13,13,21),.84);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;
+    font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+  .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.78);cursor:pointer}
+  .back:hover{background:rgba(255,255,255,.12);color:#fff}
+
+  .chat{width:100%;display:flex;gap:11px;padding:12px 13px;border-radius:16px;cursor:pointer;text-align:left;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);transition:all .2s}
+  .chat:hover{background:rgba(255,255,255,.06);border-color:rgba(var(--glow,99,102,241),.4)}
+  .ava{width:40px;height:40px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px;background:linear-gradient(135deg,var(--accent,#6366f1),var(--accent2,#a855f7));color:#fff}
+  .badge{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#f43f5e;color:#fff;
+    font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+  #feed{height:min(58vh,520px);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:84%;display:flex;flex-direction:column;gap:5px;animation:pop .3s cubic-bezier(.22,1,.36,1)}
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  html.lite .msg{animation:none}
+  .msg.me{align-self:flex-end;align-items:flex-end}
+  .msg.them{align-self:flex-start}
+  .bub{padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+  .msg.me .bub{background:linear-gradient(120deg,var(--accent,#6366f1),var(--accent2,#a855f7));
+    color:#fff;border-bottom-right-radius:6px}
+  .msg.them .bub{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+    color:rgba(255,255,255,.9);border-bottom-left-radius:6px}
+  .meta{font-size:10px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.28);padding:0 4px}
+  .shot{max-width:min(300px,64vw);border-radius:14px;cursor:zoom-in;border:1px solid rgba(255,255,255,.12);display:block}
+  .daysep{align-self:center;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.15em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);background:rgba(255,255,255,.04);
+    padding:4px 12px;border-radius:99px;border:1px solid rgba(255,255,255,.07)}
+  .empty{text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);font-size:13.5px;line-height:1.6}
+
+  .composer{border-top:1px solid rgba(255,255,255,.08);padding:12px;display:flex;gap:9px;align-items:flex-end}
+  #input{flex:1;min-height:44px;max-height:140px;resize:none;background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px 14px;font-size:14px;color:#fff;
+    outline:none;font-family:inherit;line-height:1.5}
+  #input:focus{border-color:rgba(var(--glow,99,102,241),.6);box-shadow:0 0 0 4px rgba(var(--glow,99,102,241),.12)}
+  .icbtn{width:44px;height:44px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6)}
+  .icbtn:hover{background:rgba(255,255,255,.12);color:#fff}
+  .send{background:linear-gradient(120deg,var(--accent,#6366f1),var(--accent2,#a855f7));border-color:transparent;color:#fff}
+  .send:disabled{opacity:.45;cursor:not-allowed}
+  #preview{display:none;padding:10px 12px 0;gap:8px;flex-wrap:wrap}
+  #preview.on{display:flex}
+  .pv{position:relative}.pv img{height:60px;border-radius:10px;border:1px solid rgba(255,255,255,.14)}
+  .pv button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:99px;cursor:pointer;
+    background:#f43f5e;border:0;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+
+  #lightbox{position:fixed;inset:0;z-index:300;background:rgba(5,5,10,.94);display:none;
+    align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+  #lightbox.on{display:flex}
+  #lightbox img{max-width:100%;max-height:92vh;border-radius:16px}
+  .view{display:none}.view.on{display:block}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);opacity:0;transition:.3s;z-index:99;pointer-events:none}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body class="text-white antialiased min-h-screen">
+
+  <div class="orb o1"></div><div class="orb o2"></div>
+
+  <div class="relative max-w-[820px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+
+    <header class="flex items-center justify-between gap-3 mb-6">
+      <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i><span id="backLabel">Приложения</span></button>
+      <span class="pill"><i data-lucide="messages-square" class="w-3.5 h-3.5" style="color:var(--accent)"></i>ЧАТЫ</span>
+    </header>
+
+    <!-- список диалогов -->
+    <div class="view on" id="view-list">
+      <div class="card rounded-[24px] p-6 sm:p-7 mb-5">
+        <p class="mono text-[10px] tracking-[.3em] mb-1.5" style="color:var(--accent-l)">ПРИЛОЖЕНИЕ · ОБЩЕНИЕ</p>
+        <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800" id="title">Чаты с преподавателями</h1>
+        <p class="text-white/45 text-[13.5px] mt-2" id="subtitle">Задайте вопрос по предмету — преподаватель ответит здесь</p>
+      </div>
+      <div class="space-y-2.5" id="chats"></div>
+    </div>
+
+    <!-- диалог -->
+    <div class="view" id="view-chat">
+      <div class="card rounded-[24px] overflow-hidden">
+        <div class="flex items-center gap-3 p-4 border-b border-white/[.07]">
+          <span class="ava" id="peerAva">—</span>
+          <div class="min-w-0 flex-1">
+            <p class="font-bold text-[14.5px] truncate" id="peerName">—</p>
+            <p class="text-[11.5px] text-white/40 truncate" id="peerMeta">—</p>
+          </div>
+        </div>
+        <div id="feed"></div>
+        <div id="preview"></div>
+        <div class="composer">
+          <label class="icbtn" title="Прикрепить изображение">
+            <i data-lucide="image-plus" class="w-5 h-5"></i>
+            <input type="file" id="file" accept="image/*" multiple style="display:none">
+          </label>
+          <textarea id="input" rows="1" placeholder="Сообщение…"></textarea>
+          <button class="icbtn send" id="send"><i data-lucide="send" class="w-5 h-5"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="lightbox"><img id="lbImg" alt=""></div>
+  <div id="toast">
+    <div class="flex items-center gap-2.5 bg-[#15151f]/95 border border-white/10 rounded-full px-5 py-3 shadow-2xl backdrop-blur">
+      <i data-lucide="info" class="w-4 h-4" style="color:var(--accent)"></i><span id="toastMsg" class="text-sm text-white/80"></span>
+    </div>
+  </div>
+
+  <script src="../General/theme.js?v=3"></script>
+  <script src="../Data/users.js?v=20260307-apps1"></script>
+  <script src="../General/notice.js?v=2"></script>
+  <script src="../General/ui.js?v=1"></script>
+  <script src="../General/perf.js"></script>
+  <script src="../General/pwa.js?v=2"></script>
+<script>
+(async function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const tm=iso=>new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  const dkey=iso=>new Date(iso).toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+  const ini=f=>{const p=String(f||'?').trim().split(/\s+/);return((p[0]||'')[0]||'')+((p[1]||'')[0]||'');};
+  let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show');
+    clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2600); }
+
+  let mode='list', cur=null, msgs=[], chats=[], ver=-1, attach=[];
+  const goBack=()=>{ if(mode==='chat'){ showList(); return; } location.href='diary.html?view=apps'; };
+  $('btnBack').addEventListener('click',goBack);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!$('lightbox').classList.contains('on')) goBack();
+  });
+
+  await CollegeDB.init();
+  const s=CollegeDB.session();
+  if(!s){ $('chats').innerHTML='<div class="empty">Войдите, чтобы открыть чаты.</div>'; return; }
+  let me=CollegeDB.findByLogin(s.login);
+  if(CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
+  const roles=CollegeDB.rolesOf?CollegeDB.rolesOf(me):['student'];
+  const iAmTeacher=roles.indexOf('teacher')>-1||roles.indexOf('curator')>-1;
+  if(iAmTeacher){
+    $('title').textContent='Чаты со студентами';
+    $('subtitle').textContent='Вопросы студентов по вашим предметам';
+  }
+
+  function renderChats(){
+    if(!chats.length){
+      $('chats').innerHTML='<div class="empty">'
+        +(iAmTeacher?'Пока нет обращений от студентов.'
+          :'Преподаватели появятся здесь, как только староста загрузит расписание группы.')
+        +'</div>';
+      return;
+    }
+    $('chats').innerHTML=chats.map(c=>
+      '<button class="chat" data-peer="'+esc(c.peer)+'">'
+      +'<span class="ava">'+esc(ini(c.fio).toUpperCase())+'</span>'
+      +'<span class="min-w-0 flex-1">'
+        +'<span class="flex items-center gap-2"><span class="text-[13.5px] font-bold truncate flex-1">'
+          +esc(c.short||c.fio)+'</span>'
+        +(c.unread?'<span class="badge">'+c.unread+'</span>':'')+'</span>'
+        +'<span class="block text-[11.5px] text-white/40 truncate mt-0.5">'
+          +(c.last?((c.last.mine?'Вы: ':'')+esc(c.last.text||'📷 изображение')):'нет сообщений')+'</span>'
+        +(c.group?'<span class="block text-[10px] mono text-white/25 mt-1">'+esc(c.group)+'</span>':'')
+      +'</span>'
+      +'<i data-lucide="chevron-right" class="w-4 h-4 text-white/25 self-center"></i></button>').join('');
+    lucide.createIcons();
+    $('chats').querySelectorAll('.chat').forEach(b=>
+      b.addEventListener('click',()=>openChat(b.dataset.peer)));
+  }
+
+  function renderFeed(){
+    const feed=$('feed');
+    const atBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<90;
+    if(!msgs.length){
+      feed.innerHTML='<div class="empty">Сообщений пока нет.<br>Напишите первым.</div>';
+      return;
+    }
+    let html='',last='';
+    msgs.forEach(m=>{
+      const d=dkey(m.at);
+      if(d!==last){ html+='<div class="daysep">'+d+'</div>'; last=d; }
+      const mine=String(m.from).toLowerCase()===String(me.login).toLowerCase();
+      html+='<div class="msg '+(mine?'me':'them')+'">'
+        +(m.image?'<img class="shot" src="'+m.image+'" alt="">':'')
+        +(m.text?'<div class="bub">'+esc(m.text)+'</div>':'')
+        +'<div class="meta">'+(mine?'вы':esc(m.author||''))+' · '+tm(m.at)+'</div></div>';
+    });
+    feed.innerHTML=html;
+    feed.querySelectorAll('.shot').forEach(i=>i.addEventListener('click',()=>{
+      $('lbImg').src=i.src; $('lightbox').classList.add('on');
+    }));
+    if(atBottom) feed.scrollTop=feed.scrollHeight;
+  }
+  $('lightbox').addEventListener('click',()=>$('lightbox').classList.remove('on'));
+
+  async function openChat(peer){
+    cur=peer; mode='chat';
+    $('backLabel').textContent='К чатам';
+    $('view-list').classList.remove('on');
+    $('view-chat').classList.add('on');
+    const c=chats.find(x=>x.peer===peer);
+    $('peerName').textContent=(c&&(c.short||c.fio))||peer;
+    $('peerMeta').textContent=(c&&c.role==='teacher')?'Преподаватель':((c&&c.group)||'Студент');
+    $('peerAva').textContent=ini((c&&c.fio)||peer).toUpperCase();
+    const d=await CollegeDB.chatThread(peer);
+    msgs=d.messages||[];
+    renderFeed();
+    $('feed').scrollTop=$('feed').scrollHeight;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function showList(){
+    mode='list'; cur=null;
+    $('backLabel').textContent='Приложения';
+    $('view-chat').classList.remove('on');
+    $('view-list').classList.add('on');
+    pull(true);
+  }
+
+  async function pull(force){
+    if(!force){
+      const v=await CollegeDB.chatsVersion();
+      if(v===ver) return;
+      ver=v;
+    }
+    chats=await CollegeDB.chatList();
+    if(mode==='list') renderChats();
+    if(cur){
+      const d=await CollegeDB.chatThread(cur);
+      msgs=d.messages||[]; renderFeed();
+    }
+  }
+  await pull(true);
+  setInterval(()=>pull(false),4000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pull(true); });
+
+  /* вложения */
+  function compress(file){
+    return new Promise(res=>{
+      const fr=new FileReader();
+      fr.onload=()=>{ const img=new Image();
+        img.onload=()=>{ const k=Math.min(1,1280/Math.max(img.width,img.height));
+          const c=document.createElement('canvas');
+          c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+          const x=c.getContext('2d'); x.imageSmoothingQuality='high';
+          x.drawImage(img,0,0,c.width,c.height);
+          res(c.toDataURL('image/jpeg',.82)); };
+        img.onerror=()=>res(null); img.src=fr.result; };
+      fr.onerror=()=>res(null); fr.readAsDataURL(file);
+    });
+  }
+  function drawPreview(){
+    const p=$('preview'); p.classList.toggle('on',attach.length>0);
+    p.innerHTML=attach.map((src,i)=>'<span class="pv"><img src="'+src+'"><button data-i="'+i+'">✕</button></span>').join('');
+    p.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ attach.splice(+b.dataset.i,1); drawPreview(); }));
+  }
+  $('file').addEventListener('change',async e=>{
+    for(const f of [...e.target.files].slice(0,3)){
+      if(attach.length>=3) break;
+      const d=await compress(f); if(d) attach.push(d);
+    }
+    drawPreview(); e.target.value='';
+  });
+  $('input').addEventListener('paste',async e=>{
+    for(const it of [...(e.clipboardData&&e.clipboardData.items||[])]){
+      if(it.type.indexOf('image')===0){ const d=await compress(it.getAsFile()); if(d){ attach.push(d); drawPreview(); } }
+    }
+  });
+
+  const input=$('input');
+  input.addEventListener('input',()=>{ input.style.height='auto'; input.style.height=Math.min(140,input.scrollHeight)+'px'; });
+  input.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } });
+  $('send').addEventListener('click',send);
+
+  async function send(){
+    if(!cur) return;
+    const text=input.value.trim();
+    if(!text&&!attach.length) return;
+    $('send').disabled=true;
+    const queue=attach.length?attach.slice():[''];
+    attach=[]; drawPreview(); input.value=''; input.style.height='auto';
+    try{
+      for(let i=0;i<queue.length;i++){
+        await CollegeDB.chatSend(cur,i===0?text:'',queue[i]||'');
+      }
+      await pull(true);
+      $('feed').scrollTop=$('feed').scrollHeight;
+    }catch(err){ toast('Не отправлено: '+((err&&err.message)||'нет связи')); }
+    $('send').disabled=false;
+  }
+})();
+</script>
+</body>
+</html>

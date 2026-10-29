@@ -60,6 +60,11 @@
   function show(title, body, o) {
     o = o || {};
     beep();
+    /* История событий для центра уведомлений в шапке */
+    if (global.CollegeNotifications && !o.silentLog) {
+      try { CollegeNotifications.push({ type: o.tag || 'system', title: title, body: body }); }
+      catch (e) { /* noop */ }
+    }
     if (document.hidden || o.force) bumpTitle();
     try {
       if (!global.Notification || Notification.permission !== 'granted') return;

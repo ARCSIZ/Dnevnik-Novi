@@ -803,6 +803,36 @@
         });
     },
 
+    /* --- чаты с преподавателями --- */
+    chatsVersion: function () {
+      return request('/api/chats/version')
+        .then(function (d) { return Number(d.version) || 0; })
+        .catch(function () { return -1; });
+    },
+    chatList: function () {
+      return request('/api/chats')
+        .then(function (d) { return d.chats || []; })
+        .catch(function () { return []; });
+    },
+    chatThread: function (peer) {
+      return request('/api/chats/thread?peer=' + encodeURIComponent(peer || ''))
+        .catch(function () { return { messages: [] }; });
+    },
+    chatSend: function (to, text, image) {
+      return request('/api/chats/message', { method: 'POST', body: { to: to, text: text, image: image || '' } })
+        .then(function (d) { return d.message; });
+    },
+
+    /** Выдать домашнее задание на пару (преподаватель своей пары) */
+    setHomework: function (group, date, slot, hw) {
+      return request('/api/homework', { method: 'PUT', body: { group: group, date: date, slot: slot, hw: hw } })
+        .then(function (d) {
+          fastCache.schedule = {};      // расписание изменилось
+          if (d && d.dataVersion !== undefined) dataVersion = Number(d.dataVersion) || 0;
+          emitSync(); return true;
+        });
+    },
+
     /* --- расширенные действия оператора поддержки --- */
     supportJoin: function (to) {
       return request('/api/support/join', { method: 'POST', body: { to: to } })

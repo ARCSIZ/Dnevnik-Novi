@@ -12,12 +12,16 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v7-roles';
+const CACHE = 'college-id-v9-apps';
 
 const PRECACHE = [
   '/',
   '/index.html',
   '/General/authorization.html',
+  '/General/liquid.css',
+  '/General/ui.js',
+  '/Students/subjects.html',
+  '/Students/chats.html',
   '/manifest.webmanifest',
   '/icons/icon.svg',
   '/icons/icon-192.png',

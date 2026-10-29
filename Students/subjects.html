@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Предметы — Колледж·ID</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%236366f1'/%3E%3Cpath d='M9 10h14v12H9z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/General/boot.css?v=1">
+<link rel="stylesheet" href="/General/liquid.css?v=1">
+<script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+  onload="setTimeout(function(){document.documentElement.classList.add('tw-ready')},150)"
+  onerror="document.documentElement.classList.add('tw-ready')"></script>
+<script>setTimeout(function(){document.documentElement.classList.add('tw-ready')},3000)</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark}
+  body{font-family:'Manrope',sans-serif;background:var(--bg,#07070d)}
+  .font-display{font-family:'Unbounded',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  *{scrollbar-width:none;-ms-overflow-style:none}
+  *::-webkit-scrollbar{display:none!important}
+  svg{flex:none;display:block}
+  html,body{overflow-x:clip}
+
+  .orb{position:fixed;border-radius:9999px;filter:blur(90px);pointer-events:none}
+  .o1{width:520px;height:520px;top:-170px;left:-150px;
+    background:radial-gradient(circle,rgba(var(--glow,99,102,241),.22),transparent 65%)}
+  .o2{width:460px;height:460px;bottom:-170px;right:-130px;
+    background:radial-gradient(circle,rgba(var(--glow,168,85,247),.18),transparent 65%)}
+
+  .card{background:rgba(var(--soft,13,13,21),.82);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 90px -30px rgba(0,0,0,.7)}
+  .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:9999px;max-width:100%;
+    font-size:11px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+  .back{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:13px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.78);
+    cursor:pointer;transition:background .22s}
+  .back:hover{background:rgba(255,255,255,.12);color:#fff}
+  .dbox{padding:16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+    font-size:13px;line-height:1.6;color:rgba(255,255,255,.55)}
+  .lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:10px}
+
+  /* карточка предмета в списке */
+  .subj{width:100%;display:flex;align-items:center;gap:13px;padding:14px;border-radius:18px;text-align:left;
+    background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);cursor:pointer;
+    transition:transform .2s,border-color .2s,background .2s}
+  .subj:hover{transform:translateY(-2px);border-color:rgba(var(--glow,99,102,241),.45);
+    background:rgba(var(--glow,99,102,241),.07)}
+  .subj .ic{width:44px;height:44px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--accent,#6366f1),var(--accent2,#a855f7));color:#fff}
+  .mk{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:14px;flex:none}
+  .m5{background:rgba(52,211,153,.18);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+  .m4{background:rgba(99,102,241,.18);color:#a5b4fc;border:1px solid rgba(99,102,241,.35)}
+  .m3{background:rgba(251,191,36,.16);color:#fcd34d;border:1px solid rgba(251,191,36,.35)}
+  .m2{background:rgba(244,63,94,.18);color:#fda4af;border:1px solid rgba(244,63,94,.35)}
+  .big{width:72px;height:72px;border-radius:22px;font-size:32px;font-family:'Unbounded',sans-serif}
+
+  .scard{padding:14px;border-radius:18px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07)}
+  .scard .v{font-family:'Unbounded',sans-serif;font-weight:700;font-size:21px;line-height:1.1}
+  .scard .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;
+    text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px}
+  .bar{height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;transition:width .8s cubic-bezier(.22,1,.36,1)}
+
+  .view{display:none}.view.on{display:block;animation:slide .35s cubic-bezier(.22,1,.36,1)}
+  @keyframes slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+  html.lite .view.on{animation:none}
+  .st{opacity:0;animation:rise .5s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*60ms + 40ms)}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  html.lite .st{animation:none;opacity:1}
+</style>
+</head>
+<body class="text-white antialiased min-h-screen">
+
+  <div class="orb o1"></div><div class="orb o2"></div>
+
+  <div class="relative max-w-[880px] mx-auto px-5 sm:px-8 py-7 pb-16" style="z-index:10">
+
+    <header class="flex items-center justify-between gap-3 mb-6">
+      <button id="btnBack" class="back"><i data-lucide="arrow-left" class="w-4 h-4"></i><span id="backLabel">Приложения</span></button>
+      <span class="pill"><i data-lucide="book-open-text" class="w-3.5 h-3.5" style="color:var(--accent)"></i>ПРЕДМЕТЫ</span>
+    </header>
+
+    <!-- ========== СПИСОК ПРЕДМЕТОВ ========== -->
+    <div class="view on" id="view-list">
+      <div class="st card rounded-[24px] p-6 sm:p-7 mb-5" style="--i:0">
+        <p class="mono text-[10px] tracking-[.3em] mb-1.5" style="color:var(--accent-l)">ПРИЛОЖЕНИЕ · STUDENTS</p>
+        <h1 class="font-display text-[22px] sm:text-3xl leading-tight" style="font-weight:800">Мои предметы</h1>
+        <p class="text-white/45 text-[13.5px] mt-2">Все дисциплины из расписания · группа <b id="grp" class="text-white/70">—</b></p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" id="totals"></div>
+      <div class="space-y-2.5" id="list"></div>
+    </div>
+
+    <!-- ========== КАРТОЧКА ПРЕДМЕТА ========== -->
+    <div class="view" id="view-one">
+      <div class="card rounded-[24px] p-6 sm:p-7 mb-5">
+        <div class="flex items-start gap-4">
+          <span class="mk big" id="oneMark">—</span>
+          <div class="min-w-0 flex-1">
+            <p class="mono text-[10px] tracking-[.3em] mb-1.5" style="color:var(--accent-l)">ИТОГОВАЯ ОЦЕНКА</p>
+            <h2 class="font-display text-[20px] sm:text-2xl leading-tight" style="font-weight:800" id="oneName">—</h2>
+            <p class="text-white/45 text-[13px] mt-2" id="oneTeacher">—</p>
+            <p class="text-[13px] mt-1" id="oneWord">—</p>
+          </div>
+        </div>
+        <div class="mt-5">
+          <div class="flex items-center justify-between text-[11px] text-white/35 mb-1.5">
+            <span>2</span><span>3</span><span>4</span><span>5</span>
+          </div>
+          <div class="bar"><i id="oneBar" style="width:0"></i></div>
+          <p class="text-[11.5px] text-white/35 mt-2" id="oneHint">—</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" id="oneStats"></div>
+
+      <div class="card rounded-[24px] p-5 sm:p-6 mb-5">
+        <p class="lbl">Все оценки по предмету</p>
+        <div id="oneGrades"></div>
+      </div>
+
+      <div class="card rounded-[24px] p-5 sm:p-6">
+        <p class="lbl">Распределение</p>
+        <div id="oneDist" class="space-y-2.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../General/theme.js?v=3"></script>
+  <script src="../Data/users.js?v=20260307-apps1"></script>
+  <script src="../General/notice.js?v=2"></script>
+  <script src="../General/ui.js?v=1"></script>
+  <script src="../General/perf.js"></script>
+  <script src="../General/pwa.js?v=2"></script>
+<script>
+(async function(){
+  lucide.createIcons();
+  const $=id=>document.getElementById(id);
+  const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  let mode='list';
+  const goBack=()=>{
+    if(mode==='one'){ showList(); return; }
+    location.href='diary.html?view=apps';
+  };
+  $('btnBack').addEventListener('click',goBack);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') goBack(); });
+
+  await CollegeDB.init();
+  if(CollegeDB.startSync) CollegeDB.startSync(20000);
+  const s=CollegeDB.session();
+  let me=(s&&CollegeDB.findByLogin(s.login))||null;
+  if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
+  const GROUP=(me&&me.group)||'';
+  const LOGIN=(me&&me.login)||'';
+  $('grp').textContent=GROUP||'не назначена';
+
+  /* ======== ОФИЦИАЛЬНАЯ ШКАЛА ОЦЕНОК ========
+     Пятибалльная система, принятая в колледжах: средний балл переводится
+     в итоговую отметку по правилам округления (≥4.5 → «отлично» и т.д.). */
+  function official(avg){
+    if(!avg) return {mark:0,word:'Нет оценок',cls:'',hint:'Оценок по предмету пока нет'};
+    if(avg>=4.5) return {mark:5,word:'Отлично',cls:'m5',
+      hint:'Средний балл 4,50 и выше — итоговая «5» (отлично)'};
+    if(avg>=3.5) return {mark:4,word:'Хорошо',cls:'m4',
+      hint:'Средний балл от 3,50 до 4,49 — итоговая «4» (хорошо)'};
+    if(avg>=2.5) return {mark:3,word:'Удовлетворительно',cls:'m3',
+      hint:'Средний балл от 2,50 до 3,49 — итоговая «3» (удовлетворительно)'};
+    return {mark:2,word:'Неудовлетворительно',cls:'m2',
+      hint:'Средний балл ниже 2,50 — итоговая «2» (неудовлетворительно)'};
+  }
+
+  /* ======== СБОР ДАННЫХ ПО ПРЕДМЕТАМ ======== */
+  let SUBJECTS=[];
+  async function collect(){
+    if(!GROUP) return [];
+    const [sch,att]=await Promise.all([
+      CollegeDB.loadSchedule(GROUP),
+      CollegeDB.loadAttendance?CollegeDB.loadAttendance(GROUP):Promise.resolve({})
+    ]);
+    const map={};
+    Object.keys(sch||{}).sort().forEach(date=>{
+      (sch[date]||[]).forEach(L=>{
+        if(L.event||!L.name) return;
+        const key=L.name;
+        const s=map[key]=map[key]||{name:L.name,teacher:L.teacher||'',
+          lessons:0,grades:[],absent:0,sick:0,marks:[]};
+        s.lessons++;
+        if(L.teacher) s.teacher=L.teacher;
+        const rec=((att[date]||{})[LOGIN]||{})[String(L.slot)]||{};
+        (rec.g||[]).forEach(g=>{
+          const n=Number(g);
+          if(n>=2&&n<=5){ s.grades.push(n); s.marks.push({v:n,date:date}); }
+        });
+        if(rec.st==='Н'||rec.st==='У') s.absent++;
+        if(rec.st==='Б') s.sick++;
+      });
+    });
+    return Object.keys(map).map(k=>{
+      const s=map[k];
+      s.avg=s.grades.length?s.grades.reduce((a,b)=>a+b,0)/s.grades.length:0;
+      s.official=official(s.avg);
+      s.attendance=s.lessons?Math.round((s.lessons-s.absent)/s.lessons*100):100;
+      return s;
+    }).sort((a,b)=>b.grades.length-a.grades.length||a.name.localeCompare(b.name,'ru'));
+  }
+
+  /* ======== СПИСОК ======== */
+  function renderList(){
+    const all=SUBJECTS;
+    const allG=all.reduce((a,s)=>a.concat(s.grades),[]);
+    const avg=allG.length?allG.reduce((a,b)=>a+b,0)/allG.length:0;
+    const of=official(avg);
+    $('totals').innerHTML=
+       '<div class="scard"><p class="k">Предметов</p><p class="v">'+all.length+'</p></div>'
+      +'<div class="scard"><p class="k">Оценок всего</p><p class="v">'+allG.length+'</p></div>'
+      +'<div class="scard"><p class="k">Средний балл</p><p class="v" style="color:var(--accent-l)">'
+        +(allG.length?avg.toFixed(2):'—')+'</p></div>'
+      +'<div class="scard"><p class="k">Итог по шкале</p><p class="v">'
+        +(of.mark||'—')+'</p></div>';
+
+    if(!all.length){
+      $('list').innerHTML='<div class="dbox">В расписании вашей группы пока нет предметов. '
+        +'Они появятся, когда староста загрузит расписание.</div>';
+      return;
+    }
+    $('list').innerHTML=all.map((s,i)=>
+      '<button type="button" class="subj st" style="--i:'+(i+1)+'" data-i="'+i+'">'
+      +'<span class="ic"><i data-lucide="book-open-text" class="w-5 h-5"></i></span>'
+      +'<span class="min-w-0 flex-1">'
+        +'<span class="block text-[14.5px] font-bold truncate">'+esc(s.name)+'</span>'
+        +'<span class="block text-[11.5px] text-white/40 truncate mt-0.5">'
+          +(s.teacher?esc(s.teacher)+' · ':'')+'занятий: '+s.lessons+' · оценок: '+s.grades.length+'</span>'
+      +'</span>'
+      +(s.grades.length
+        ? '<span class="flex items-center gap-2 shrink-0">'
+          +'<span class="mono text-[12px] text-white/45">'+s.avg.toFixed(2)+'</span>'
+          +'<span class="mk '+s.official.cls+'">'+s.official.mark+'</span></span>'
+        : '<span class="pill shrink-0">нет оценок</span>')
+      +'<i data-lucide="chevron-right" class="w-4 h-4 text-white/25 shrink-0"></i></button>').join('');
+    lucide.createIcons();
+    $('list').querySelectorAll('.subj').forEach(b=>
+      b.addEventListener('click',()=>showOne(SUBJECTS[+b.dataset.i])));
+  }
+
+  /* ======== ОДИН ПРЕДМЕТ ======== */
+  function showOne(s){
+    mode='one';
+    $('backLabel').textContent='К предметам';
+    $('view-list').classList.remove('on');
+    $('view-one').classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+
+    const of=s.official;
+    $('oneMark').className='mk big '+(of.cls||'');
+    $('oneMark').textContent=of.mark||'—';
+    $('oneName').textContent=s.name;
+    $('oneTeacher').textContent=s.teacher||'Преподаватель не указан';
+    $('oneWord').textContent=of.word;
+    $('oneWord').style.color=of.cls==='m5'?'#6ee7b7':of.cls==='m4'?'#a5b4fc'
+      :of.cls==='m3'?'#fcd34d':of.cls==='m2'?'#fda4af':'rgba(255,255,255,.5)';
+    $('oneHint').textContent=of.hint;
+
+    /* шкала от 2 до 5 */
+    const pct=s.avg?Math.max(0,Math.min(100,((s.avg-2)/3)*100)):0;
+    const bar=$('oneBar');
+    bar.style.background=of.cls==='m5'?'linear-gradient(90deg,#10b981,#34d399)'
+      :of.cls==='m4'?'linear-gradient(90deg,#6366f1,#818cf8)'
+      :of.cls==='m3'?'linear-gradient(90deg,#f59e0b,#fbbf24)'
+      :'linear-gradient(90deg,#f43f5e,#fb7185)';
+    setTimeout(()=>{ bar.style.width=pct+'%'; },60);
+
+    $('oneStats').innerHTML=
+       '<div class="scard"><p class="k">Средний балл</p><p class="v" style="color:var(--accent-l)">'
+        +(s.grades.length?s.avg.toFixed(2):'—')+'</p></div>'
+      +'<div class="scard"><p class="k">Оценок</p><p class="v">'+s.grades.length+'</p></div>'
+      +'<div class="scard"><p class="k">Занятий</p><p class="v">'+s.lessons+'</p></div>'
+      +'<div class="scard"><p class="k">Посещаемость</p><p class="v text-emerald-300">'+s.attendance+'%</p></div>';
+
+    $('oneGrades').innerHTML=s.marks.length
+      ? '<div class="flex flex-wrap gap-2">'+s.marks.map(m=>
+          '<span class="mk m'+m.v+'" title="'+new Date(m.date+'T00:00:00')
+            .toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+'">'+m.v+'</span>').join('')+'</div>'
+        +'<p class="text-[11.5px] text-white/30 mt-3">Наведите на оценку, чтобы увидеть дату</p>'
+      : '<div class="dbox">Оценок по этому предмету пока нет</div>';
+
+    const dist=[5,4,3,2].map(v=>({v:v,n:s.grades.filter(g=>g===v).length}));
+    const max=Math.max(1,...dist.map(d=>d.n));
+    $('oneDist').innerHTML=dist.map(d=>
+      '<div class="flex items-center gap-3">'
+      +'<span class="mk m'+d.v+'" style="width:26px;height:26px;font-size:12px">'+d.v+'</span>'
+      +'<span class="flex-1 bar"><i style="width:'+(d.n/max*100)+'%;background:'
+        +(d.v===5?'#34d399':d.v===4?'#818cf8':d.v===3?'#fbbf24':'#fb7185')+'"></i></span>'
+      +'<span class="mono text-[12px] text-white/45" style="width:28px;text-align:right">'+d.n+'</span>'
+      +'</div>').join('');
+  }
+
+  function showList(){
+    mode='list';
+    $('backLabel').textContent='Приложения';
+    $('view-one').classList.remove('on');
+    $('view-list').classList.add('on');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  SUBJECTS=await collect();
+  renderList();
+  if(CollegeDB.onSync) CollegeDB.onSync(async()=>{
+    SUBJECTS=await collect();
+    if(mode==='list') renderList();
+  });
+})();
+</script>
+</body>
+</html>
