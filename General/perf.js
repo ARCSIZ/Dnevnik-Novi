@@ -271,6 +271,16 @@
   var reduced = false;
   try { reduced = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* noop */ }
 
+  /* Совсем слабое железо: лёгкий режим включаем сразу, не дожидаясь просадки
+     кадров. Пользователь всё так же может выключить его в настройках. */
+  if (saved === null) {
+    try {
+      var weakCores = (navigator.hardwareConcurrency || 4) <= 2;
+      var weakMem = (navigator.deviceMemory || 4) <= 2;
+      if (weakCores || weakMem) { applyClass(true); set(LS_LITE, '1'); saved = '1'; }
+    } catch (e) { /* noop */ }
+  }
+
   if (saved === '1' || (saved === null && reduced)) {
     applyClass(true);                 // восстанавливаем выбор / системную настройку
   } else {

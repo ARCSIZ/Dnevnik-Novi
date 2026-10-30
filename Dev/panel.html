@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Панель управления — Колледж·ID</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M8 11h16M8 16h16M8 21h16' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/General/boot.css?v=1">
+<link rel="stylesheet" href="/General/boot.css?v=2">
 <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
   onload="setTimeout(function(){document.documentElement.classList.add('tw-ready')},150)"
   onerror="document.documentElement.classList.add('tw-ready')"></script>
@@ -83,6 +83,24 @@
   .rl-support{background:rgba(34,211,238,.14);color:#67e8f9;border:1px solid rgba(34,211,238,.35)}
   .rl-patron{background:rgba(244,114,182,.16);color:#f9a8d4;border:1px solid rgba(244,114,182,.45)}
   .rl-teacher{background:rgba(129,140,248,.14);color:#c7d2fe;border:1px solid rgba(129,140,248,.3)}
+  .rl-prefect{background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+  .rl-curator{background:rgba(251,191,36,.14);color:#fcd34d;border:1px solid rgba(251,191,36,.35)}
+  /* окно выбора ролей */
+  #roleModal{position:fixed;inset:0;z-index:260;display:none;align-items:center;justify-content:center;padding:16px}
+  #roleModal.on{display:flex}
+  #roleModal .rm-bg{position:absolute;inset:0;background:rgba(5,5,10,.72)}
+  #roleModal .rm-box{position:relative;width:100%;max-width:420px;max-height:86vh;overflow:auto;
+    border-radius:24px;padding:20px;background:rgba(16,16,24,.98);
+    border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 70px -22px rgba(0,0,0,.9)}
+  .rm-opt{width:100%;display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:14px;
+    cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+    transition:all .18s}
+  .rm-opt:hover{background:rgba(255,255,255,.07)}
+  .rm-opt.on{background:rgba(99,102,241,.14);border-color:rgba(129,140,248,.5)}
+  .rm-check{width:22px;height:22px;flex:none;border-radius:7px;display:flex;align-items:center;
+    justify-content:center;font-size:13px;font-weight:800;color:#fff;
+    background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.2)}
+  .rm-opt.on .rm-check{background:linear-gradient(135deg,#6366f1,#a855f7);border-color:transparent}
 
   /* группы-аккордеон */
   .grp{border-radius:18px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);overflow:hidden}
@@ -623,29 +641,10 @@
         else toast('Не удалось перевести');
       });
     }));
-    /* «+» — назначение дополнительных ролей поверх основной */
+    /* «+» — окно выбора дополнительных ролей (сколько угодно сразу) */
     $('groupsList').querySelectorAll('.role-add').forEach(b=>b.addEventListener('click',e=>{
       e.stopPropagation();
-      const u=users().find(x=>x.login===b.dataset.login);
-      if(!u) return;
-      const all=CollegeDB.rolesOf?CollegeDB.rolesOf(u):[R(u.role)];
-      const primary=all[0], extra=all.slice(1);
-      const options=EXTRA_ROLES.filter(r=>r[0]!==primary);
-      const list=options.map((r,i)=>
-        (i+1)+') '+r[1]+(extra.indexOf(r[0])>-1?'  ✓ выдана':'')).join('\n');
-      const ans=prompt('Дополнительные роли для «'+(u.fio||u.login)+'»\n'
-        +'Основная роль: '+RN(primary)+'\n\n'+list
-        +'\n\nВведите номера через запятую (пусто — убрать все):',
-        extra.map(r=>options.findIndex(o=>o[0]===r)+1).filter(n=>n>0).join(','));
-      if(ans===null) return;
-      const picked=String(ans).split(/[,\s]+/).map(n=>parseInt(n,10))
-        .filter(n=>n>=1&&n<=options.length).map(n=>options[n-1][0]);
-      b.style.opacity='.5';
-      CollegeDB.setRoles(u.login,picked).then(()=>{
-        b.style.opacity='';
-        toast(picked.length?('Роли обновлены: '+picked.map(RN).join(', ')):'Доп. роли убраны');
-        renderUsers(); renderStats();
-      }).catch(err=>{ b.style.opacity=''; toast('Ошибка: '+((err&&err.message)||'нет связи')); });
+      openRoleModal(b.dataset.login);
     }));
 
     $('groupsList').querySelectorAll('.role-btn').forEach(b=>b.addEventListener('click',e=>{
@@ -846,6 +845,69 @@
       ? 'Активно: «'+(n.title||'без заголовка')+'» · '+(n.createdAt?new Date(n.createdAt).toLocaleString('ru-RU'):'')
       : 'Активных объявлений нет';
     $('cNotify').textContent=(m.enabled?'ТЕХРАБОТЫ':(n.active?'ЕСТЬ ОБЪЯВЛЕНИЕ':'ВЫКЛЮЧЕНО'));
+  }
+
+  /* ============ ОКНО ДОПОЛНИТЕЛЬНЫХ РОЛЕЙ ============
+     Количество ролей не ограничено: можно отметить хоть все сразу. */
+  function openRoleModal(login){
+    const u=users().find(x=>x.login===login);
+    if(!u) return;
+    const all=CollegeDB.rolesOf?CollegeDB.rolesOf(u):[R(u.role)];
+    const primary=all[0];
+    let picked=all.slice(1);
+    const options=ROLE_LIST.filter(r=>r[0]!==primary);
+
+    let m=$('roleModal');
+    if(!m){
+      m=document.createElement('div');
+      m.id='roleModal';
+      m.innerHTML='<div class="rm-bg"></div><div class="rm-box"></div>';
+      document.body.appendChild(m);
+      m.querySelector('.rm-bg').addEventListener('click',()=>m.classList.remove('on'));
+    }
+    function draw(){
+      m.querySelector('.rm-box').innerHTML=
+         '<p class="lbl">Роли пользователя</p>'
+        +'<p class="text-[15px] font-bold mb-1">'+(u.fio||u.login)+'</p>'
+        +'<p class="text-[11.5px] text-white/35 mono mb-4">'+u.login
+          +' · основная роль: '+RN(primary)+'</p>'
+        +'<div class="space-y-2">'
+        +options.map(r=>{
+          const on=picked.indexOf(r[0])>-1;
+          return '<button type="button" class="rm-opt'+(on?' on':'')+'" data-r="'+r[0]+'">'
+            +'<span class="rm-check">'+(on?'✓':'')+'</span>'
+            +'<span class="flex-1 text-left text-[13.5px] font-semibold">'+r[1]+'</span>'
+            +'<span class="rl rl-'+r[0]+'" style="font-size:9.5px">'+RN(r[0])+'</span></button>';
+        }).join('')
+        +'</div>'
+        +'<p class="text-[11.5px] text-white/30 mt-3">Отметьте любое количество ролей — '
+          +'ограничений нет. Основную роль меняйте бейджем в списке.</p>'
+        +'<div class="grid grid-cols-2 gap-2.5 mt-4">'
+        +'<button class="btn btn-ghost h-[42px] text-[13px]" id="rmCancel">Отмена</button>'
+        +'<button class="btn btn-primary h-[42px] text-[13px]" id="rmSave">Сохранить</button></div>';
+
+      m.querySelectorAll('.rm-opt').forEach(o=>o.addEventListener('click',()=>{
+        const id=o.dataset.r, i=picked.indexOf(id);
+        if(i>-1) picked.splice(i,1); else picked.push(id);
+        draw();
+      }));
+      $('rmCancel').addEventListener('click',()=>m.classList.remove('on'));
+      $('rmSave').addEventListener('click',()=>{
+        const btn=$('rmSave'); btn.disabled=true; btn.style.opacity='.6';
+        CollegeDB.setRoles(login,picked).then(()=>{
+          m.classList.remove('on');
+          toast(picked.length
+            ? ('Роли: '+[primary].concat(picked).map(RN).join(', '))
+            : 'Дополнительные роли убраны');
+          renderUsers(); renderStats();
+        }).catch(err=>{
+          btn.disabled=false; btn.style.opacity='';
+          toast('Ошибка: '+((err&&err.message)||'нет связи'));
+        });
+      });
+    }
+    draw();
+    m.classList.add('on');
   }
 
   /* ================== НАГРАДЫ ================== */

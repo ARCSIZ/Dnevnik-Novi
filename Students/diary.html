@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Колледж·ID — Дневник студента</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M16 9 6 13.5l10 4.5 8-3.6V19h2v-5.5z' fill='white'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/General/boot.css?v=1">
-<link rel="stylesheet" href="/General/liquid.css?v=1">
+<link rel="stylesheet" href="/General/boot.css?v=2">
+<link rel="stylesheet" href="/General/liquid.css?v=2">
 <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
   onload="setTimeout(function(){document.documentElement.classList.add('tw-ready')},150)"
   onerror="document.documentElement.classList.add('tw-ready')"></script>
@@ -117,124 +117,8 @@
     opacity:0; animation:navPulse .6s ease-out forwards; }
   @keyframes navPulse { 0%{opacity:.75; transform:scale(.4)} 100%{opacity:0; transform:scale(1.6)} }
 
-  /* ============ ЖИДКОЕ СТЕКЛО НАВИГАЦИИ — уровень iOS ============
-     Три ключа настоящего liquid glass:
-     1) backdrop-filter с blur + saturate + brightness: фон «играет» цветом;
-     2) SVG-фильтр искажает края поверхности — свет «преломляется»;
-     3) скользящая жидкая капсула перетекает между кнопками с пружиной. */
-  .dock{
-    position:fixed; left:12px; right:12px; bottom:14px; z-index:60;
-    display:flex; gap:0; padding:7px; border-radius:26px;
-    /* Материал: почти прозрачный слой с очень насыщенным фоном под ним */
-    background:
-      linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.03) 38%,rgba(255,255,255,.07) 78%,rgba(255,255,255,.12)),
-      rgba(10,10,16,.35);
-    backdrop-filter:blur(38px) saturate(240%) brightness(1.2) contrast(1.06);
-    -webkit-backdrop-filter:blur(38px) saturate(240%) brightness(1.2) contrast(1.06);
-    border:1px solid rgba(255,255,255,.28);
-    box-shadow:
-      0 24px 60px -18px rgba(0,0,0,.9),
-      0 4px 14px -6px rgba(0,0,0,.55),
-      inset 0 1px 1px rgba(255,255,255,.55),
-      inset 0 -1px 1px rgba(255,255,255,.14),
-      inset 0 0 28px rgba(255,255,255,.06);
-    overflow:hidden; isolation:isolate;
-    padding-bottom:calc(7px + env(safe-area-inset-bottom));
-  }
-  /* поверхность линзы: отражение неба и преломление по краям */
-  .dock::before{
-    content:'';position:absolute;inset:-4px;pointer-events:none;border-radius:inherit;z-index:0;
-    background:radial-gradient(140% 90% at 50% -30%,rgba(255,255,255,.5),transparent 55%),
-               radial-gradient(120% 120% at 50% 130%,rgba(var(--glow,99,102,241),.16),transparent 55%);
-    mix-blend-mode:screen;
-    filter:url(#liquidGlassFilter);
-  }
-  /* жидкая капсула: скользит за активной кнопкой */
-  .dock-capsule{
-    position:absolute; top:7px; bottom:calc(7px + env(safe-area-inset-bottom));
-    left:0; width:0;
-    border-radius:20px; z-index:1; pointer-events:none;
-    background:
-      linear-gradient(160deg,rgba(255,255,255,.42),rgba(255,255,255,.1) 40%,rgba(255,255,255,.18));
-    backdrop-filter:blur(16px) saturate(210%) brightness(1.25);
-    -webkit-backdrop-filter:blur(16px) saturate(210%) brightness(1.25);
-    border:1px solid rgba(255,255,255,.5);
-    box-shadow:
-      0 10px 26px -8px rgba(var(--glow,99,102,241),.85),
-      0 0 0 1px rgba(var(--glow,99,102,241),.28),
-      inset 0 1px 0 rgba(255,255,255,.75),
-      inset 0 -2px 8px rgba(0,0,0,.15);
-    transition:left .55s cubic-bezier(.3,1.45,.4,1), width .55s cubic-bezier(.3,1.45,.4,1), opacity .3s;
-    opacity:0;
-  }
-  /* внутреннее масло: медленно скользящий блик */
-  .dock-capsule::before{
-    content:'';position:absolute;inset:1px;border-radius:19px;
-    background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.75) 46%,rgba(255,255,255,.15) 54%,transparent 70%);
-    transform:translateX(-130%);
-    animation:capsuleSheen 5s ease-in-out infinite;
-  }
-  @keyframes capsuleSheen{0%,65%{transform:translateX(-130%)}85%,100%{transform:translateX(130%)}}
-  /* капля искривления по краю под капсулой */
-  .dock-bend{
-    position:absolute; z-index:1; pointer-events:none;
-    background:radial-gradient(closest-side,rgba(var(--glow,99,102,241),.2),transparent);
-    filter:url(#liquidGlassFilter) blur(6px) saturate(200%);
-    transition:left .55s cubic-bezier(.3,1.45,.4,1), top .55s cubic-bezier(.3,1.45,.4,1);
-    opacity:.9;
-  }
-
-  .dock-btn{position:relative;z-index:2;overflow:visible;border-radius:19px;
-    background:transparent; border:1px solid transparent;
-    transition:transform .35s cubic-bezier(.34,1.55,.64,1), color .3s;}
-  .dock-btn.on{ background:transparent; box-shadow:none; text-shadow:0 1px 8px rgba(255,255,255,.1); }
-  .dock-btn.on i{ filter:drop-shadow(0 2px 6px rgba(255,255,255,.2)); }
-  .dock-btn:active{ transform:scale(.9); }
-  .dock-btn.on:active{ transform:scale(.96); }
-
-  /* боковое меню на ПК — то же стекло */
-  #sideNav .card{
-    background:linear-gradient(165deg,rgba(255,255,255,.1),rgba(13,13,21,.72) 45%);
-    backdrop-filter:blur(30px) saturate(180%);
-    -webkit-backdrop-filter:blur(30px) saturate(180%);
-    border:1px solid rgba(255,255,255,.16);
-    box-shadow:0 30px 70px -28px rgba(0,0,0,.85),
-      inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 0 rgba(255,255,255,.05);
-  }
-  .nav-btn.on{
-    background:
-      linear-gradient(150deg,rgba(255,255,255,.2),rgba(255,255,255,.05) 60%),
-      linear-gradient(110deg,color-mix(in srgb,var(--accent,#6366f1) 40%,transparent),
-                              color-mix(in srgb,var(--accent2,#a855f7) 26%,transparent));
-    backdrop-filter:blur(10px) saturate(160%);
-    -webkit-backdrop-filter:blur(10px) saturate(160%);
-    border:1px solid rgba(255,255,255,.24);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.45),
-      inset 0 -2px 6px rgba(0,0,0,.16), 0 8px 22px -12px rgba(var(--glow,99,102,241),.8);
-  }
-  .nav-btn.on .nv-ic{
-    box-shadow:0 6px 18px -6px rgba(var(--glow,99,102,241),.9),
-      inset 0 1px 0 rgba(255,255,255,.5);
-  }
-  /* лёгкий режим и отключённое размытие: стекло становится матовым */
-  html.lite .dock,html.no-blur .dock{
-    background:rgba(16,16,26,.97)!important;backdrop-filter:none!important;
-    -webkit-backdrop-filter:none!important;
-  }
-  html.lite .dock-btn.on::after{display:none}
-  html.lite .dock::before{display:none}
-
-  /* капсула заранее показывается при наведении пальцем/курсором */
-  .dock-btn:not(.on):hover{ background:rgba(255,255,255,.09); }
-  .dock-btn:not(.on):hover + .dock-capsule{ }
-  /* тёмные значки поверх капсулы */
-  .dock-btn span{ transition:color .3s; }
-  .dock-btn.on span{ color:#fff; font-weight:700; }
-  /* значки активной кнопки «выплывают» над стеклом */
-  .dock-btn.on i{
-    filter:drop-shadow(0 1px 3px rgba(0,0,0,.5)) drop-shadow(0 0 6px rgba(var(--glow,255,255,255),.35));
-    color:#fff;
-  }
+  /* Навигация полностью описана в General/liquid.css — здесь не дублируем,
+     иначе стили конфликтуют и браузер пересчитывает слои дважды. */
 
   /* ===== строгое разделение навигаций по устройствам ===== */
   @media (max-width:1023.98px){ #sideNav { display:none !important; } }
@@ -678,7 +562,6 @@
 
   <!-- НИЖНЯЯ НАВИГАЦИЯ (телефоны и планшеты) -->
   <nav class="dock lg:hidden" aria-label="Разделы">
-    <span class="dock-bend" aria-hidden="true"></span>
     <span class="dock-capsule" aria-hidden="true"></span>
     <button class="dock-btn nav on" data-view="diary" aria-label="Дневник">
       <i data-lucide="book-open-text" class="w-[21px] h-[21px] shrink-0"></i><span>Дневник</span>
@@ -702,102 +585,13 @@
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=2"></script>
-  <script src="../General/ui.js?v=1"></script>
+  <script src="../General/ui.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
-  <style>
-  /* ▼ усиление поверх liquid.css: тонкая настройка под дневник */
-  .dock{
-    background:
-      linear-gradient(168deg,rgba(255,255,255,.18),rgba(255,255,255,.05) 32%,rgba(255,255,255,.02) 65%,rgba(255,255,255,.1)) !important,
-      rgba(8,8,13,.22) !important;
-    backdrop-filter:blur(44px) saturate(260%) brightness(1.28) contrast(1.1) !important;
-    -webkit-backdrop-filter:blur(44px) saturate(260%) brightness(1.28) contrast(1.1) !important;
-    border-radius:30px !important;
-    border:1px solid rgba(255,255,255,.38) !important;
-    box-shadow:
-      0 28px 70px -20px rgba(0,0,0,.95),
-      0 6px 22px -8px rgba(0,0,0,.5),
-      0 0 0 0.5px rgba(255,255,255,.18),
-      inset 0 1.5px 0 rgba(255,255,255,.6),
-      inset 0 -1px 1px rgba(255,255,255,.18),
-      inset 0 0 34px rgba(255,255,255,.08) !important;
-  }
-  .dock::before{
-    background:
-      radial-gradient(150% 90% at 50% -28%,rgba(255,255,255,.55),transparent 58%),
-      radial-gradient(90% 130% at 50% 128%,rgba(var(--glow,99,102,241),.2),transparent 60%) !important;
-    filter:url(#liquidGlassFilter);
-  }
-  .dock-capsule{
-    background:
-      linear-gradient(155deg,rgba(255,255,255,.58),rgba(255,255,255,.18) 35%,rgba(255,255,255,.1) 60%),
-      linear-gradient(120deg,rgba(var(--glow,99,102,241),.28),rgba(var(--glow,99,102,241),.14)) !important;
-    backdrop-filter:blur(20px) saturate(280%) brightness(1.4) !important;
-    -webkit-backdrop-filter:blur(20px) saturate(280%) brightness(1.4) !important;
-    border-radius:22px !important;
-    border:1px solid rgba(255,255,255,.65) !important;
-    box-shadow:
-      0 12px 30px -8px rgba(var(--glow,99,102,241),.95),
-      0 0 0 1px rgba(255,255,255,.28),
-      0 0 26px rgba(var(--glow,99,102,241),.3),
-      inset 0 1.5px 0 rgba(255,255,255,.85),
-      inset 0 -3px 10px rgba(0,0,0,.12),
-      inset 0 0 20px rgba(var(--glow,99,102,241),.18) !important;
-    transition:left .6s cubic-bezier(.28,1.5,.35,1), width .6s cubic-bezier(.28,1.5,.35,1), opacity .35s !important;
-  }
-  .dock-capsule::before{
-    background:linear-gradient(110deg,
-      transparent 18%,
-      rgba(255,255,255,.9) 38%,
-      rgba(255,255,255,.25) 50%,
-      transparent 62%) !important;
-    animation:capsuleSheen 4s ease-in-out infinite !important;
-  }
-  /* «искривление» у краёв капсулы для эффекта преломления */
-  .dock-capsule::after{
-    content:'';position:absolute;inset:-5px;border-radius:24px;pointer-events:none;
-    background:transparent;
-    border:1px solid rgba(255,255,255,.06);
-    filter:url(#liquidGlassFilter) blur(1.5px);
-    opacity:.7;
-  }
-  .dock-btn{position:relative;z-index:2}
-  .dock-btn.on{
-    background:transparent !important;
-    border:none !important;
-    box-shadow:none !important;
-  }
-  .dock-btn.on i{
-    filter:
-      drop-shadow(0 2px 4px rgba(0,0,0,.45))
-      drop-shadow(0 0 8px rgba(var(--glow,255,255,255),.5));
-    color:#fff;
-  }
-  .dock-btn.on span{
-    color:#fff;font-weight:800;
-    text-shadow:0 1px 6px rgba(0,0,0,.5),0 0 14px rgba(var(--glow,99,102,241),.55);
-  }
-  .dock-bend{ filter:url(#liquidGlassFilter) blur(8px) saturate(220%) !important; }
-  </style>
 <script>
 (async function(){
   lucide.createIcons();
   const $=id=>document.getElementById(id);
-
-  /* ============ SVG-ФИЛЬТР ЖИДКОГО СТЕКЛА ============
-     feTurbulence + feDisplacementMap искажают пиксели под «водной» поверхностью.
-     Применяется к .liquid-surface: материал слегка преломляет то, что за ним. */
-  if(!document.getElementById('liquidGlassDefs')){
-    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.id='liquidGlassDefs'; svg.setAttribute('aria-hidden','true');
-    svg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden');
-    svg.innerHTML='<defs><filter id="liquidGlassFilter" x="-8%" y="-8%" width="116%" height="116%">'
-      +'<feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="4" result="n"/>'
-      +'<feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>'
-      +'</filter></defs>';
-    document.body.prepend(svg);
-  }
 
   /* ---------- тост ---------- */
   let tT; function toast(m){ $('toastMsg').textContent=m; $('toast').classList.add('show'); clearTimeout(tT); tT=setTimeout(()=>$('toast').classList.remove('show'),2800); }

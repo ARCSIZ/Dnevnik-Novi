@@ -50,3 +50,45 @@ html.tw-ready body {
   html:not(.tw-ready)::before { animation-duration: 1.5s; }
   html.tw-ready body { animation: none; }
 }
+
+/* ==========================================================================
+   ОПТИМИЗАЦИЯ ДЛЯ СЛАБЫХ УСТРОЙСТВ
+   Классы perf-low и perf-min выставляет General/ui.js по числу ядер,
+   объёму памяти и поддержке размытия. Интерфейс остаётся тем же —
+   отключается только то, что требует постоянной перерисовки.
+   ========================================================================== */
+
+/* Слабое устройство: уменьшаем дорогие эффекты. */
+html.perf-low .orb { filter: blur(52px); opacity: .6; }
+html.perf-low .noise { display: none; }
+html.perf-low .card,
+html.perf-low .panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+html.perf-low *:not(.dock-capsule) { animation-duration: .25s !important; }
+html.perf-low .app-tile:hover,
+html.perf-low .panel:hover,
+html.perf-low .lesson:hover { transform: none; }
+
+/* Очень слабое устройство: полностью снимаем размытие и фоновые слои. */
+html.perf-min canvas#fx { display: none !important; }
+html.perf-min .orb { display: none; }
+html.perf-min .noise,
+html.perf-min .gridln,
+html.perf-min .grid-overlay { display: none; }
+html.perf-min * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.perf-min .card { background: rgba(var(--soft, 13, 13, 21), .96) !important; }
+html.perf-min *:not(.dock-capsule) {
+  animation: none !important;
+  transition-duration: .12s !important;
+}
+html.perf-min .marquee-inner,
+html.perf-min .ring-spin,
+html.perf-min .ring-pulse { animation: none !important; }
+
+/* Прокрутка длинных списков: браузер пропускает отрисовку скрытых карточек. */
+.lcard, .app-tile, .row, .stu, .chat, .subj {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
