@@ -818,9 +818,43 @@
       return request('/api/chats/thread?peer=' + encodeURIComponent(peer || ''))
         .catch(function () { return { messages: [] }; });
     },
-    chatSend: function (to, text, image) {
-      return request('/api/chats/message', { method: 'POST', body: { to: to, text: text, image: image || '' } })
-        .then(function (d) { return d.message; });
+    chatSend: function (to, text, image, replyTo) {
+      return request('/api/chats/message', {
+        method: 'POST',
+        body: { to: to, text: text, image: image || '', replyTo: replyTo || null }
+      }).then(function (d) { return d.message; });
+    },
+
+    /** Поиск пользователя по логину или ФИО */
+    chatSearch: function (q) {
+      return request('/api/chats/search?q=' + encodeURIComponent(q || ''))
+        .then(function (d) { return d.users || []; })
+        .catch(function () { return []; });
+    },
+
+    /** Карточка профиля собеседника */
+    chatProfile: function (login) {
+      return request('/api/chats/profile?login=' + encodeURIComponent(login || ''))
+        .then(function (d) { return d.user || null; })
+        .catch(function () { return null; });
+    },
+
+    /** Заблокировать или разблокировать пользователя */
+    chatBlock: function (login, unblock) {
+      return request('/api/chats/block', { method: 'POST', body: { login: login, unblock: !!unblock } })
+        .then(function (d) { return d.blocked; });
+    },
+
+    /** Список заблокированных */
+    chatBlocked: function () {
+      return request('/api/chats/blocked')
+        .then(function (d) { return d.blocked || []; })
+        .catch(function () { return []; });
+    },
+
+    /** Удалить своё сообщение */
+    chatDelete: function (peer, id) {
+      return request('/api/chats/delete', { method: 'POST', body: { peer: peer, id: id } });
     },
 
     /** Выдать домашнее задание на пару (преподаватель своей пары) */

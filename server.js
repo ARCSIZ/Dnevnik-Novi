@@ -710,15 +710,32 @@ async function handleAPI(req, res, pathname) {
     db.data.teacherChats = db.data.teacherChats || { version: 0, threads: {} };
     return db.data.teacherChats;
   }
-  const threadKey = (student, teacher) => normLogin(student) + '|' + normLogin(teacher);
-  function threadOf(student, teacher) {
-    const st = chatStore(), k = threadKey(student, teacher);
-    st.threads[k] = st.threads[k] || {
-      student: student, teacher: teacher, messages: [],
-      updatedAt: null, unreadStudent: 0, unreadTeacher: 0
-    };
-    return st.threads[k];
+  /* Ключ диалога не зависит от порядка: пара логинов всегда сортируется. */
+  function threadKey(a, b) {
+    return [normLogin(a), normLogin(b)].sort().join('|');
   }
+  function threadOf(a, b) {
+    const st = chatStore(), k = threadKey(a, b);
+    if (!st.threads[k]) {
+      const pair = [a, b].sort((x, y) => normLogin(x).localeCompare(normLogin(y)));
+      st.threads[k] = {
+        a: pair[0], b: pair[1], messages: [], updatedAt: null,
+        unread: {}            /* логин → количество непрочитанных */
+      };
+    }
+    const t = st.threads[k];
+    /* Миграция старых тредов student/teacher в новый формат. */
+    if (!t.a && t.student) {
+      const pair = [t.student, t.teacher].sort((x, y) => normLogin(x).localeCompare(normLogin(y)));
+      t.a = pair[0]; t.b = pair[1];
+      t.unread = {};
+      t.unread[t.student] = t.unreadStudent || 0;
+      t.unread[t.teacher] = t.unreadTeacher || 0;
+    }
+    t.unread = t.unread || {};
+    return t;
+  }
+  const peerOf = (t, login) => normLogin(t.a) === normLogin(login) ? t.b : t.a;
   /* Преподаватели, которые ведут пары у группы студента */
   function teachersForGroup(group) {
     const days = (db.data.schedule || {})[group] || {};
@@ -732,36 +749,118 @@ async function handleAPI(req, res, pathname) {
       .map(u => ({ login: u.login, fio: u.fio, short: shortFio(u.fio) }));
   }
 
+  /* --- список заблокированных текущим пользователем --- */
+  function blockedBy(u) { return Array.isArray(u.blocked) ? u.blocked : []; }
+  function isBlocked(owner, target) {
+    return blockedBy(owner).some(l => normLogin(l) === normLogin(target));
+  }
+
+  /* --- поиск пользователя по логину, как в мессенджере --- */
+  if (route === '/api/chats/search' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const q = String(new URL(req.url, 'http://x').searchParams.get('q') || '').trim().toLowerCase();
+    if (q.length < 2) return sendJSON(res, 200, { users: [] });
+    const found = (db.data.users || [])
+      .filter(u => u.id !== me.id)
+      .filter(u => normLogin(u.login).indexOf(q) > -1
+        || String(u.fio || '').toLowerCase().indexOf(q) > -1)
+      .slice(0, 12)
+      .map(u => {
+        const card = listUser(u, me);
+        card.short = shortFio(u.fio);
+        card.blocked = isBlocked(me, u.login);
+        card.blockedMe = isBlocked(u, me.login);
+        return card;
+      });
+    return sendJSON(res, 200, { users: found });
+  }
+
+  /* --- карточка профиля собеседника --- */
+  if (route === '/api/chats/profile' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const login = String(new URL(req.url, 'http://x').searchParams.get('login') || '');
+    const u = findByLogin(login);
+    if (!u) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    const card = listUser(u, me);
+    card.short = shortFio(u.fio);
+    card.blocked = isBlocked(me, u.login);
+    card.blockedMe = isBlocked(u, me.login);
+    /* Предметы, которые ведёт преподаватель — полезно видеть в профиле. */
+    if (hasRole(u, 'teacher') || hasRole(u, 'curator')) {
+      const subjects = {}, all = db.data.schedule || {};
+      Object.keys(all).forEach(g => Object.keys(all[g] || {}).forEach(d =>
+        (all[g][d] || []).forEach(L => {
+          if (!L.event && L.name && fioKey(L.teacher) === fioKey(u.fio)) {
+            subjects[L.name] = true;
+          }
+        })));
+      card.subjects = Object.keys(subjects).slice(0, 12);
+    }
+    return sendJSON(res, 200, { user: card });
+  }
+
+  /* --- блокировка и разблокировка --- */
+  if (route === '/api/chats/block' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const target = findByLogin(String(body.login || ''));
+    if (!target) return sendJSON(res, 404, { error: 'Пользователь не найден' });
+    if (target.id === me.id) return sendJSON(res, 400, { error: 'Нельзя заблокировать себя' });
+    me.blocked = blockedBy(me).filter(l => normLogin(l) !== normLogin(target.login));
+    if (!body.unblock) me.blocked.push(target.login);
+    await db.save();
+    const st = chatStore();
+    st.version = (Number(st.version) || 0) + 1;
+    return sendJSON(res, 200, { ok: true, blocked: !body.unblock, version: st.version });
+  }
+
+  /* --- список заблокированных --- */
+  if (route === '/api/chats/blocked' && method === 'GET') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const list = blockedBy(me).map(l => {
+      const u = findByLogin(l);
+      return u ? { login: u.login, fio: u.fio, short: shortFio(u.fio) } : null;
+    }).filter(Boolean);
+    return sendJSON(res, 200, { blocked: list });
+  }
+
   if (route === '/api/chats' && method === 'GET') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const st = chatStore();
-    const iAmTeacher = hasRole(me, 'teacher') || hasRole(me, 'curator');
-    const out = [];
+    const out = [], seen = {};
 
-    if (iAmTeacher) {
-      /* Преподаватель видит всех, кто ему писал */
-      Object.keys(st.threads).forEach(k => {
-        const t = st.threads[k];
-        if (normLogin(t.teacher) !== normLogin(me.login)) return;
-        const u = findByLogin(t.student);
-        const last = t.messages[t.messages.length - 1] || null;
-        out.push({
-          peer: t.student, fio: (u && u.fio) || t.student, short: shortFio(u && u.fio),
-          group: (u && u.group) || '', role: 'student',
-          last: last ? { text: String(last.text || '').slice(0, 120), at: last.at, mine: normLogin(last.from) === normLogin(me.login) } : null,
-          unread: t.unreadTeacher || 0, updatedAt: t.updatedAt
-        });
+    /* Все диалоги, где участвует пользователь */
+    Object.keys(st.threads).forEach(k => {
+      const t = threadOf(st.threads[k].a || st.threads[k].student,
+                         st.threads[k].b || st.threads[k].teacher);
+      if (normLogin(t.a) !== normLogin(me.login) && normLogin(t.b) !== normLogin(me.login)) return;
+      const peer = peerOf(t, me.login);
+      const u = findByLogin(peer);
+      if (!u) return;
+      const last = t.messages[t.messages.length - 1] || null;
+      seen[normLogin(peer)] = true;
+      out.push({
+        peer: u.login, fio: u.fio, short: shortFio(u.fio),
+        group: u.group || '', role: normRole(u.role),
+        last: last ? {
+          text: String(last.text || '').slice(0, 120), at: last.at,
+          mine: normLogin(last.from) === normLogin(me.login)
+        } : null,
+        unread: (t.unread && t.unread[me.login]) || 0,
+        blocked: isBlocked(me, u.login),
+        updatedAt: t.updatedAt
       });
-    }
-    /* Студент видит своих преподавателей, даже если переписки ещё нет */
+    });
+
+    /* Преподаватели группы показываются сразу, даже без переписки */
     teachersForGroup(me.group || '').forEach(t => {
       if (normLogin(t.login) === normLogin(me.login)) return;
-      const th = st.threads[threadKey(me.login, t.login)];
-      const last = th && th.messages[th.messages.length - 1];
+      if (seen[normLogin(t.login)]) return;
       out.push({
-        peer: t.login, fio: t.fio, short: t.short, group: me.group || '', role: 'teacher',
-        last: last ? { text: String(last.text || '').slice(0, 120), at: last.at, mine: normLogin(last.from) === normLogin(me.login) } : null,
-        unread: (th && th.unreadStudent) || 0, updatedAt: (th && th.updatedAt) || null
+        peer: t.login, fio: t.fio, short: t.short, group: me.group || '',
+        role: 'teacher', last: null, unread: 0,
+        blocked: isBlocked(me, t.login), updatedAt: null, suggested: true
       });
     });
 
@@ -779,15 +878,14 @@ async function handleAPI(req, res, pathname) {
     const peer = new URL(req.url, 'http://x').searchParams.get('peer') || '';
     const other = findByLogin(peer);
     if (!other) return sendJSON(res, 404, { error: 'Собеседник не найден' });
-    const iAmTeacher = hasRole(me, 'teacher') || hasRole(me, 'curator');
-    const t = iAmTeacher && !(hasRole(other, 'teacher') || hasRole(other, 'curator'))
-      ? threadOf(other.login, me.login)
-      : threadOf(me.login, other.login);
-    if (normLogin(t.student) === normLogin(me.login)) t.unreadStudent = 0;
-    else t.unreadTeacher = 0;
+    const t = threadOf(me.login, other.login);
+    t.unread[me.login] = 0;
     await db.save();
     return sendJSON(res, 200, {
       peer: other.login, fio: other.fio, short: shortFio(other.fio),
+      role: normRole(other.role), group: other.group || '',
+      blocked: isBlocked(me, other.login),
+      blockedMe: isBlocked(other, me.login),
       messages: t.messages, version: Number(chatStore().version) || 0
     });
   }
@@ -804,25 +902,58 @@ async function handleAPI(req, res, pathname) {
       ? body.image.slice(0, 3 * 1024 * 1024) : '';
     if (!text.trim() && !image) return sendJSON(res, 400, { error: 'Пустое сообщение' });
 
-    const iAmTeacher = hasRole(me, 'teacher') || hasRole(me, 'curator');
-    const otherIsTeacher = hasRole(other, 'teacher') || hasRole(other, 'curator');
-    if (iAmTeacher === otherIsTeacher && !isDev(me)) {
-      return sendJSON(res, 403, { error: 'Чат возможен только между студентом и преподавателем' });
+    /* Блокировки проверяются в обе стороны */
+    if (isBlocked(me, other.login)) {
+      return sendJSON(res, 403, { error: 'Вы заблокировали этого пользователя' });
     }
-    const t = iAmTeacher ? threadOf(other.login, me.login) : threadOf(me.login, other.login);
+    if (isBlocked(other, me.login)) {
+      return sendJSON(res, 403, { error: 'Пользователь ограничил приём сообщений' });
+    }
+
+    const t = threadOf(me.login, other.login);
+    /* Ответ на сообщение: сохраняем краткую цитату */
+    let replyTo = null;
+    if (body.replyTo) {
+      const src = t.messages.find(m => m.id === String(body.replyTo));
+      if (src) {
+        replyTo = {
+          id: src.id, author: src.author || '',
+          text: String(src.text || (src.image ? 'Изображение' : '')).slice(0, 120)
+        };
+      }
+    }
     t.messages.push({
       id: 'tm_' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
       from: me.login, author: shortFio(me.fio) || me.login,
-      text, image, at: nowISO()
+      text, image, replyTo, at: nowISO()
     });
     if (t.messages.length > 400) t.messages = t.messages.slice(-400);
     t.updatedAt = nowISO();
-    if (iAmTeacher) t.unreadStudent = (t.unreadStudent || 0) + 1;
-    else t.unreadTeacher = (t.unreadTeacher || 0) + 1;
+    t.unread[other.login] = (t.unread[other.login] || 0) + 1;
     const st = chatStore();
     st.version = (Number(st.version) || 0) + 1;
     await db.save();
     return sendJSON(res, 201, { ok: true, message: t.messages[t.messages.length - 1], version: st.version });
+  }
+
+  /* --- удалить своё сообщение --- */
+  if (route === '/api/chats/delete' && method === 'POST') {
+    if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
+    const body = await readBody(req);
+    if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
+    const other = findByLogin(String(body.peer || ''));
+    if (!other) return sendJSON(res, 404, { error: 'Собеседник не найден' });
+    const t = threadOf(me.login, other.login);
+    const msg = t.messages.find(m => m.id === String(body.id));
+    if (!msg) return sendJSON(res, 404, { error: 'Сообщение не найдено' });
+    if (normLogin(msg.from) !== normLogin(me.login) && !isDev(me)) {
+      return sendJSON(res, 403, { error: 'Можно удалять только свои сообщения' });
+    }
+    msg.text = ''; msg.image = ''; msg.deleted = true;
+    const st = chatStore();
+    st.version = (Number(st.version) || 0) + 1;
+    await db.save();
+    return sendJSON(res, 200, { ok: true, version: st.version });
   }
 
   /* ===================== ДОМАШНИЕ ЗАДАНИЯ =====================
