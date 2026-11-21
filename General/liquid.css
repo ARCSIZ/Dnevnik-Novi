@@ -27,9 +27,14 @@
 
 /* ------------------------------------------------------------- нижний док */
 .dock {
-  position: fixed; left: 12px; right: 12px; bottom: 14px; z-index: 60;
+  /* Док поднимается НАД home-indicator'ом, а не прячет его внутри себя:
+     иначе снизу дока образуется пустая полоса, и кнопки выглядят
+     прижатыми к верху. Внутри — одинаковый padding со всех сторон. */
+  position: fixed; left: 12px; right: 12px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
   display: flex; gap: 0;
-  padding: var(--dock-pad) var(--dock-pad) calc(var(--dock-pad) + env(safe-area-inset-bottom));
+  padding: var(--dock-pad);
   border-radius: var(--dock-radius);
   isolation: isolate;
 
@@ -68,7 +73,7 @@
 .dock-capsule {
   position: absolute;
   top: var(--dock-pad);
-  bottom: calc(var(--dock-pad) + env(safe-area-inset-bottom));
+  bottom: var(--dock-pad);
   left: 0; width: 0;
   border-radius: var(--dock-capsule-radius);
   z-index: 1; pointer-events: none; opacity: 0;

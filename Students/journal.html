@@ -547,7 +547,10 @@
   function dayList(){ return schedule[keyOf(selected)]||[]; }
   function setDay(list){
     const k=keyOf(selected);
-    if(list.length) schedule[k]=list; else delete schedule[k];
+    /* Важно: при очтиске дня оставляем ПУСТОЙ МАССИВ, а не удаляем ключ.
+       Иначе на сервер уходит JSON без этого дня — и сервер не знает,
+       что его нужно удалить (данные «не удалялись» при очистке). */
+    schedule[k]=list;
   }
 
   function renderDay(){
