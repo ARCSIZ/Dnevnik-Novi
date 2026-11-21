@@ -113,6 +113,43 @@
   .scard .k{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;
     text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:6px}
 
+  /* вкладки */
+  .tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:9999px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+  .tab-ind{position:absolute;top:4px;bottom:4px;border-radius:9999px;
+    background:linear-gradient(120deg,var(--accent,#4f46e5),var(--accent2,#0ea5e9));
+    box-shadow:0 8px 22px -6px rgba(var(--glow,79,70,229),.6);
+    transition:left .32s cubic-bezier(.22,1,.36,1),width .32s cubic-bezier(.22,1,.36,1)}
+  .tab{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:7px;height:40px;
+    border:0;background:transparent;border-radius:9999px;font-size:13.5px;font-weight:700;
+    color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit;transition:color .25s}
+  .tab:hover{color:rgba(255,255,255,.8)} .tab.on{color:#fff}
+
+  /* карточка ученика */
+  .stu.clickable:hover{border-color:rgba(var(--glow,129,140,248),.45);background:rgba(255,255,255,.055)}
+  .stu-name{cursor:pointer}
+  .ava{width:38px;height:38px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12.5px;color:#fff;background-size:cover;background-position:center;
+    background-image:linear-gradient(135deg,var(--accent,#4f46e5),var(--accent2,#0ea5e9))}
+  .mk{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:13px;flex:none}
+  .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .subj{width:100%;display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:14px;text-align:left;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);cursor:pointer;transition:all .18s}
+  .subj:hover,.subj.on{border-color:rgba(var(--glow,129,140,248),.5);background:rgba(var(--glow,99,102,241),.1)}
+
+  #stuModal{position:fixed;inset:0;z-index:260;display:flex;align-items:center;justify-content:center;padding:14px}
+  #stuModal.hidden{display:none}
+  #stuModal .m-bg{position:absolute;inset:0;background:rgba(5,5,10,.76)}
+  #stuModal .m-box{position:relative;width:100%;max-width:540px;max-height:88vh;overflow:auto;
+    border-radius:24px;padding:20px;background:rgba(15,15,24,.98);
+    border:1px solid rgba(255,255,255,.14);box-shadow:0 36px 80px -24px rgba(0,0,0,.92)}
+  #stuModal .m-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;cursor:pointer;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.65);
+    display:flex;align-items:center;justify-content:center}
+  #stuModal .m-x:hover{background:rgba(255,255,255,.12);color:#fff}
+
   .st{opacity:0;animation:rise .55s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i,0)*70ms + 50ms)}
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
   html.lite .st{animation:none;opacity:1}
@@ -167,52 +204,86 @@
         </div>
       </div>
 
-      <div class="st card rounded-[24px] p-4 sm:p-5 mb-5" style="--i:1">
-        <div class="flex items-center justify-between gap-3 mb-3">
-          <button id="wPrev" class="back" style="padding:8px 12px"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-          <div class="text-center min-w-0">
-            <p id="wLabel" class="font-semibold text-[14px] truncate">—</p>
-            <p id="wRange" class="mono text-[9.5px] tracking-[.2em] text-white/30 mt-0.5 truncate">—</p>
-          </div>
-          <button id="wNext" class="back" style="padding:8px 12px"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
-        </div>
-        <div id="weekDays" class="grid grid-cols-7 gap-1 sm:gap-1.5"></div>
+      <!-- ВКЛАДКИ -->
+      <div class="st tabs mb-5" style="--i:1">
+        <span id="tabInd" class="tab-ind"></span>
+        <button class="tab on" data-tab="lessons"><i data-lucide="calendar-days" class="w-4 h-4"></i>Занятия</button>
+        <button class="tab" data-tab="students"><i data-lucide="users" class="w-4 h-4"></i>Ученики</button>
       </div>
 
-      <div class="st card rounded-[24px] p-5 sm:p-6 mb-5" style="--i:2">
-        <h2 class="font-semibold text-[15px] mb-3" id="dayTitle">—</h2>
-        <div id="lessons" class="space-y-2"></div>
+      <!-- ============ ЗАКЛАДКА: ЗАНЯТИЯ ============ -->
+      <div id="pane-lessons">
+        <div class="st card rounded-[24px] p-4 sm:p-5 mb-5" style="--i:1">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <button id="wPrev" class="back" style="padding:8px 12px"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+            <div class="text-center min-w-0">
+              <p id="wLabel" class="font-semibold text-[14px] truncate">—</p>
+              <p id="wRange" class="mono text-[9.5px] tracking-[.2em] text-white/30 mt-0.5 truncate">—</p>
+            </div>
+            <button id="wNext" class="back" style="padding:8px 12px"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+          </div>
+          <div id="weekDays" class="grid grid-cols-7 gap-1 sm:gap-1.5"></div>
+        </div>
+
+        <div class="st card rounded-[24px] p-5 sm:p-6 mb-5" style="--i:2">
+          <h2 class="font-semibold text-[15px] mb-3" id="dayTitle">—</h2>
+          <div id="lessons" class="space-y-2"></div>
+        </div>
+
+        <div id="marksCard" class="st card rounded-[24px] p-5 sm:p-6 hidden" style="--i:3">
+          <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 class="font-semibold text-[15px]" id="lesTitle">—</h2>
+            <span class="pill" id="lesMeta">—</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="statCards"></div>
+
+          <!-- домашнее задание на эту пару -->
+          <div class="panel p-4 mb-4">
+            <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <p class="lbl mb-0">Домашнее задание</p>
+              <span class="pill" id="hwMeta">не задано</span>
+            </div>
+            <textarea id="hwText" rows="2" placeholder="Что задать группе на эту пару…"
+              style="width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+                     border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;
+                     font-family:inherit;resize:vertical"></textarea>
+            <div class="grid sm:grid-cols-2 gap-2.5 mt-2.5">
+              <button id="hwSave" class="btn btn-primary h-[42px] text-[13px] flex items-center justify-center gap-2">
+                <i data-lucide="send" class="w-4 h-4"></i>Выдать задание группе</button>
+              <button id="hwClear" class="btn btn-ghost h-[42px] text-[13px] flex items-center justify-center gap-2">
+                <i data-lucide="eraser" class="w-4 h-4"></i>Убрать задание</button>
+            </div>
+          </div>
+
+          <div id="marksList" class="space-y-2"></div>
+          <button id="saveMarks" class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-4">
+            <i data-lucide="save" class="w-4 h-4"></i>Сохранить журнал
+          </button>
+        </div>
       </div>
 
-      <div id="marksCard" class="st card rounded-[24px] p-5 sm:p-6 hidden" style="--i:3">
-        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h2 class="font-semibold text-[15px]" id="lesTitle">—</h2>
-          <span class="pill" id="lesMeta">—</span>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" id="statCards"></div>
-
-        <!-- домашнее задание на эту пару -->
-        <div class="panel p-4 mb-4">
-          <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
-            <p class="lbl mb-0">Домашнее задание</p>
-            <span class="pill" id="hwMeta">не задано</span>
+      <!-- ============ ЗАКЛАДКА: УЧЕНИКИ ============ -->
+      <div id="pane-students" class="hidden">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" id="groupStats"></div>
+        <div class="card rounded-[24px] p-5 sm:p-6">
+          <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 class="font-semibold text-[15px]">Ученики группы</h2>
+            <input id="stuSearch" placeholder="Поиск по ФИО или логину…"
+              style="max-width:250px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+                     border-radius:12px;padding:9px 12px;font-size:13px;color:#fff;outline:none;font-family:inherit">
           </div>
-          <textarea id="hwText" rows="2" placeholder="Что задать группе на эту пару…"
-            style="width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
-                   border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;
-                   font-family:inherit;resize:vertical"></textarea>
-          <div class="grid sm:grid-cols-2 gap-2.5 mt-2.5">
-            <button id="hwSave" class="btn btn-primary h-[42px] text-[13px] flex items-center justify-center gap-2">
-              <i data-lucide="send" class="w-4 h-4"></i>Выдать задание группе</button>
-            <button id="hwClear" class="btn btn-ghost h-[42px] text-[13px] flex items-center justify-center gap-2">
-              <i data-lucide="eraser" class="w-4 h-4"></i>Убрать задание</button>
-          </div>
+          <div id="studentsList" class="space-y-2"></div>
+          <p class="text-[11.5px] text-white/30 mt-3">Нажмите на ученика, чтобы открыть его статистику по вашим предметам.</p>
         </div>
+      </div>
 
-        <div id="marksList" class="space-y-2"></div>
-        <button id="saveMarks" class="btn btn-primary w-full h-[48px] text-sm flex items-center justify-center gap-2 mt-4">
-          <i data-lucide="save" class="w-4 h-4"></i>Сохранить журнал
-        </button>
+      <!-- КАРТОЧКА УЧЕНИКА -->
+      <div id="stuModal" class="hidden">
+        <div class="m-bg"></div>
+        <div class="m-box">
+          <button id="stuClose" class="m-x"><i data-lucide="x" class="w-4 h-4"></i></button>
+          <div id="stuBody"></div>
+        </div>
       </div>
 
       <button id="btnBack2" class="back w-full justify-center mt-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Вернуться в приложения</button>
@@ -327,6 +398,7 @@
     if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
     attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
     renderWeek(); renderDay();
+    if(typeof renderStudents==='function') renderStudents();
   });
 
   /* ---- мои пары конкретного дня ---- */
@@ -422,9 +494,9 @@
 
     $('marksList').innerHTML=list.map(u=>{
       const r=(att()[u.login]||{})[picked]||{st:'',g:[]};
-      return '<div class="stu'+(r.st?' absent':' ok')+'">'
-        +'<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-semibold truncate">'+(u.fio||u.login)+'</span>'
-        +'<span class="block text-[11px] text-white/35 mono mt-0.5">'+u.login+'</span></span>'
+      return '<div class="stu clickable'+(r.st?' absent':' ok')+'" data-login="'+u.login+'">'
+        +'<span class="min-w-0 flex-1 stu-name"><span class="block text-[13.5px] font-semibold truncate">'+(u.fio||u.login)+'</span>'
+        +'<span class="block text-[11px] text-white/35 mono mt-0.5">'+u.login+' · нажмите для статистики</span></span>'
         +'<span class="flex gap-1.5 shrink-0">'
           +STATUSES.map(st=>'<button type="button" class="sb s'+st[0]+(r.st===st[0]?' on':'')
             +'" data-st="'+st[0]+'" data-login="'+u.login+'" title="'+st[1]+'">'+st[0]+'</button>').join('')
@@ -464,6 +536,8 @@
       (r.g||[]).splice(Number(b.dataset.gi),1);
       renderMarks();
     }));
+    $('marksList').querySelectorAll('.stu-name').forEach(n=>
+      n.addEventListener('click',()=>openStudent(n.closest('.stu').dataset.login)));
   }
 
   /* ---- выдача домашнего задания на свою пару ---- */
@@ -507,9 +581,217 @@
     });
   });
 
+  /* ================== ВКЛАДКИ ================== */
+  const tabInd=$('tabInd');
+  function moveInd(){
+    const a=document.querySelector('.tab.on'); if(!a)return;
+    tabInd.style.left=a.offsetLeft+'px'; tabInd.style.width=a.offsetWidth+'px';
+  }
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+    $('pane-lessons').classList.toggle('hidden',t.dataset.tab!=='lessons');
+    $('pane-students').classList.toggle('hidden',t.dataset.tab!=='students');
+    moveInd();
+    if(t.dataset.tab==='students') renderStudents();
+  }));
+  moveInd(); setTimeout(moveInd,300); addEventListener('resize',moveInd);
+
+  /* ================== СТАТИСТИКА ПО УЧЕНИКАМ ==================
+     Преподаватель видит только свои предметы в выбранной группе. */
+  const ini=f=>{const p=String(f||'?').trim().split(/\s+/);return(((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();};
+  const esc=t=>String(t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  function official(avg){
+    if(!avg) return {mark:0,word:'Нет оценок',cls:''};
+    if(avg>=4.5) return {mark:5,word:'Отлично',cls:'m5'};
+    if(avg>=3.5) return {mark:4,word:'Хорошо',cls:'m4'};
+    if(avg>=2.5) return {mark:3,word:'Удовлетворительно',cls:'m3'};
+    return {mark:2,word:'Неудовлетворительно',cls:'m2'};
+  }
+
+  /* Все предметы этого преподавателя в группе + показатели ученика */
+  function studentStats(login){
+    const days=(ALL[GROUP]||{});
+    const map={};
+    Object.keys(days).sort().forEach(date=>{
+      (days[date]||[]).forEach(L=>{
+        if(L.event||!L.name) return;
+        /* ALL уже содержит только пары этого преподавателя */
+        const s=map[L.name]=map[L.name]||{name:L.name,lessons:0,grades:[],marks:[],
+          st:{'Н':0,'У':0,'Б':0},history:[]};
+        s.lessons++;
+        const r=((attendance[date]||{})[login]||{})[String(L.slot)]||{};
+        if(r.st) s.st[r.st]=(s.st[r.st]||0)+1;
+        const gs=(r.g||[]).map(Number).filter(n=>n>=2&&n<=5);
+        gs.forEach(g=>{ s.grades.push(g); s.marks.push({v:g,date:date}); });
+        if(r.st||gs.length) s.history.push({date:date,slot:L.slot,st:r.st||'',g:gs});
+      });
+    });
+    const subjects=Object.keys(map).map(k=>{
+      const s=map[k];
+      s.avg=s.grades.length?s.grades.reduce((a,b)=>a+b,0)/s.grades.length:0;
+      s.official=official(s.avg);
+      s.absent=s.st['Н']+s.st['У'];
+      s.attendance=s.lessons?Math.round((s.lessons-s.absent)/s.lessons*100):100;
+      return s;
+    }).sort((a,b)=>b.lessons-a.lessons);
+
+    const allG=subjects.reduce((a,s)=>a.concat(s.grades),[]);
+    const lessons=subjects.reduce((a,s)=>a+s.lessons,0);
+    const absent=subjects.reduce((a,s)=>a+s.absent,0);
+    const avg=allG.length?allG.reduce((a,b)=>a+b,0)/allG.length:0;
+    return {
+      subjects:subjects, grades:allG, avg:avg, official:official(avg),
+      lessons:lessons, absent:absent,
+      attendance:lessons?Math.round((lessons-absent)/lessons*100):100
+    };
+  }
+
+  let stuFilter='';
+  $('stuSearch').addEventListener('input',e=>{ stuFilter=e.target.value; renderStudents(); });
+
+  function renderStudents(){
+    const q=stuFilter.trim().toLowerCase();
+    const all=students().filter(u=>!q
+      || String(u.fio||'').toLowerCase().indexOf(q)>-1
+      || String(u.login||'').toLowerCase().indexOf(q)>-1);
+    const rows=all.map(u=>({u:u,st:studentStats(u.login)}));
+
+    const totalG=rows.reduce((a,r)=>a+r.st.grades.length,0);
+    const sumG=rows.reduce((a,r)=>a+r.st.grades.reduce((x,y)=>x+y,0),0);
+    const avgAtt=rows.length?Math.round(rows.reduce((a,r)=>a+r.st.attendance,0)/rows.length):0;
+    $('groupStats').innerHTML=
+       '<div class="scard"><p class="k">Учеников</p><p class="v">'+students().length+'</p></div>'
+      +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'
+        +(totalG?(sumG/totalG).toFixed(2):'—')+'</p></div>'
+      +'<div class="scard"><p class="k">Оценок</p><p class="v">'+totalG+'</p></div>'
+      +'<div class="scard"><p class="k">Посещаемость</p><p class="v text-emerald-300">'+avgAtt+'%</p></div>';
+
+    if(!rows.length){
+      $('studentsList').innerHTML='<div class="dbox">В группе '+(GROUP||'—')+' учеников не найдено</div>';
+      return;
+    }
+    $('studentsList').innerHTML=rows.map(r=>{
+      const u=r.u, st=r.st, of=st.official;
+      const av=u.avatar?('background-image:url('+u.avatar+')'):'';
+      return '<button type="button" class="stu clickable w-full text-left" data-login="'+esc(u.login)+'">'
+        +'<span class="ava" style="'+av+'">'+(u.avatar?'':ini(u.fio||u.login))+'</span>'
+        +'<span class="min-w-0 flex-1">'
+          +'<span class="block text-[13.5px] font-bold truncate">'+esc(u.fio||u.login)+'</span>'
+          +'<span class="block text-[11px] text-white/35 mono mt-0.5">@'+esc(u.login)
+            +' · посещ. '+st.attendance+'%'+(st.absent?(' · проп. '+st.absent):'')+'</span>'
+        +'</span>'
+        +(st.grades.length
+          ? '<span class="flex items-center gap-2 shrink-0">'
+            +'<span class="mono text-[12px] text-white/45">'+st.avg.toFixed(2)+'</span>'
+            +'<span class="mk '+of.cls+'">'+of.mark+'</span></span>'
+          : '<span class="pill shrink-0">нет оценок</span>')
+        +'<i data-lucide="chevron-right" class="w-4 h-4 text-white/25 shrink-0"></i></button>';
+    }).join('');
+    lucide.createIcons();
+    $('studentsList').querySelectorAll('.stu').forEach(b=>
+      b.addEventListener('click',()=>openStudent(b.dataset.login)));
+  }
+
+  /* ================== КАРТОЧКА УЧЕНИКА ================== */
+  function openStudent(login){
+    const u=students().find(x=>x.login===login)||CollegeDB.findByLogin(login)||{login:login,fio:login};
+    const st=studentStats(login);
+    const av=u.avatar?('background-image:url('+u.avatar+')'):'';
+
+    $('stuBody').innerHTML=
+       '<div class="flex items-center gap-3 mb-4 pr-8">'
+        +'<span class="ava" style="width:48px;height:48px;border-radius:15px;font-size:15px;'+av+'">'
+          +(u.avatar?'':ini(u.fio||u.login))+'</span>'
+        +'<span class="min-w-0"><span class="mono text-[9.5px] tracking-[.22em] text-indigo-300/70">УЧЕНИК · '+esc(GROUP)+'</span>'
+        +'<h3 class="font-display text-[17px] leading-tight truncate mt-0.5" style="font-weight:800">'+esc(u.fio||u.login)+'</h3>'
+        +'<span class="mono text-[11px] text-white/35">@'+esc(u.login)+'</span></span>'
+      +'</div>'
+      +'<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">'
+        +'<div class="scard"><p class="k">Средний балл</p><p class="v text-indigo-300">'
+          +(st.grades.length?st.avg.toFixed(2):'—')+'</p></div>'
+        +'<div class="scard"><p class="k">Итог</p><p class="v">'
+          +(st.official.mark||'—')+'</p></div>'
+        +'<div class="scard"><p class="k">Оценок</p><p class="v">'+st.grades.length+'</p></div>'
+        +'<div class="scard"><p class="k">Посещаемость</p><p class="v text-emerald-300">'+st.attendance+'%</p></div>'
+      +'</div>'
+      +'<p class="lbl">Ваши предметы — нажмите для деталей</p>'
+      +(st.subjects.length
+        ? '<div class="space-y-2" id="subjPick">'+st.subjects.map((s,i)=>
+            '<button type="button" class="subj'+(i===0?' on':'')+'" data-i="'+i+'">'
+            +'<span class="min-w-0 flex-1"><span class="block text-[13.5px] font-bold truncate">'+esc(s.name)+'</span>'
+            +'<span class="block text-[11px] text-white/40 mt-0.5">занятий: '+s.lessons
+              +' · оценок: '+s.grades.length+' · посещ. '+s.attendance+'%</span></span>'
+            +(s.grades.length
+              ? '<span class="flex items-center gap-1.5 shrink-0">'
+                +'<span class="mono text-[11.5px] text-white/45">'+s.avg.toFixed(2)+'</span>'
+                +'<span class="mk '+s.official.cls+'">'+s.official.mark+'</span></span>'
+              : '<span class="pill shrink-0">нет оценок</span>')
+            +'</button>').join('')+'</div>'
+        : '<div class="dbox">В расписании группы пока нет ваших пар</div>')
+      +'<div id="subjView" class="mt-4"></div>';
+
+    $('stuModal').classList.remove('hidden');
+    lucide.createIcons();
+
+    function drawSubject(s){
+      if(!s){ $('subjView').innerHTML=''; return; }
+      const of=s.official;
+      $('subjView').innerHTML=
+         '<div class="panel p-4">'
+        +'<div class="flex items-center justify-between gap-2 mb-3 flex-wrap">'
+          +'<div><p class="text-[14.5px] font-bold">'+esc(s.name)+'</p>'
+          +'<p class="text-[11.5px] text-white/40 mt-0.5">'+of.word
+            +(s.grades.length?(' · средний балл '+s.avg.toFixed(2)+' → итоговая «'+of.mark+'»'):'')+'</p></div>'
+          +(of.mark?'<span class="mk '+of.cls+'" style="width:36px;height:36px;font-size:16px">'+of.mark+'</span>':'')
+        +'</div>'
+        +'<p class="lbl">Посещаемость</p>'
+        +'<div class="grid grid-cols-4 gap-2 mb-4">'
+          +'<div class="scard" style="text-align:center"><p class="v text-emerald-300" style="font-size:18px">'
+            +(s.lessons-s.absent-s.st['Б'])+'</p><p class="k" style="margin:4px 0 0">Был</p></div>'
+          +STATUSES.map(st=>'<div class="scard" style="text-align:center">'
+            +'<p class="v" style="font-size:18px">'+(s.st[st[0]]||0)+'</p>'
+            +'<p class="k" style="margin:4px 0 0">'+st[0]+' · '+st[1]+'</p></div>').join('')
+        +'</div>'
+        +'<p class="lbl">Все оценки по предмету</p>'
+        +(s.marks.length
+          ? '<div class="flex flex-wrap gap-1.5 mb-4">'+s.marks.map(m=>
+              '<span class="mk m'+m.v+'" title="'+new Date(m.date+'T00:00:00')
+                .toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+'">'+m.v+'</span>').join('')+'</div>'
+          : '<div class="dbox mb-4">Оценок по предмету пока нет</div>')
+        +(s.history.length
+          ? '<p class="lbl">Журнал по датам</p><div class="space-y-1.5" style="max-height:180px;overflow:auto">'
+            +s.history.slice().reverse().map(h=>
+              '<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl" '
+              +'style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:12px">'
+              +'<span class="text-white/60">'+new Date(h.date+'T00:00:00')
+                .toLocaleDateString('ru-RU',{day:'numeric',month:'long'})+' · '+h.slot+' пара</span>'
+              +'<span class="flex items-center gap-1">'
+                +(h.st?'<span class="sb on s'+h.st+'" style="width:24px;height:24px;font-size:11px">'+h.st+'</span>':'')
+                +h.g.map(g=>'<span class="mk m'+g+'" style="width:24px;height:24px;font-size:11.5px">'+g+'</span>').join('')
+              +'</span></div>').join('')+'</div>'
+          : '')
+        +'</div>';
+    }
+    drawSubject(st.subjects[0]);
+
+    const box=$('subjPick');
+    if(box) box.querySelectorAll('.subj').forEach(b=>b.addEventListener('click',()=>{
+      box.querySelectorAll('.subj').forEach(x=>x.classList.toggle('on',x===b));
+      drawSubject(st.subjects[+b.dataset.i]);
+    }));
+  }
+  $('stuClose').addEventListener('click',()=>$('stuModal').classList.add('hidden'));
+  $('stuModal').querySelector('.m-bg').addEventListener('click',()=>$('stuModal').classList.add('hidden'));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!$('stuModal').classList.contains('hidden')){
+      e.stopImmediatePropagation(); $('stuModal').classList.add('hidden');
+    }
+  },true);
+
   if(CollegeDB.onSync) CollegeDB.onSync(()=>{
     if(GROUP&&CollegeDB.loadGroupUsers) CollegeDB.loadGroupUsers(GROUP)
-      .then(()=>{ if(picked!==null) renderMarks(); });
+      .then(()=>{ if(picked!==null) renderMarks(); if(!$('pane-students').classList.contains('hidden')) renderStudents(); });
     if(CollegeDB.loadTeachingSchedules) CollegeDB.loadTeachingSchedules().then(d=>{ ALL=d||{}; renderWeek(); renderDay(); });
     if(GROUP) CollegeDB.loadAttendance(GROUP).then(d=>{ attendance=d; if(picked!==null) renderMarks(); });
   });
