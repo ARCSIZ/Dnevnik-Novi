@@ -362,14 +362,14 @@
   function allGroupCodes(){
     return (CollegeDB.listGroups()||[]).map(g=>g.code);
   }
+  /* Сервер уже отфильтровал расписание по ФИО преподавателя
+     (Гамидов Самир Эльмирович ↔ Гамидов С.Э.). Клиент повторно
+     не фильтрует — из-за двойной сверки пары ошибочно отбрасывались. */
   function myGroups(){
-    const out=[];
-    Object.keys(ALL).forEach(g=>{
+    return Object.keys(ALL).filter(g=>{
       const days=ALL[g]||{};
-      const has=Object.keys(days).some(d=>(days[d]||[]).some(L=>!L.event&&FK(L.teacher)===MY_KEY));
-      if(has) out.push(g);
+      return Object.keys(days).some(d=>(days[d]||[]).some(L=>!L.event));
     });
-    return out;
   }
 
   /* Список групп: сначала группы, где найдены пары этого преподавателя,
@@ -435,12 +435,14 @@
     if(typeof renderStudents==='function') renderStudents();
   });
 
-  /* ---- пары дня: для полной статистики — все, иначе только свои ---- */
+  /* ---- пары дня ----
+     Для преподавателя ALL уже содержит только его пары (отфильтровано
+     на сервере). Для seeAll — полное расписание группы, показываем всё.
+     Клиентской повторной сверки ФИО больше нет. */
   function myLessons(date){
-    const list=((ALL[GROUP]||{})[keyOf(date)]||[]);
-    const day=list.filter(L=>!L.event);
-    const visible=seeAll?day:day.filter(L=>FK(L.teacher)===MY_KEY);
-    return visible.sort((a,b)=>(a.slot||0)-(b.slot||0));
+    return (((ALL[GROUP]||{})[keyOf(date)]||[]))
+      .filter(L=>!L.event)
+      .sort((a,b)=>(a.slot||0)-(b.slot||0));
   }
   function students(){
     return CollegeDB.all().filter(x=>x.group===GROUP&&['student','prefect'].indexOf(R(x.role))>-1)

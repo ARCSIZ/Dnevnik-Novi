@@ -12,7 +12,7 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v18-allgroups';
+const CACHE = 'college-id-v19-teacherfix';
 
 const PRECACHE = [
   '/',
