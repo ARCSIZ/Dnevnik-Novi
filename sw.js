@@ -12,7 +12,7 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v20-livingisland';
+const CACHE = 'college-id-v21-noisland';
 
 const PRECACHE = [
   '/',
