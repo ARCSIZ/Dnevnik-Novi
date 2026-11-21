@@ -12,7 +12,7 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v11-messenger';
+const CACHE = 'college-id-v12-island';
 
 const PRECACHE = [
   '/',

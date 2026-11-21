@@ -327,8 +327,8 @@
 
   <script src="../General/theme.js?v=3"></script>
   <script src="../Data/users.js?v=20260308-msg1"></script>
-  <script src="../General/notice.js?v=2"></script>
-  <script src="../General/ui.js?v=2"></script>
+  <script src="../General/notice.js?v=3"></script>
+  <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
 <script>
@@ -361,8 +361,13 @@
   if(CollegeDB.startSync) CollegeDB.startSync(20000);
   const R=r=>CollegeDB.normRole?CollegeDB.normRole(r):'student';
   const s=CollegeDB.session();
-  const me=(s&&CollegeDB.findByLogin(s.login))||null;
-  const role=R(me&&me.role);
+  let me=(s&&CollegeDB.findByLogin(s.login))||null;
+  if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
+  /* Мультироли: из набора выбираем старшую подходящую для журнала. */
+  const myRoles=CollegeDB.rolesOf?CollegeDB.rolesOf(me):[R(me&&me.role)];
+  const role=myRoles.indexOf('dev')>-1?'dev'
+    :myRoles.indexOf('curator')>-1?'curator'
+    :myRoles.indexOf('prefect')>-1?'prefect':'student';
 
   if(['prefect','curator','dev'].indexOf(role)<0){
     $('denied').classList.remove('hidden'); lucide.createIcons(); return;

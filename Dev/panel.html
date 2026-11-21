@@ -423,6 +423,15 @@
 
           <div id="nEditor" contenteditable="true" data-ph="Текст объявления… Выделите фрагмент и примените оформление."></div>
 
+          <p class="lbl mt-4">Формат доставки</p>
+          <div class="grid grid-cols-2 gap-2" id="nModes">
+            <button class="th on" data-m="modal">Окно по центру</button>
+            <button class="th" data-m="island">Остров от приложения</button>
+          </div>
+          <p class="text-[11.5px] text-white/30 mt-2">
+            «Остров» появляется сверху от имени приложения Колледж·ID и раскрывается по нажатию, как Dynamic Island на iPhone.
+          </p>
+
           <p class="lbl mt-4">Тема окна</p>
           <div class="grid grid-cols-4 gap-2" id="nThemes">
             <button class="th on" data-th="default">Обычная</button>
@@ -749,7 +758,12 @@
 
   /* ================== ОПОВЕЩЕНИЯ ================== */
   const ed=$('nEditor');
-  let theme='default';
+  let theme='default', noticeMode='modal';
+  $('nModes').addEventListener('click',e=>{
+    const b=e.target.closest('.th'); if(!b)return;
+    noticeMode=b.dataset.m;
+    $('nModes').querySelectorAll('.th').forEach(x=>x.classList.toggle('on',x===b));
+  });
 
   function selectionInEditor(){
     const sel=window.getSelection();
@@ -793,7 +807,7 @@
 
   function noticePayload(){
     return { title:$('nTitle').value.trim(), html:ed.innerHTML,
-      banner:$('nBanner').value.trim(), theme:theme, dismissible:true };
+      banner:$('nBanner').value.trim(), theme:theme, mode:noticeMode, dismissible:true };
   }
 
   $('nPreview').addEventListener('click',()=>{

@@ -584,8 +584,8 @@
   <script src="../Data/users.js?v=20260308-msg1"></script>
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/notify.js?v=1"></script>
-  <script src="../General/notice.js?v=2"></script>
-  <script src="../General/ui.js?v=2"></script>
+  <script src="../General/notice.js?v=3"></script>
+  <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
 <script>
@@ -1169,6 +1169,27 @@
   $('wNext').addEventListener('click',()=>{ weekStart=addDays(weekStart,7); selected=addDays(selected,7); openId=null; renderWeek(); renderDay(); });
   $('wToday').addEventListener('click',()=>{ weekStart=startOfWeek(new Date()); selected=new Date(); selected.setHours(0,0,0,0); openId=null; renderWeek(); renderDay(); });
 
+  /* Свайп влево/вправо по разделу дневника листает дни расписания. */
+  (function initDaySwipe(){
+    const sec=$('view-diary');
+    if(!sec) return;
+    let x0=0, y0=0, t0=0, on=false;
+    sec.addEventListener('touchstart',e=>{
+      if(e.touches.length!==1||e.target.closest('button,a,input')) { on=false; return; }
+      x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now(); on=true;
+    },{passive:true});
+    sec.addEventListener('touchend',e=>{
+      if(!on) return; on=false;
+      const t=e.changedTouches[0];
+      const dx=t.clientX-x0, dy=t.clientY-y0, dt=Date.now()-t0;
+      if(dt>600||Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.6) return;
+      selected=addDays(selected, dx<0?1:-1);
+      weekStart=startOfWeek(selected);
+      openId=null; renderWeek(); renderDay();
+      if(navigator.vibrate) try{ navigator.vibrate(8); }catch(err){}
+    },{passive:true});
+  })();
+
   renderWeek(); renderDay();
 
   /* счётчик пар в боковом меню */
@@ -1243,7 +1264,16 @@
       name:'Рейтинг', desc:'Ваше место в группе и на потоке',
       icon:'trophy', grad:'from-amber-500 to-orange-500' }
   ];
-  const myApps=APPS.filter(a=>a.roles.some(r=>hasRole(r)));
+  /* Приложения основной роли идут сверху, дополнительных — ниже. */
+  const appWeight=a=>{
+    let w=99;
+    myRoles.forEach((r,i)=>{ if(a.roles.indexOf(r)>-1&&i<w) w=i; });
+    return w;
+  };
+  const myApps=APPS.filter(a=>a.roles.some(r=>hasRole(r)))
+    .map((a,i)=>({a:a,i:i,w:appWeight(a)}))
+    .sort((x,y)=>x.w-y.w||x.i-y.i)
+    .map(x=>x.a);
 
   /* Патрон виден только самому обладателю: в списке ролей он последний. */
   $('roleName').textContent=myRoles.map(r=>ROLE_NAMES[r]||'Студент').join(' · ');

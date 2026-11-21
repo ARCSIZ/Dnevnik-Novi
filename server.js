@@ -1123,9 +1123,9 @@ async function handleAPI(req, res, pathname) {
   if (route === '/api/group-users' && method === 'GET') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
     const group = new URL(req.url, 'http://x').searchParams.get('group') || '';
-    const role = normRole(me.role);
-    const allowed = role === 'dev' || role === 'teacher'
-      || ((role === 'prefect' || role === 'curator') && me.group === group);
+    /* Проверяем все роли пользователя, не только основную. */
+    const allowed = hasRole(me, 'dev') || hasRole(me, 'teacher')
+      || ((hasRole(me, 'prefect') || hasRole(me, 'curator')) && me.group === group);
     if (!allowed) return sendJSON(res, 403, { error: 'Нет доступа к группе' });
     const users = (db.data.users || []).filter(u => u.group === group).map(u => listUser(u, me));
     return sendJSON(res, 200, {
@@ -1135,14 +1135,13 @@ async function handleAPI(req, res, pathname) {
 
   if (route === '/api/schedule' && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
-    const myRole = normRole(me.role);
     const body = await readBody(req);
     if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Слишком большое расписание за один раз. Загружайте по семестру.' });
     if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
     const g = String(body.group || '').trim();
     if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
-    const canEdit = myRole === 'dev'
-      || ((myRole === 'prefect' || myRole === 'curator') && String(me.group || '') === g);
+    const canEdit = hasRole(me, 'dev')
+      || ((hasRole(me, 'prefect') || hasRole(me, 'curator')) && String(me.group || '') === g);
     if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на редактирование этой группы' });
 
     db.data.schedule = db.data.schedule || {};
@@ -1189,29 +1188,26 @@ async function handleAPI(req, res, pathname) {
 
   if (route === '/api/attendance' && method === 'PUT') {
     if (!me) return sendJSON(res, 401, { error: 'Не авторизован' });
-    const myRole = normRole(me.role);
     const body = await readBody(req);
     if (body && body.__tooLarge) return sendJSON(res, 413, { error: 'Слишком большой объём данных' });
     if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
     const g = String(body.group || '').trim();
     if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
-    /* Ведёт ли этот человек пары в данной группе (сверка ФИО с расписанием).
-       Куратор может быть и преподавателем — тогда он правит свои пары
-       в любой группе, а в своей группе остаётся полноправным куратором. */
     const groupDays = (db.data.schedule || {})[g] || {};
     const teachesHere = Object.keys(groupDays).some(d =>
       (groupDays[d] || []).some(L => !L.event && fioKey(L.teacher) === fioKey(me.fio)));
     const ownGroup = String(me.group || '') === g;
+    const isFull = hasRole(me, 'dev') || (hasRole(me, 'curator') && ownGroup);
+    const isPrefect = hasRole(me, 'prefect') && ownGroup;
+    const isTeacher = hasRole(me, 'teacher') || (hasRole(me, 'curator') && teachesHere);
 
-    const canEdit = myRole === 'dev'
-      || myRole === 'teacher'
-      || ((myRole === 'prefect' || myRole === 'curator') && ownGroup)
-      || (myRole === 'curator' && teachesHere);
-    if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на журнал этой группы' });
+    if (!isFull && !isPrefect && !isTeacher) {
+      return sendJSON(res, 403, { error: 'Нет прав на журнал этой группы' });
+    }
 
-    /* Ограничение «только свои пары»: для преподавателя всегда,
-       для куратора — когда он выступает преподавателем в чужой группе. */
-    const lessonLimited = myRole === 'teacher' || (myRole === 'curator' && !ownGroup);
+    /* Ограничение «только свои пары» работает, если нет полных прав на группу. */
+    const lessonLimited = !isFull && !isPrefect && isTeacher;
+    const canSetGrades = isFull || isTeacher;
 
     const ownsLesson = (date, slot) => {
       const list = (groupDays[date] || []);
@@ -1241,7 +1237,7 @@ async function handleAPI(req, res, pathname) {
           /* Оценки ставят куратор, преподаватель и разработчик.
              Для старосты сохраняем ранее выставленные без изменений. */
           let g2;
-          if (myRole === 'prefect') {
+          if (!canSetGrades) {
             const prev = (existing[login] || {})[String(slot)] || {};
             g2 = Array.isArray(prev.g) ? prev.g : [];
           } else {
@@ -1571,6 +1567,8 @@ async function handleAPI(req, res, pathname) {
       html: html,
       banner: String(body.banner || '').slice(0, 2000),
       theme: ['default', 'neon', 'glass', 'danger'].indexOf(body.theme) > -1 ? body.theme : 'default',
+      /* island — рассылка от имени приложения в виде капсулы сверху экрана */
+      mode: body.mode === 'island' ? 'island' : 'modal',
       dismissible: body.dismissible !== false,
       createdAt: nowISO(),
       by: me.login

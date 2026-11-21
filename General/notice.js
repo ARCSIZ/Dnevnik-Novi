@@ -93,13 +93,91 @@
       '@media(max-width:520px){#notice-wrap{padding:10px;backdrop-filter:none;-webkit-backdrop-filter:none}',
       ' #notice-box{border-radius:20px;max-height:92vh}',
       ' #notice-box .nb-banner{aspect-ratio:16/6;border-radius:20px 20px 0 0}',
-      ' #notice-box .nb-pad{padding:18px 16px 16px}}'
+      ' #notice-box .nb-pad{padding:18px 16px 16px}}',
+
+      /* ============ ДИНАМИЧЕСКИЙ ОСТРОВ (рассылка от приложения) ============
+         Чёрная капсула у верхней кромки экрана. По нажатию плавно раскрывается
+         в карточку, как на iPhone. Не перекрывает весь экран сразу.        */
+      '#app-island{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));z-index:320;',
+      ' transform:translate3d(-50%,-18px,0) scale(.92);opacity:0;',
+      ' width:min(360px,calc(100vw - 24px));max-height:52px;overflow:hidden;border-radius:999px;',
+      ' background:#050508;border:1px solid rgba(255,255,255,.16);color:#fff;',
+      ' box-shadow:0 22px 50px -14px rgba(0,0,0,.92),0 0 0 1px rgba(var(--glow,99,102,241),.22),',
+      ' inset 0 1px 0 rgba(255,255,255,.22);font-family:Manrope,system-ui,sans-serif;cursor:pointer;',
+      ' transition:transform .42s cubic-bezier(.32,1.28,.38,1),opacity .28s ease,',
+      ' max-height .42s cubic-bezier(.32,1.28,.38,1),border-radius .35s ease}',
+      '#app-island.show{transform:translate3d(-50%,0,0) scale(1);opacity:1}',
+      '#app-island.open{max-height:76vh;border-radius:28px;cursor:default;overflow:auto}',
+      '#app-island .ai-pill{height:50px;padding:0 14px;display:flex;align-items:center;gap:10px}',
+      '#app-island .ai-logo{width:28px;height:28px;flex:none;border-radius:9px;display:flex;',
+      ' align-items:center;justify-content:center;font-size:13px;font-weight:800;',
+      ' background:linear-gradient(135deg,var(--accent,#6366f1),var(--accent2,#a855f7));color:#fff}',
+      '#app-island .ai-sum{min-width:0;flex:1;display:flex;flex-direction:column}',
+      '#app-island .ai-from{font-family:"JetBrains Mono",monospace;font-size:9px;',
+      ' letter-spacing:.18em;color:rgba(255,255,255,.45);text-transform:uppercase}',
+      '#app-island .ai-ttl{font-size:12.5px;font-weight:700;white-space:nowrap;',
+      ' overflow:hidden;text-overflow:ellipsis}',
+      '#app-island .ai-dot{width:8px;height:8px;flex:none;border-radius:99px;',
+      ' background:var(--accent,#6366f1);box-shadow:0 0 10px var(--accent,#6366f1)}',
+      '#app-island .ai-body{display:none;padding:4px 16px 16px;border-top:1px solid rgba(255,255,255,.08)}',
+      '#app-island.open .ai-body{display:block}',
+      '#app-island .ai-banner{width:100%;aspect-ratio:16/7;object-fit:cover;',
+      ' border-radius:16px;margin:10px 0}',
+      '#app-island .ai-act{display:flex;gap:8px;margin-top:12px}',
+      '#app-island .ai-act button{flex:1;height:38px;border:0;border-radius:12px;cursor:pointer;',
+      ' font-family:inherit;font-weight:700;font-size:12.5px;color:#fff;',
+      ' background:linear-gradient(120deg,var(--accent,#6366f1),var(--accent2,#a855f7))}',
+      '#app-island .ai-act .sec{background:rgba(255,255,255,.08)}'
     ].join('\n');
     document.head.appendChild(css);
   }
 
+  /* -------------------------------------------- динамический остров */
+  function renderIsland(notice) {
+    var old = document.getElementById('app-island');
+    if (old) old.remove();
+    injectCSS();
+
+    var plain = String(notice.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    var head = notice.title || plain.slice(0, 64) || 'Новое сообщение';
+
+    var el = document.createElement('div');
+    el.id = 'app-island';
+    el.innerHTML =
+        '<div class="ai-pill">'
+        + '<span class="ai-logo">К</span>'
+        + '<span class="ai-sum"><span class="ai-from">Колледж·ID</span>'
+        + '<span class="ai-ttl">' + head + '</span></span>'
+        + '<span class="ai-dot"></span></div>'
+      + '<div class="ai-body">'
+        + (notice.banner ? '<img class="ai-banner" src="'
+            + String(notice.banner).replace(/"/g, '&quot;') + '" alt="">' : '')
+        + '<div class="nb-html">' + (notice.html || '') + '</div>'
+        + '<div class="ai-act">'
+        + '<button class="sec" id="aiFold">Свернуть</button>'
+        + '<button id="aiDone">Понятно</button></div></div>';
+    document.body.appendChild(el);
+    requestAnimationFrame(function () { el.classList.add('show'); });
+
+    function close() {
+      markSeen(notice.id || '');
+      el.classList.remove('show', 'open');
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 360);
+    }
+    el.querySelector('.ai-pill').addEventListener('click', function () {
+      el.classList.toggle('open');
+    });
+    el.querySelector('#aiFold').addEventListener('click', function (e) {
+      e.stopPropagation(); el.classList.remove('open');
+    });
+    el.querySelector('#aiDone').addEventListener('click', function (e) {
+      e.stopPropagation(); close();
+    });
+  }
+
   /* -------------------------------------------------------- отрисовка */
   function render(notice) {
+    if (notice && notice.mode === 'island') return renderIsland(notice);
     if (document.getElementById('notice-wrap')) return;
     injectCSS();
     var wrap = document.createElement('div');

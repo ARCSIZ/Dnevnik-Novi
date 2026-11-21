@@ -157,14 +157,9 @@
       /* Свайп от левого края — «назад» на внутренних страницах. */
       if (dx > 90 && x0 < 48) {
         var back = document.getElementById('btnBack');
-        if (back) { back.click(); buzz(); return; }
+        if (back) { back.click(); buzz(); }
       }
-      /* Свайп по горизонтали — соседний раздел дока. */
-      var btns = [].slice.call(document.querySelectorAll('.dock-btn'));
-      if (!btns.length) return;
-      var i = btns.findIndex(function (b) { return b.classList.contains('on'); });
-      var next = dx < 0 ? i + 1 : i - 1;
-      if (i > -1 && next >= 0 && next < btns.length) { btns[next].click(); buzz(); }
+      /* Свайп по категориям отключён: в дневнике свайп листает дни. */
     }, { passive: true });
 
     function buzz() { if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } }

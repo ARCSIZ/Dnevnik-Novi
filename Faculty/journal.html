@@ -227,8 +227,8 @@
 
   <script src="../General/theme.js?v=3"></script>
   <script src="../Data/users.js?v=20260308-msg1"></script>
-  <script src="../General/notice.js?v=2"></script>
-  <script src="../General/ui.js?v=2"></script>
+  <script src="../General/notice.js?v=3"></script>
+  <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
 <script>
@@ -259,11 +259,12 @@
   const s=CollegeDB.session();
   let me=(s&&CollegeDB.findByLogin(s.login))||null;
   if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
-  const role=R(me&&me.role);
+  /* Мультироли: приоритет dev → teacher → curator. */
+  const myRoles=CollegeDB.rolesOf?CollegeDB.rolesOf(me):[R(me&&me.role)];
+  const role=myRoles.indexOf('dev')>-1?'dev'
+    :myRoles.indexOf('teacher')>-1?'teacher'
+    :myRoles.indexOf('curator')>-1?'curator':'student';
 
-  /* Доступ: преподаватель и разработчик — всегда.
-     Куратор — только если он действительно ведёт пары (его ФИО есть
-     в расписании). Куратор без своих пар журнал не получает. */
   if(['teacher','dev','curator'].indexOf(role)<0){
     $('denied').classList.remove('hidden'); lucide.createIcons(); return;
   }
