@@ -12,7 +12,7 @@
    Версию CACHE меняем при обновлении — старые кэши удаляются сами.
    ========================================================================== */
 
-const CACHE = 'college-id-v14-deputy';
+const CACHE = 'college-id-v15-speed';
 
 const PRECACHE = [
   '/',
@@ -54,7 +54,8 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE && k !== CDN_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -63,12 +64,34 @@ self.addEventListener('message', event => {
   if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
+/* Внешние CDN (Tailwind, Lucide, шрифты Google) кэшируем отдельно:
+   они весят сотни килобайт и не меняются — повторные заходы без сети. */
+const CDN_CACHE = 'college-cdn-v1';
+const CDN_HOSTS = ['cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;          // внешние CDN не трогаем
+
+  if (url.origin !== self.location.origin) {
+    if (CDN_HOSTS.indexOf(url.hostname) === -1) return;     // чужие домены не трогаем
+    event.respondWith((async () => {
+      try {
+        const hit = await caches.match(req);
+        const update = fetch(req).then(res => {
+          if (res && (res.ok || res.type === 'opaque')) {
+            caches.open(CDN_CACHE).then(c => c.put(req, res.clone())).catch(() => {});
+          }
+          return res;
+        }).catch(() => null);
+        if (hit) { update.catch(() => null); return hit; }
+        return (await update) || Response.error();
+      } catch (e) { return Response.error(); }
+    })());
+    return;
+  }
 
   /* API и служебные данные — всегда из сети */
   if (url.pathname.startsWith('/api/') || url.pathname === '/health') {
@@ -82,10 +105,26 @@ self.addEventListener('fetch', event => {
     || (req.headers.get('accept') || '').includes('text/html');
 
   if (isNavigation) {
-    /* Не держим белый экран на медленной сети дольше 2.2 секунды. */
+    /* Страница отдаётся ИЗ КЭША мгновенно, а сеть обновляет её в фоне.
+       Так повторные открытия не ждут ни сети, ни таймаутов.
+       Свежая версия подхватится при следующем заходе. */
     event.respondWith((async () => {
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2200));
+      const hit = await caches.match(req, { ignoreSearch: true });
+      if (hit) {
+        const update = fetch(req).then(res => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          }
+          return res;
+        }).catch(() => null);
+        update.catch(() => null);           // обновление не блокирует показ
+        return hit;
+      }
+      /* Первый заход: ждём сеть, но не дольше 1.5 секунд. */
       try {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 1500));
         const res = await Promise.race([fetch(req), timeout]);
         if (res && res.ok) {
           const copy = res.clone();
@@ -93,8 +132,8 @@ self.addEventListener('fetch', event => {
         }
         return res;
       } catch (e) {
-        return (await caches.match(req, { ignoreSearch: true }))
-          || new Response(OFFLINE_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+        return new Response(OFFLINE_HTML,
+          { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
     })());
     return;

@@ -668,7 +668,11 @@
       var period = intervalMs || 30000;
       /* Bootstrap только что принёс актуальную версию. Не дублируем запрос
          /api/version на критическом пути — первая проверка будет по таймеру. */
-      syncTimer = setInterval(checkVersion, period);
+      /* На скрытой вкладке опрос не работает: браузер и так троттлит таймеры,
+         а лишние запросы только тратят трафик и батарею. */
+      syncTimer = setInterval(function () {
+        if (!document.hidden) checkVersion();
+      }, period);
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) checkVersion();       // обновляем при возврате на вкладку
       });

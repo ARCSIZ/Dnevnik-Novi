@@ -449,16 +449,27 @@ function sendJSON(res, code, obj) {
   /* Не сжимаем многомегабайтные base64-скриншоты: это почти не уменьшает
      размер, но нагружает CPU. Расписания и журналы обычно < 1.5 МБ. */
   const useGzip = body.length > 1024 && body.length < 1536 * 1024 && /\bgzip\b/.test(accepts);
-  const payload = useGzip ? zlib.gzipSync(body, { level: 5 }) : body;
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': payload.length,
     'Cache-Control': 'no-store',
     'Vary': 'Accept-Encoding'
   };
-  if (useGzip) headers['Content-Encoding'] = 'gzip';
-  res.writeHead(code, headers);
-  res.end(payload);
+
+  function send(payload) {
+    if (res.writableEnded) return;
+    headers['Content-Length'] = payload.length;
+    if (useGzip) headers['Content-Encoding'] = 'gzip';
+    res.writeHead(code, headers);
+    res.end(payload);
+  }
+
+  if (!useGzip) return send(body);
+  /* Асинхронное сжатие: gzipSync блокировал event loop и задерживал
+     все остальные запросы, пока сжимается большой ответ. */
+  zlib.gzip(body, { level: 4 }, (err, packed) => {
+    if (err) return send(body);
+    send(packed);
+  });
 }
 
 /* Чтение тела запроса.

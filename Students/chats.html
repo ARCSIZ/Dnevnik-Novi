@@ -270,7 +270,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260309-deputy1"></script>
+  <script src="../Data/users.js?v=20260310-perf1"></script>
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/notice.js?v=3"></script>
   <script src="../General/ui.js?v=3"></script>
@@ -588,7 +588,7 @@
     }
   }
   await pull(true);
-  setInterval(()=>pull(false),4000);
+  setInterval(()=>{ if(!document.hidden) pull(false); },5000);
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pull(true); });
 
   /* ================== ВЛОЖЕНИЯ И ОТПРАВКА ================== */

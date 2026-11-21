@@ -182,7 +182,9 @@
     }
 
     tick();
-    setInterval(tick, 25000);
+    /* На скрытой вкладке уведомления не опрашиваются: экономия трафика
+       и батареи, при возврате данные подтягиваются сразу. */
+    setInterval(function () { if (!document.hidden) tick(); }, 40000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
   }
 

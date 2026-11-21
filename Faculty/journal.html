@@ -297,7 +297,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260309-deputy1"></script>
+  <script src="../Data/users.js?v=20260310-perf1"></script>
   <script src="../General/notice.js?v=3"></script>
   <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
@@ -665,8 +665,14 @@
     };
   }
 
-  let stuFilter='';
-  $('stuSearch').addEventListener('input',e=>{ stuFilter=e.target.value; renderStudents(); });
+  let stuFilter='', stuT=0;
+  /* Поиск считает статистику каждого ученика — пересчитываем не на каждую
+     букву, а через паузу после ввода. */
+  $('stuSearch').addEventListener('input',e=>{
+    stuFilter=e.target.value;
+    clearTimeout(stuT);
+    stuT=setTimeout(renderStudents,220);
+  });
 
   /* Подсказка отражает объём данных: свои предметы или вся группа. */
   $('studentsHint').textContent=seeAll
