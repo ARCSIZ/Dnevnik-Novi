@@ -902,10 +902,23 @@
     teachingGroups: function () { return teachingGroupsCache.slice(); },
 
     /** Только свои пары преподавателя/куратора, без расписаний всего колледжа */
-    loadTeachingSchedules: function () {
+    loadTeachingSchedules: function (force) {
       if (mode !== 'server') return Promise.resolve({});
+      if (force) delete fastCache.teaching;    // сбросить пустой кэш
       return cachedRequest('teaching', 'mine', '/api/schedule/mine',
         function (d) { return d.schedule || {}; }, 60000)
+        .then(function (data) {
+          /* Пустой результат перезапрашиваем один раз: раньше он навсегда
+             закэшировался и журнал преподавателя не находил группы. */
+          var empty = !data || !Object.keys(data).length;
+          if (empty && !force) {
+            delete fastCache.teaching;
+            return cachedRequest('teaching', 'mine', '/api/schedule/mine',
+              function (d) { return d.schedule || {}; }, 60000)
+              .catch(function () { return {}; });
+          }
+          return data;
+        })
         .catch(function () { return {}; });
     },
 

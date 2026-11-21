@@ -297,7 +297,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260310-perf1"></script>
+  <script src="../Data/users.js?v=20260311-teacher1"></script>
   <script src="../General/notice.js?v=3"></script>
   <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
@@ -357,7 +357,11 @@
   /* Преподаватель: только свои пары. Куратор/староста/зам: всё расписание группы. */
   let ALL=await (seeAll
     ? Promise.resolve({})
-    : (CollegeDB.loadTeachingSchedules?CollegeDB.loadTeachingSchedules():Promise.resolve({})));
+    : (CollegeDB.loadTeachingSchedules?CollegeDB.loadTeachingSchedules(true):Promise.resolve({})));
+
+  function allGroupCodes(){
+    return (CollegeDB.listGroups()||[]).map(g=>g.code);
+  }
   function myGroups(){
     const out=[];
     Object.keys(ALL).forEach(g=>{
@@ -367,11 +371,19 @@
     });
     return out;
   }
-  /* Для полной статистики группы берём свою группу, а не группы по расписанию. */
-  let groups=seeAll
-    ? (me.group?[me.group]:[])
-    : myGroups();
-  if(role==='dev'&&!groups.length) groups=(CollegeDB.listGroups()||[]).map(g=>g.code);
+
+  /* Список групп: сначала группы, где найдены пары этого преподавателя,
+     затем своя группа, затем ВСЕ группы справочника. Преподаватель должен
+     видеть все три группы, даже если пары пока не найдены. */
+  function unionGroups(){
+    const out=[];
+    const add=c=>{ if(c&&!out.includes(c)) out.push(c); };
+    myGroups().forEach(add);
+    if(me.group) add(me.group);
+    allGroupCodes().forEach(add);
+    return out;
+  }
+  let groups=unionGroups();
 
   /* куратор без пар в расписании — журнал закрыт */
   if(role==='curator'&&!groups.length){
@@ -387,13 +399,6 @@
   $('myFio').textContent=(me&&me.fio)||'—';
   if(role==='curator') $('rolePill') && ($('rolePill').textContent='КУРАТОР · ПРЕПОДАВАТЕЛЬ');
 
-  if(!groups.length){
-    $('groupSelect').innerHTML='<option>Пар не найдено</option>';
-    $('groupHint').innerHTML='В расписании нет пар с преподавателем «'+((me&&me.fio)||'')+'».<br>'
-      +'Проверьте, что староста указал вас как <span class="mono">'+shortFio(me&&me.fio)+'</span>';
-    lucide.createIcons();
-  }
-
   let GROUP=groups[0]||'';
   if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
   /* Полная статистика группы требует всего расписания группы,
@@ -401,7 +406,20 @@
   if(seeAll&&GROUP&&CollegeDB.loadSchedule) ALL=await CollegeDB.loadSchedule(GROUP);
   $('groupSelect').innerHTML=groups.map(g=>'<option value="'+g+'">'+g+'</option>').join('')
     ||'<option value="">—</option>';
-  if(groups.length) $('groupHint').textContent='Ваши пары найдены в группах: '+groups.join(', ');
+  if(!myGroups().length){
+    $('groupHint').innerHTML='Все группы доступны для выбора. Пары с вашим ФИО '
+      +'пока не найдены в расписании — если вы ведёте занятия, попросите старосту '
+      +'указать вас как <span class="mono text-white/70">'+shortFio(me&&me.fio)+'</span>.';
+  } else if(myGroups().length<groups.length){
+    $('groupHint').textContent='Пары найдены: '+myGroups().join(', ')
+      +' · доступны и остальные группы: '+groups.filter(g=>!myGroups().includes(g)).join(', ');
+  } else if(groups.length){
+    $('groupHint').textContent='Ваши пары найдены в группах: '+myGroups().join(', ');
+  } else {
+    $('groupSelect').innerHTML='<option>Группы не созданы</option>';
+    $('groupHint').textContent='Сначала создайте группы в панели управления.';
+    lucide.createIcons();
+  }
 
   let attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
   let weekStart=startOfWeek(new Date());
