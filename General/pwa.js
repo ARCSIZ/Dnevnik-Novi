@@ -56,11 +56,22 @@
       document.head.appendChild(el);
       return el;
     }
+    /* viewport-fit=cover позволяет PWA на iPhone рисовать интерфейс прямо вокруг
+       физического выреза Dynamic Island в режиме black-translucent. */
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (vp) {
+      var vc = vp.getAttribute('content') || 'width=device-width, initial-scale=1.0';
+      if (vc.indexOf('viewport-fit') === -1) {
+        vp.setAttribute('content', vc + ', viewport-fit=cover');
+      }
+    } else {
+      add('meta', { name: 'viewport', content: 'width=device-width, initial-scale=1.0, viewport-fit=cover' });
+    }
     if (!document.querySelector('link[rel="manifest"]')) {
       add('link', { rel: 'manifest', href: ROOT + '/manifest.webmanifest' });
     }
     if (!document.querySelector('meta[name="theme-color"]')) {
-      add('meta', { name: 'theme-color', content: '#07070d' });
+      add('meta', { name: 'theme-color', content: '#000000' });
     }
     /* iOS: полноэкранный режим и иконка на домашнем экране.
        Важно: apple-touch-icon должен быть непрозрачным квадратом —
