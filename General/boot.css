@@ -87,8 +87,5 @@ html.perf-min .marquee-inner,
 html.perf-min .ring-spin,
 html.perf-min .ring-pulse { animation: none !important; }
 
-/* Прокрутка длинных списков: браузер пропускает отрисовку скрытых карточек. */
-.lcard, .app-tile, .row, .stu, .chat, .subj {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 68px;
-}
+/* content-visibility убран: он вызывал схлопывание и пропадание блоков
+   с разной высотой внутри карточек и таблиц. */
