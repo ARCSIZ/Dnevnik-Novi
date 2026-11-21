@@ -66,8 +66,12 @@ function normRole(role) {
   if (r === 'teacher') return 'teacher';
   if (r === 'support' || r === 'operator') return 'support';
   if (r === 'patron' || r === 'sutener') return 'patron';
+  if (r === 'deputy' || r === 'deputy-prefect') return 'deputy';
   return 'student';
 }
+/* Полную статистику группы видят куратор, староста и заместитель старосты. */
+const seesAllGroup = u => hasRole(u, 'curator') || hasRole(u, 'prefect')
+  || hasRole(u, 'deputy') || isDev(u);
 
 /* Мультироли: основная роль + дополнительные через поле roles. */
 function rolesOf(u) {
@@ -975,7 +979,8 @@ async function handleAPI(req, res, pathname) {
     if (!lesson) return sendJSON(res, 404, { error: 'Пара не найдена в расписании' });
     const mine = fioKey(lesson.teacher) === fioKey(me.fio);
     const allowed = isDev(me) || mine
-      || ((hasRole(me, 'prefect') || hasRole(me, 'curator')) && String(me.group || '') === group);
+      || ((hasRole(me, 'prefect') || hasRole(me, 'curator') || hasRole(me, 'deputy'))
+          && String(me.group || '') === group);
     if (!allowed) return sendJSON(res, 403, { error: 'Можно выдавать задание только на свои пары' });
     lesson.hw = text;
     lesson.hwBy = shortFio(me.fio) || me.login;
@@ -1125,7 +1130,8 @@ async function handleAPI(req, res, pathname) {
     const group = new URL(req.url, 'http://x').searchParams.get('group') || '';
     /* Проверяем все роли пользователя, не только основную. */
     const allowed = hasRole(me, 'dev') || hasRole(me, 'teacher')
-      || ((hasRole(me, 'prefect') || hasRole(me, 'curator')) && me.group === group);
+      || ((hasRole(me, 'prefect') || hasRole(me, 'curator') || hasRole(me, 'deputy'))
+          && me.group === group);
     if (!allowed) return sendJSON(res, 403, { error: 'Нет доступа к группе' });
     const users = (db.data.users || []).filter(u => u.group === group).map(u => listUser(u, me));
     return sendJSON(res, 200, {
@@ -1141,7 +1147,8 @@ async function handleAPI(req, res, pathname) {
     const g = String(body.group || '').trim();
     if (!g) return sendJSON(res, 400, { error: 'Не указана группа' });
     const canEdit = hasRole(me, 'dev')
-      || ((hasRole(me, 'prefect') || hasRole(me, 'curator')) && String(me.group || '') === g);
+      || ((hasRole(me, 'prefect') || hasRole(me, 'curator') || hasRole(me, 'deputy'))
+          && String(me.group || '') === g);
     if (!canEdit) return sendJSON(res, 403, { error: 'Нет прав на редактирование этой группы' });
 
     db.data.schedule = db.data.schedule || {};
@@ -1197,8 +1204,9 @@ async function handleAPI(req, res, pathname) {
     const teachesHere = Object.keys(groupDays).some(d =>
       (groupDays[d] || []).some(L => !L.event && fioKey(L.teacher) === fioKey(me.fio)));
     const ownGroup = String(me.group || '') === g;
-    const isFull = hasRole(me, 'dev') || (hasRole(me, 'curator') && ownGroup);
-    const isPrefect = hasRole(me, 'prefect') && ownGroup;
+    const isFull = hasRole(me, 'dev') || (hasRole(me, 'curator') && ownGroup)
+      || ((hasRole(me, 'prefect') || hasRole(me, 'deputy')) && ownGroup);
+    const isPrefect = (hasRole(me, 'prefect') || hasRole(me, 'deputy')) && ownGroup;
     const isTeacher = hasRole(me, 'teacher') || (hasRole(me, 'curator') && teachesHere);
 
     if (!isFull && !isPrefect && !isTeacher) {
@@ -1688,7 +1696,8 @@ async function handleAPI(req, res, pathname) {
     if (!rec) return sendJSON(res, 404, { error: 'Пользователь не найден' });
     const body = await readBody(req);
     if (!body) return sendJSON(res, 400, { error: 'Некорректный запрос' });
-    const allowed = ['student', 'prefect', 'curator', 'teacher', 'support', 'patron', 'dev'];
+    const allowed = ['student', 'prefect', 'deputy', 'curator', 'teacher',
+      'support', 'patron', 'dev'];
     const primary = normRole(rec.role);
     /* Лимита нет: можно выдать сразу все существующие роли. */
     rec.roles = (Array.isArray(body.roles) ? body.roles : [])

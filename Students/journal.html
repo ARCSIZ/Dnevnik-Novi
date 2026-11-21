@@ -326,7 +326,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260308-msg1"></script>
+  <script src="../Data/users.js?v=20260309-deputy1"></script>
   <script src="../General/notice.js?v=3"></script>
   <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
@@ -367,9 +367,10 @@
   const myRoles=CollegeDB.rolesOf?CollegeDB.rolesOf(me):[R(me&&me.role)];
   const role=myRoles.indexOf('dev')>-1?'dev'
     :myRoles.indexOf('curator')>-1?'curator'
-    :myRoles.indexOf('prefect')>-1?'prefect':'student';
+    :myRoles.indexOf('prefect')>-1?'prefect'
+    :myRoles.indexOf('deputy')>-1?'deputy':'student';
 
-  if(['prefect','curator','dev'].indexOf(role)<0){
+  if(['prefect','deputy','curator','dev'].indexOf(role)<0){
     $('denied').classList.remove('hidden'); lucide.createIcons(); return;
   }
   if(!me.group&&role!=='dev'){
@@ -400,10 +401,13 @@
   }
 
   $('myGroup').textContent=GROUP||'—';
-  $('appKind').textContent='ПРИЛОЖЕНИЕ · '+(role==='curator'?'КУРАТОР':role==='prefect'?'СТАРОСТА':'DEV');
+  $('appKind').textContent='ПРИЛОЖЕНИЕ · '+
+    (role==='curator'?'КУРАТОР':role==='deputy'?'ЗАМ. СТАРОСТЫ':role==='prefect'?'СТАРОСТА':'DEV');
   $('appTitle').textContent=role==='dev'?'Журнал (режим разработчика)'
-    :(role==='curator'?'Журнал куратора':'Журнал старосты');
-  $('rolePill').textContent=role==='curator'?'КУРАТОР':(role==='dev'?'DEV':'СТАРОСТА');
+    :(role==='curator'?'Журнал куратора'
+      :(role==='deputy'?'Журнал зам. старосты':'Журнал старосты'));
+  $('rolePill').textContent=role==='curator'?'КУРАТОР'
+    :(role==='deputy'?'ЗАМ. СТАРОСТЫ':(role==='dev'?'DEV':'СТАРОСТА'));
 
   if(!GROUP){
     $('myGroup').textContent='не выбрана';

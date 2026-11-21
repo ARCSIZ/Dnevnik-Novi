@@ -581,7 +581,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260308-msg1"></script>
+  <script src="../Data/users.js?v=20260309-deputy1"></script>
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/notify.js?v=1"></script>
   <script src="../General/notice.js?v=3"></script>
@@ -1227,8 +1227,8 @@
      dev     → «Панель управления»
      student → «Поддержка», «Рейтинг»                                   */
   const ROLE_NAMES={ dev:'Разработчик', student:'Студент', prefect:'Староста',
-    curator:'Куратор', teacher:'Преподаватель', support:'Оператор поддержки',
-    patron:'Патрон' };
+    deputy:'Зам. старосты', curator:'Куратор', teacher:'Преподаватель',
+    support:'Оператор поддержки', patron:'Патрон' };
   /* Мультироли: приложения доступны по любой из ролей пользователя. */
   const myRoles=CollegeDB.rolesOf?CollegeDB.rolesOf(u):[CollegeDB.normRole(u&&u.role)];
   const myRole=myRoles[0]||'student';
@@ -1239,7 +1239,7 @@
     { id:'panel',   roles:['dev'],   url:'../Dev/panel.html',
       name:'Панель управления', desc:'Пользователи, роли и данные системы',
       icon:'sliders-horizontal', grad:'from-indigo-500 to-purple-600' },
-    { id:'journal', roles:['prefect','curator','dev'], url:'journal.html',
+    { id:'journal', roles:['prefect','deputy','curator','dev'], url:'journal.html',
       name:'Журнал', desc:'Расписание группы, замены и мероприятия',
       icon:'clipboard-list', grad:'from-emerald-500 to-sky-500' },
     { id:'tjournal', roles:['teacher','dev'], url:'../Faculty/journal.html',

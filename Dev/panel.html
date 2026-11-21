@@ -83,6 +83,7 @@
   .rl-support{background:rgba(34,211,238,.14);color:#67e8f9;border:1px solid rgba(34,211,238,.35)}
   .rl-patron{background:rgba(244,114,182,.16);color:#f9a8d4;border:1px solid rgba(244,114,182,.45)}
   .rl-teacher{background:rgba(129,140,248,.14);color:#c7d2fe;border:1px solid rgba(129,140,248,.3)}
+  .rl-deputy{background:rgba(14,165,233,.14);color:#7dd3fc;border:1px solid rgba(14,165,233,.35)}
   .rl-prefect{background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
   .rl-curator{background:rgba(251,191,36,.14);color:#fcd34d;border:1px solid rgba(251,191,36,.35)}
   /* окно выбора ролей */
@@ -481,7 +482,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260308-msg1"></script>
+  <script src="../Data/users.js?v=20260309-deputy1"></script>
   <script src="../General/badges.js?v=2"></script>
   <script src="../General/perf.js"></script>
   <script src="../General/pwa.js?v=2"></script>
@@ -558,12 +559,13 @@
     document.querySelectorAll('.sec').forEach(x=>x.classList.toggle('hidden',x.id!=='sec-'+id));
   }));
 
-  const ROLE_LIST=[['student','Студент'],['prefect','Староста'],['curator','Куратор'],
-    ['teacher','Преподаватель'],['support','Оператор поддержки'],
+  const ROLE_LIST=[['student','Студент'],['prefect','Староста'],['deputy','Зам. старосты'],
+    ['curator','Куратор'],['teacher','Преподаватель'],['support','Оператор поддержки'],
     ['patron','Патрон'],['dev','Разработчик']];
-  /* Дополнительные роли: студент + оператор и подобные комбинации. */
+  /* Дополнительные роли: сколько угодно, без ограничений. */
   const EXTRA_ROLES=[['support','Оператор поддержки'],['patron','Патрон'],
-    ['teacher','Преподаватель'],['prefect','Староста'],['curator','Куратор']];
+    ['teacher','Преподаватель'],['prefect','Староста'],['deputy','Зам. старосты'],
+    ['curator','Куратор']];
   let filter='', openGroups={};
 
   function users(){ return CollegeDB.all(); }

@@ -174,6 +174,7 @@
     if (r === 'teacher') return 'teacher';
     if (r === 'support' || r === 'operator') return 'support';
     if (r === 'patron' || r === 'sutener') return 'patron';
+    if (r === 'deputy' || r === 'deputy-prefect') return 'deputy';
     return 'student';
   }
 
@@ -778,7 +779,8 @@
     normRole: normRole,
 
     roleName: function (role) {
-      var map = { student: 'Студент', prefect: 'Староста', curator: 'Куратор',
+      var map = { student: 'Студент', prefect: 'Староста',
+        deputy: 'Зам. старосты', curator: 'Куратор',
         teacher: 'Преподаватель', support: 'Оператор поддержки',
         patron: 'Патрон', dev: 'Разработчик' };
       return map[normRole(role)] || 'Студент';

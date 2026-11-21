@@ -273,7 +273,7 @@
                      border-radius:12px;padding:9px 12px;font-size:13px;color:#fff;outline:none;font-family:inherit">
           </div>
           <div id="studentsList" class="space-y-2"></div>
-          <p class="text-[11.5px] text-white/30 mt-3">Нажмите на ученика, чтобы открыть его статистику по вашим предметам.</p>
+          <p class="text-[11.5px] text-white/30 mt-3" id="studentsHint">Нажмите на ученика, чтобы открыть его статистику.</p>
         </div>
       </div>
 
@@ -297,7 +297,7 @@
   </div>
 
   <script src="../General/theme.js?v=3"></script>
-  <script src="../Data/users.js?v=20260308-msg1"></script>
+  <script src="../Data/users.js?v=20260309-deputy1"></script>
   <script src="../General/notice.js?v=3"></script>
   <script src="../General/ui.js?v=3"></script>
   <script src="../General/perf.js"></script>
@@ -330,13 +330,20 @@
   const s=CollegeDB.session();
   let me=(s&&CollegeDB.findByLogin(s.login))||null;
   if(s&&CollegeDB.me){ try{ const f=await CollegeDB.me(); if(f) me=f; }catch(e){} }
-  /* Мультироли: приоритет dev → teacher → curator. */
+  /* Мультироли: приоритет dev → teacher → curator/prefect/deputy. */
   const myRoles=CollegeDB.rolesOf?CollegeDB.rolesOf(me):[R(me&&me.role)];
   const role=myRoles.indexOf('dev')>-1?'dev'
     :myRoles.indexOf('teacher')>-1?'teacher'
-    :myRoles.indexOf('curator')>-1?'curator':'student';
+    :myRoles.indexOf('curator')>-1?'curator'
+    :myRoles.indexOf('prefect')>-1?'prefect'
+    :myRoles.indexOf('deputy')>-1?'deputy':'student';
 
-  if(['teacher','dev','curator'].indexOf(role)<0){
+  /* Полный набор предметов группы видят куратор, староста, заместитель
+     и разработчик — даже если среди ролей есть ещё «преподаватель».
+     Чистый преподаватель видит только предметы, которые ведёт сам. */
+  const seeAll=myRoles.some(r=>['dev','curator','prefect','deputy'].indexOf(r)>-1);
+
+  if(['teacher','dev','curator','prefect','deputy'].indexOf(role)<0){
     $('denied').classList.remove('hidden'); lucide.createIcons(); return;
   }
 
@@ -347,8 +354,10 @@
 
   const MY_KEY=FK(me&&me.fio);
 
-  /* Сервер отдаёт только пары текущего преподавателя, а не всю базу. */
-  let ALL=await (CollegeDB.loadTeachingSchedules?CollegeDB.loadTeachingSchedules():Promise.resolve({}));
+  /* Преподаватель: только свои пары. Куратор/староста/зам: всё расписание группы. */
+  let ALL=await (seeAll
+    ? Promise.resolve({})
+    : (CollegeDB.loadTeachingSchedules?CollegeDB.loadTeachingSchedules():Promise.resolve({})));
   function myGroups(){
     const out=[];
     Object.keys(ALL).forEach(g=>{
@@ -358,7 +367,10 @@
     });
     return out;
   }
-  let groups=myGroups();
+  /* Для полной статистики группы берём свою группу, а не группы по расписанию. */
+  let groups=seeAll
+    ? (me.group?[me.group]:[])
+    : myGroups();
   if(role==='dev'&&!groups.length) groups=(CollegeDB.listGroups()||[]).map(g=>g.code);
 
   /* куратор без пар в расписании — журнал закрыт */
@@ -384,6 +396,9 @@
 
   let GROUP=groups[0]||'';
   if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
+  /* Полная статистика группы требует всего расписания группы,
+     а не только пар, которые ведёт текущий пользователь. */
+  if(seeAll&&GROUP&&CollegeDB.loadSchedule) ALL=await CollegeDB.loadSchedule(GROUP);
   $('groupSelect').innerHTML=groups.map(g=>'<option value="'+g+'">'+g+'</option>').join('')
     ||'<option value="">—</option>';
   if(groups.length) $('groupHint').textContent='Ваши пары найдены в группах: '+groups.join(', ');
@@ -397,14 +412,17 @@
     GROUP=e.target.value; picked=null;
     if(GROUP&&CollegeDB.loadGroupUsers) await CollegeDB.loadGroupUsers(GROUP);
     attendance=GROUP?await CollegeDB.loadAttendance(GROUP):{};
+    if(seeAll&&GROUP&&CollegeDB.loadSchedule) ALL=await CollegeDB.loadSchedule(GROUP);
     renderWeek(); renderDay();
     if(typeof renderStudents==='function') renderStudents();
   });
 
-  /* ---- мои пары конкретного дня ---- */
+  /* ---- пары дня: для полной статистики — все, иначе только свои ---- */
   function myLessons(date){
     const list=((ALL[GROUP]||{})[keyOf(date)]||[]);
-    return list.filter(L=>!L.event&&FK(L.teacher)===MY_KEY).sort((a,b)=>(a.slot||0)-(b.slot||0));
+    const day=list.filter(L=>!L.event);
+    const visible=seeAll?day:day.filter(L=>FK(L.teacher)===MY_KEY);
+    return visible.sort((a,b)=>(a.slot||0)-(b.slot||0));
   }
   function students(){
     return CollegeDB.all().filter(x=>x.group===GROUP&&['student','prefect'].indexOf(R(x.role))>-1)
@@ -649,6 +667,11 @@
 
   let stuFilter='';
   $('stuSearch').addEventListener('input',e=>{ stuFilter=e.target.value; renderStudents(); });
+
+  /* Подсказка отражает объём данных: свои предметы или вся группа. */
+  $('studentsHint').textContent=seeAll
+    ? 'Нажмите на ученика, чтобы открыть статистику по всем предметам группы.'
+    : 'Нажмите на ученика, чтобы открыть статистику только по предметам, которые ведёте вы.';
 
   function renderStudents(){
     const q=stuFilter.trim().toLowerCase();
